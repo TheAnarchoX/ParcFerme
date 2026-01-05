@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useAuthInitializer } from './hooks/useAuth';
-// Import these when you have pages that need them:
-// import { ProtectedRoute, GuestOnlyRoute } from './components/ProtectedRoute';
+import { ProtectedRoute, GuestOnlyRoute } from './components/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 function AppRoutes() {
   const isInitialized = useAuthInitializer();
@@ -24,11 +26,11 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       
       {/* Guest-only routes (redirect if logged in) */}
-      {/* <Route path="/login" element={<GuestOnlyRoute><LoginPage /></GuestOnlyRoute>} /> */}
-      {/* <Route path="/register" element={<GuestOnlyRoute><RegisterPage /></GuestOnlyRoute>} /> */}
+      <Route path="/login" element={<GuestOnlyRoute><LoginPage /></GuestOnlyRoute>} />
+      <Route path="/register" element={<GuestOnlyRoute><RegisterPage /></GuestOnlyRoute>} />
       
       {/* Protected routes (require authentication) */}
-      {/* <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} /> */}
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       {/* <Route path="/log" element={<ProtectedRoute><LogRacePage /></ProtectedRoute>} /> */}
       
       {/* PaddockPass-only routes */}
