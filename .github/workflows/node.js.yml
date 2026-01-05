@@ -16,7 +16,7 @@ jobs:
 
     defaults:
         run:
-          working-directory: 'web' # Here the path to the folder where package-lock.json is located.
+          working-directory: 'src/web' # Here the path to the folder where package-lock.json is located.
 
     strategy:
       matrix:
