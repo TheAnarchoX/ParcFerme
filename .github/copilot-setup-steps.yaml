@@ -71,9 +71,9 @@ lint:
   - name: Lint Python code
     working-directory: src/python
     run: |
-      pip install ruff
-      ruff check .
-      ruff format --check .
+      .venv/bin/pip install ruff
+      .venv/bin/ruff check .
+      .venv/bin/ruff format --check .
 
 # Type checking commands
 type-check:
