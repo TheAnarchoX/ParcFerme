@@ -35,17 +35,22 @@ public sealed class AuthController : ControllerBase
         _logger = logger;
     }
 
-    private static string SanitizeForLogging(string? value)
+    /// <summary>
+    /// Sanitizes a string for safe logging by removing control characters
+    /// that could be used for log injection attacks.
+    /// </summary>
+    /// <param name="value">The string to sanitize.</param>
+    /// <returns>A sanitized string safe for logging, or empty string if input is null/empty.</returns>
+    internal static string SanitizeForLogging(string? value)
     {
         if (string.IsNullOrEmpty(value))
         {
             return string.Empty;
         }
 
-        // Remove characters that could be used to forge or break log entries.
-        return value
-            .Replace("\r", string.Empty, StringComparison.Ordinal)
-            .Replace("\n", string.Empty, StringComparison.Ordinal);
+        // Remove all control characters (ASCII 0-31 and 127) that could be used
+        // to forge or break log entries. This includes \r, \n, \t, \f, \v, and others.
+        return new string(value.Where(c => !char.IsControl(c)).ToArray());
     }
 
     /// <summary>
