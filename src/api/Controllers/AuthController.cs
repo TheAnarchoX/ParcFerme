@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -33,6 +34,32 @@ public sealed class AuthController : ControllerBase
         _tokenService = tokenService;
         _db = db;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Sanitizes a string for safe logging by removing control characters
+    /// that could be used for log injection attacks.
+    /// </summary>
+    /// <param name="value">The string to sanitize.</param>
+    /// <returns>A sanitized string safe for logging, or empty string if input is null/empty.</returns>
+    internal static string SanitizeForLogging(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        // Remove all Unicode control characters (including ASCII 0-31 and 127) that could be used
+        // to forge or break log entries. This includes \r, \n, \t, \f, \v, and other control characters.
+        var sb = new StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            if (!char.IsControl(c))
+            {
+                sb.Append(c);
+            }
+        }
+        return sb.ToString();
     }
 
     /// <summary>
@@ -73,7 +100,7 @@ public sealed class AuthController : ControllerBase
             return ValidationProblem();
         }
 
-        _logger.LogInformation("New user registered: {UserId} ({Email})", user.Id, user.Email);
+        _logger.LogInformation("New user registered: {UserId} ({Email})", user.Id, SanitizeForLogging(user.Email));
 
         var response = await GenerateAuthResponse(user);
         return CreatedAtAction(nameof(GetCurrentUser), response);
