@@ -71,7 +71,7 @@ lint:
   - name: Lint Python code
     working-directory: src/python
     run: |
-      .venv/bin/pip install ruff
+      # Ruff is already installed via dev dependencies
       .venv/bin/ruff check .
       .venv/bin/ruff format --check .
 
@@ -103,6 +103,7 @@ test:
       ConnectionStrings__DefaultConnection: "Host=localhost;Database=parcferme_test;Username=parcferme;Password=testpassword"
       ConnectionStrings__Redis: "localhost:6379"
     run: |
+      # Integration tests use Category=Integration filter to run separately from unit tests
       dotnet test tests/api/ParcFerme.Api.Tests.csproj \
         --no-build \
         --configuration Release \
