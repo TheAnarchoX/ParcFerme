@@ -1,12 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import React, { PropsWithChildren } from 'react';
+import { PropsWithChildren } from 'react';
 import { Provider } from 'react-redux';
 import { useAuth, usePaddockPass, useSpoilerMode } from './useAuth';
 import { 
   setupStore, 
   mockUser, 
-  mockPaddockPassUser,
   authenticatedState, 
   paddockPassState,
   unauthenticatedState 
