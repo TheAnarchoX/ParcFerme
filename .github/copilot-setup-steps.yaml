@@ -1,0 +1,178 @@
+# GitHub Copilot Coding Agent Setup Steps
+# This file configures the environment for Copilot to build, test, and validate changes
+# See: https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot
+
+# Install required tools and dependencies
+setup:
+  - name: Install .NET SDK
+    run: |
+      # .NET 10 is required for the API backend
+      # Assumes .NET 10 SDK is pre-installed in the environment (mirrors actions/setup-dotnet@v5)
+      # If not available, use: curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0
+      dotnet --version
+
+  - name: Install Node.js
+    run: |
+      # Node.js 22 is used for the React frontend (mirrors actions/setup-node@v6)
+      # Use nvm to avoid requiring root access in containerized environments
+      export NVM_DIR="$HOME/.nvm"
+      mkdir -p "$NVM_DIR"
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+      . "$NVM_DIR/nvm.sh"
+      nvm install 22
+      nvm use 22
+      node --version
+      npm --version
+
+  - name: Install Python
+    run: |
+      # Python 3.11+ is required for ingestion scripts (mirrors actions/setup-python@v6)
+      # Assumes Python 3.11 is pre-installed in the environment
+      # If not available, use pyenv: curl https://pyenv.run | bash && pyenv install 3.11 && pyenv global 3.11
+      python3.11 --version || python3 --version
+
+  - name: Start Docker services
+    run: |
+      # Start PostgreSQL, Redis, and Elasticsearch for integration tests
+      docker compose up -d
+      sleep 5
+      docker compose ps
+
+# Build commands for each component
+build:
+  - name: Build .NET API
+    working-directory: .
+    run: |
+      dotnet restore parcferme.sln
+      dotnet build parcferme.sln --no-restore --configuration Release
+
+  - name: Build React Web App
+    working-directory: src/web
+    run: |
+      npm ci
+      npm run build
+
+  - name: Install Python dependencies
+    working-directory: src/python
+    run: |
+      python3.11 -m venv .venv
+      .venv/bin/pip install --upgrade pip
+      .venv/bin/pip install -e ".[dev]"
+
+# Linting commands
+lint:
+  - name: Lint .NET code
+    working-directory: .
+    run: |
+      dotnet format parcferme.sln --verify-no-changes --verbosity diagnostic
+
+  - name: Lint React code
+    working-directory: src/web
+    run: |
+      npm run lint
+
+  - name: Lint Python code
+    working-directory: src/python
+    run: |
+      # Install Ruff explicitly to mirror CI workflow behavior (python.yml lines 38-44)
+      pip install ruff
+      ruff check .
+      ruff format --check .
+
+# Type checking commands
+type-check:
+  - name: Type check React code
+    working-directory: src/web
+    run: |
+      npm run type-check
+
+  - name: Type check Python code
+    working-directory: src/python
+    run: |
+      .venv/bin/mypy ingestion/
+
+# Test commands
+test:
+  - name: Test .NET API (unit tests)
+    working-directory: .
+    run: |
+      dotnet test tests/api/ParcFerme.Api.Tests.csproj \
+        --no-build \
+        --configuration Release \
+        --verbosity normal
+
+  - name: Test .NET API (integration tests)
+    working-directory: .
+    environment:
+      # Note: CI uses 'testpassword' with its own PostgreSQL service
+      # Local development uses 'localdev' from docker-compose.yml
+      # Adjust password based on your environment
+      ConnectionStrings__DefaultConnection: "Host=localhost;Database=parcferme_test;Username=parcferme;Password=localdev"
+      ConnectionStrings__Redis: "localhost:6379"
+    run: |
+      # Integration tests use Category=Integration filter to run separately from unit tests
+      dotnet test tests/api/ParcFerme.Api.Tests.csproj \
+        --no-build \
+        --configuration Release \
+        --filter "Category=Integration" \
+        --verbosity normal
+
+  - name: Test React Web App
+    working-directory: src/web
+    run: |
+      npm run test:run
+
+  - name: Test Python ingestion
+    working-directory: src/python
+    run: |
+      .venv/bin/pytest --verbose
+
+# Quick validation commands (for fast feedback during development)
+validate:
+  - name: Quick checks
+    run: |
+      # Check for merge conflict markers
+      if grep -rn "<<<<<<< " --include="*.ts" --include="*.tsx" --include="*.cs" --include="*.py" --include="*.json" .; then
+        echo "❌ Merge conflict markers found!"
+        exit 1
+      fi
+      
+      # Verify solution file exists
+      if [ ! -f parcferme.sln ]; then
+        echo "❌ Solution file not found!"
+        exit 1
+      fi
+      
+      echo "✅ Quick validation passed"
+
+  - name: Verify Python imports
+    working-directory: src/python
+    run: |
+      .venv/bin/python -c "from ingestion import healthcheck"
+      .venv/bin/python -c "from ingestion.clients import openf1"
+      .venv/bin/python -c "from ingestion import config"
+      echo "✅ Python imports verified"
+
+# Database migration commands
+database:
+  - name: Apply database migrations
+    working-directory: src/api
+    run: |
+      dotnet ef database update
+
+# Development server commands (for manual testing)
+dev:
+  - name: Run API server
+    working-directory: src/api
+    run: |
+      dotnet watch run
+
+  - name: Run Web frontend
+    working-directory: src/web
+    run: |
+      npm run dev
+
+  - name: Run Python healthcheck
+    working-directory: src/python
+    run: |
+      .venv/bin/python -m ingestion.healthcheck
