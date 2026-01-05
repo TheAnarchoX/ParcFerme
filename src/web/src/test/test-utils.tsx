@@ -2,7 +2,7 @@ import React, { PropsWithChildren } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
-import { configureStore, combineReducers, PreloadedState } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import authReducer from '../store/slices/authSlice';
 import type { User } from '../types/api';
 
@@ -21,7 +21,7 @@ const rootReducer = combineReducers({
   auth: authReducer,
 });
 
-export function setupStore(preloadedState?: PreloadedState<RootState>) {
+export function setupStore(preloadedState?: Partial<RootState>) {
   return configureStore({
     reducer: rootReducer,
     preloadedState,
@@ -33,7 +33,7 @@ export type AppDispatch = AppStore['dispatch'];
 
 // Render function with all providers
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
-  preloadedState?: PreloadedState<RootState>;
+  preloadedState?: Partial<RootState>;
   store?: AppStore;
 }
 
@@ -76,7 +76,7 @@ export const mockPaddockPassUser: User = {
 };
 
 // Pre-configured states for common test scenarios
-export const authenticatedState: PreloadedState<RootState> = {
+export const authenticatedState: Partial<RootState> = {
   auth: {
     user: mockUser,
     isAuthenticated: true,
@@ -86,7 +86,7 @@ export const authenticatedState: PreloadedState<RootState> = {
   },
 };
 
-export const paddockPassState: PreloadedState<RootState> = {
+export const paddockPassState: Partial<RootState> = {
   auth: {
     user: mockPaddockPassUser,
     isAuthenticated: true,
@@ -96,7 +96,7 @@ export const paddockPassState: PreloadedState<RootState> = {
   },
 };
 
-export const unauthenticatedState: PreloadedState<RootState> = {
+export const unauthenticatedState: Partial<RootState> = {
   auth: {
     user: null,
     isAuthenticated: false,
@@ -106,7 +106,7 @@ export const unauthenticatedState: PreloadedState<RootState> = {
   },
 };
 
-export const loadingState: PreloadedState<RootState> = {
+export const loadingState: Partial<RootState> = {
   auth: {
     user: null,
     isAuthenticated: false,
