@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 import httpx  # type: ignore
-from pydantic import BaseModel  # type: ignore
+from pydantic import BaseModel, Field  # type: ignore
 from tenacity import retry, stop_after_attempt, wait_exponential  # type: ignore
 
 from ingestion.config import settings
@@ -22,6 +22,8 @@ class OpenF1Session(BaseModel):
     country_name: str
     circuit_short_name: str
     year: int
+    circuit_key: int | None = None
+    location: str | None = None
 
 
 class OpenF1Meeting(BaseModel):
@@ -34,6 +36,62 @@ class OpenF1Meeting(BaseModel):
     circuit_short_name: str
     date_start: datetime
     year: int
+    circuit_key: int | None = None
+    location: str | None = None
+
+
+class OpenF1Driver(BaseModel):
+    """Driver data from OpenF1 API."""
+
+    driver_number: int
+    session_key: int
+    meeting_key: int
+    broadcast_name: str
+    full_name: str
+    first_name: str | None = None
+    last_name: str | None = None
+    name_acronym: str
+    team_name: str
+    team_colour: str | None = None
+    headshot_url: str | None = None
+    country_code: str | None = None
+
+
+class OpenF1Position(BaseModel):
+    """Position data from OpenF1 API (race results)."""
+
+    session_key: int
+    meeting_key: int
+    driver_number: int
+    position: int
+    date: datetime
+
+
+class OpenF1Lap(BaseModel):
+    """Lap data from OpenF1 API."""
+
+    session_key: int
+    meeting_key: int
+    driver_number: int
+    lap_number: int
+    lap_duration: float | None = None
+    is_pit_out_lap: bool = False
+    duration_sector_1: float | None = None
+    duration_sector_2: float | None = None
+    duration_sector_3: float | None = None
+
+
+class OpenF1Stint(BaseModel):
+    """Stint data (tyre compound info) from OpenF1 API."""
+
+    session_key: int
+    meeting_key: int
+    driver_number: int
+    stint_number: int
+    lap_start: int
+    lap_end: int | None = None
+    compound: str | None = None
+    tyre_age_at_start: int | None = None
 
 
 class OpenF1Client:
@@ -100,9 +158,111 @@ class OpenF1Client:
         data = self._get("/meetings", params={"year": year})
         return [OpenF1Meeting(**item) for item in data]
 
+    def get_meeting(self, meeting_key: int) -> OpenF1Meeting | None:
+        """Get a specific meeting by its key."""
+        data = self._get("/meetings", params={"meeting_key": meeting_key})
+        if data:
+            return OpenF1Meeting(**data[0])
+        return None
+
     def get_race_sessions(self, year: int) -> list[OpenF1Session]:
         """Convenience method to get only Race sessions."""
         return self.get_sessions(year, session_type="Race")
+
+    def get_session(self, session_key: int) -> OpenF1Session | None:
+        """Get a specific session by its key."""
+        data = self._get("/sessions", params={"session_key": session_key})
+        if data:
+            return OpenF1Session(**data[0])
+        return None
+
+    def get_sessions_for_meeting(self, meeting_key: int) -> list[OpenF1Session]:
+        """Get all sessions for a specific meeting."""
+        data = self._get("/sessions", params={"meeting_key": meeting_key})
+        return [OpenF1Session(**item) for item in data]
+
+    def get_drivers(self, session_key: int) -> list[OpenF1Driver]:
+        """Get all drivers participating in a session.
+
+        This returns driver info including team assignment for that session.
+        Use this to build the Entrant records linking drivers to teams.
+        """
+        data = self._get("/drivers", params={"session_key": session_key})
+        return [OpenF1Driver(**item) for item in data]
+
+    def get_drivers_for_meeting(self, meeting_key: int) -> list[OpenF1Driver]:
+        """Get all unique drivers for a meeting (race weekend).
+
+        Fetches driver data from the first available session.
+        """
+        data = self._get("/drivers", params={"meeting_key": meeting_key})
+        # Deduplicate by driver_number (same driver may appear multiple times)
+        seen: set[int] = set()
+        unique_drivers: list[OpenF1Driver] = []
+        for item in data:
+            driver = OpenF1Driver(**item)
+            if driver.driver_number not in seen:
+                seen.add(driver.driver_number)
+                unique_drivers.append(driver)
+        return unique_drivers
+
+    def get_positions(self, session_key: int) -> list[OpenF1Position]:
+        """Get position data for a session.
+
+        ⚠️ SPOILER DATA - Contains race results.
+        Returns chronological position updates. The final positions
+        can be determined by taking the last entry per driver.
+        """
+        data = self._get("/position", params={"session_key": session_key})
+        return [OpenF1Position(**item) for item in data]
+
+    def get_final_positions(self, session_key: int) -> dict[int, int]:
+        """Get the final position for each driver in a session.
+
+        ⚠️ SPOILER DATA - Contains race results.
+
+        Returns:
+            Dict mapping driver_number -> final_position
+        """
+        positions = self.get_positions(session_key)
+        # Group by driver, take the last (most recent) position
+        final: dict[int, int] = {}
+        for pos in positions:
+            final[pos.driver_number] = pos.position
+        return final
+
+    def get_laps(self, session_key: int, driver_number: int | None = None) -> list[OpenF1Lap]:
+        """Get lap data for a session, optionally filtered by driver."""
+        params: dict[str, Any] = {"session_key": session_key}
+        if driver_number is not None:
+            params["driver_number"] = driver_number
+        data = self._get("/laps", params=params)
+        return [OpenF1Lap(**item) for item in data]
+
+    def get_fastest_lap_driver(self, session_key: int) -> int | None:
+        """Get the driver number who set the fastest lap in a session.
+
+        Returns:
+            The driver_number of the fastest lap holder, or None if no data.
+        """
+        laps = self.get_laps(session_key)
+        if not laps:
+            return None
+
+        fastest: OpenF1Lap | None = None
+        for lap in laps:
+            if lap.lap_duration is not None:
+                if fastest is None or lap.lap_duration < (fastest.lap_duration or float("inf")):
+                    fastest = lap
+        return fastest.driver_number if fastest else None
+
+    def get_stints(self, session_key: int, driver_number: int | None = None) -> list[OpenF1Stint]:
+        """Get stint (tyre compound) data for a session."""
+        params: dict[str, Any] = {"session_key": session_key}
+        if driver_number is not None:
+            params["driver_number"] = driver_number
+        data = self._get("/stints", params=params)
+        return [OpenF1Stint(**item) for item in data]
 
 
 # Example usage

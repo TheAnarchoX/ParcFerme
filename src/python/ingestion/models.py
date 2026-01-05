@@ -1,0 +1,204 @@
+"""
+Database models for Parc Fermé ingestion.
+
+These Pydantic models represent the racing domain entities that will be
+synced to PostgreSQL. They mirror the C# models in ParcFerme.Api.Models.
+"""
+
+from datetime import date, datetime
+from enum import Enum
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel, Field
+
+
+# =========================
+# Enums
+# =========================
+
+
+class SessionType(str, Enum):
+    """Type of racing session."""
+
+    FP1 = "FP1"
+    FP2 = "FP2"
+    FP3 = "FP3"
+    QUALIFYING = "Qualifying"
+    SPRINT_QUALIFYING = "SprintQualifying"
+    SPRINT = "Sprint"
+    RACE = "Race"
+    WARMUP = "Warmup"
+    # MotoGP-specific
+    MOTO3_RACE = "Moto3Race"
+    MOTO2_RACE = "Moto2Race"
+    MOTOGP_RACE = "MotoGPRace"
+
+
+class SessionStatus(str, Enum):
+    """Status of a session."""
+
+    SCHEDULED = "Scheduled"
+    IN_PROGRESS = "InProgress"
+    COMPLETED = "Completed"
+    CANCELLED = "Cancelled"
+    DELAYED = "Delayed"
+
+
+class ResultStatus(str, Enum):
+    """Result status for an entrant."""
+
+    FINISHED = "Finished"
+    DNF = "DNF"
+    DNS = "DNS"
+    DSQ = "DSQ"
+    NC = "NC"  # Not Classified
+
+
+# =========================
+# Domain Models
+# =========================
+
+
+class Series(BaseModel):
+    """Racing series (F1, MotoGP, IndyCar, WEC)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    name: str
+    slug: str
+    logo_url: str | None = None
+
+
+class Season(BaseModel):
+    """A season within a series (e.g., 'F1 2024')."""
+
+    id: UUID = Field(default_factory=uuid4)
+    series_id: UUID
+    year: int
+
+
+class Circuit(BaseModel):
+    """A racing circuit/track."""
+
+    id: UUID = Field(default_factory=uuid4)
+    name: str
+    slug: str
+    location: str
+    country: str
+    country_code: str | None = None
+    layout_map_url: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    length_meters: int | None = None
+
+
+class Round(BaseModel):
+    """A race weekend (e.g., '2024 British Grand Prix')."""
+
+    id: UUID = Field(default_factory=uuid4)
+    season_id: UUID
+    circuit_id: UUID
+    name: str
+    slug: str
+    round_number: int
+    date_start: date
+    date_end: date
+    openf1_meeting_key: int | None = None
+
+
+class Session(BaseModel):
+    """A single session within a round (FP1, Qualifying, Race, etc.)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    round_id: UUID
+    type: SessionType
+    start_time_utc: datetime
+    status: SessionStatus = SessionStatus.SCHEDULED
+    openf1_session_key: int | None = None
+
+
+class Driver(BaseModel):
+    """A driver in the database."""
+
+    id: UUID = Field(default_factory=uuid4)
+    first_name: str
+    last_name: str
+    slug: str
+    abbreviation: str | None = None
+    nationality: str | None = None
+    headshot_url: str | None = None
+    driver_number: int | None = None
+
+
+class Team(BaseModel):
+    """A team/constructor in the database."""
+
+    id: UUID = Field(default_factory=uuid4)
+    name: str
+    slug: str
+    short_name: str | None = None
+    logo_url: str | None = None
+    primary_color: str | None = None
+
+
+class Entrant(BaseModel):
+    """Links a driver to a team for a specific round."""
+
+    id: UUID = Field(default_factory=uuid4)
+    round_id: UUID
+    driver_id: UUID
+    team_id: UUID
+    car_number: int | None = None
+
+
+class Result(BaseModel):
+    """
+    Session result for an entrant.
+
+    ⚠️ SPOILER DATA - Must be protected by Spoiler Shield.
+    """
+
+    id: UUID = Field(default_factory=uuid4)
+    session_id: UUID
+    entrant_id: UUID
+    position: int | None = None
+    grid_position: int | None = None
+    status: ResultStatus = ResultStatus.FINISHED
+    points: float | None = None
+    time_milliseconds: int | None = None
+    laps: int | None = None
+    fastest_lap: bool = False
+
+
+# =========================
+# OpenF1 -> Domain Mappings
+# =========================
+
+
+# Map OpenF1 session_type strings to our SessionType enum
+OPENF1_SESSION_TYPE_MAP: dict[str, SessionType] = {
+    "Practice 1": SessionType.FP1,
+    "Practice 2": SessionType.FP2,
+    "Practice 3": SessionType.FP3,
+    "Qualifying": SessionType.QUALIFYING,
+    "Sprint Qualifying": SessionType.SPRINT_QUALIFYING,
+    "Sprint Shootout": SessionType.SPRINT_QUALIFYING,
+    "Sprint": SessionType.SPRINT,
+    "Race": SessionType.RACE,
+}
+
+
+def slugify(text: str) -> str:
+    """Convert a string to a URL-friendly slug."""
+    import re
+
+    # Convert to lowercase
+    slug = text.lower()
+    # Replace spaces and underscores with hyphens
+    slug = re.sub(r"[\s_]+", "-", slug)
+    # Remove non-alphanumeric characters except hyphens
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    # Remove consecutive hyphens
+    slug = re.sub(r"-+", "-", slug)
+    # Strip leading/trailing hyphens
+    slug = slug.strip("-")
+    return slug

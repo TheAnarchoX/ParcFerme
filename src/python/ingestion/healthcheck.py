@@ -65,5 +65,40 @@ def main() -> int:
         return 1
 
 
+def check_health() -> dict[str, dict]:
+    """Run all health checks and return structured results.
+
+    Returns:
+        Dict mapping service name to health status.
+    """
+    results: dict[str, dict] = {}
+
+    # PostgreSQL
+    try:
+        with psycopg.connect(settings.database_url) as conn, conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            results["postgresql"] = {"healthy": True, "message": "Connected"}
+    except Exception as e:
+        results["postgresql"] = {"healthy": False, "message": str(e)}
+
+    # Redis
+    try:
+        r = redis.from_url(settings.redis_url)
+        r.ping()
+        results["redis"] = {"healthy": True, "message": "Connected"}
+    except Exception as e:
+        results["redis"] = {"healthy": False, "message": str(e)}
+
+    # OpenF1 API
+    try:
+        response = httpx.get(f"{settings.openf1_base_url}/sessions", params={"limit": 1})
+        response.raise_for_status()
+        results["openf1"] = {"healthy": True, "message": "Available"}
+    except Exception as e:
+        results["openf1"] = {"healthy": False, "message": str(e)}
+
+    return results
+
+
 if __name__ == "__main__":
     sys.exit(main())

@@ -43,6 +43,7 @@
 - [ ] User profiles API
 - [ ] OpenF1 data sync (scheduled job)
 - [ ] Seed 2024-2025 F1 calendar data
+- [ ] WEC data integration (multi-series, multi-class and multi-driver support. This task requires the development of a custom scraper for https://fiawec.alkamelsystems.com/)
 
 ### Frontend
 - [ ] Auth pages (Login, Register, Forgot Password)
@@ -89,7 +90,6 @@
 ### Backend
 - [ ] MotoGP data integration
 - [ ] IndyCar data integration
-- [ ] WEC data integration (multi-driver cars)
 - [ ] Circuit/Venue guides API
 - [ ] Gamification system (achievements, streaks)
 - [ ] PaddockPass premium features
