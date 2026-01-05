@@ -80,3 +80,5 @@ yarn-error.log*
 # ----- Build artifacts -----
 /publish/
 /out/
+
+.fake
