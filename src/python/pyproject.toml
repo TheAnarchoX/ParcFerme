@@ -1,0 +1,51 @@
+[project]
+name = "parcferme-ingestion"
+version = "0.1.0"
+description = "Data ingestion pipeline for Parc Fermé - fetches racing data from OpenF1 and other sources"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+dependencies = [
+    "httpx>=0.27.0",           # HTTP client for API calls
+    "fastf1>=3.4.0",           # F1 telemetry and data
+    "polars>=1.0.0",           # Fast DataFrame operations
+    "pydantic>=2.9.0",         # Data validation
+    "pydantic-settings>=2.5.0", # Settings management
+    "psycopg[binary]>=3.2.0",  # PostgreSQL driver
+    "redis>=5.0.0",            # Redis client
+    "tenacity>=9.0.0",         # Retry logic
+    "structlog>=24.4.0",       # Structured logging
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.7.0",
+    "mypy>=1.13.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ingestion"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
