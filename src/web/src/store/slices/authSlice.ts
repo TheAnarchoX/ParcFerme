@@ -107,6 +107,7 @@ export const authSlice = createSlice({
     forceLogout: (state) => {
       state.user = null;
       state.isAuthenticated = false;
+      state.isInitialized = true;
       state.error = null;
     },
   },
