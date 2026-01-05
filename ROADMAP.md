@@ -1,6 +1,6 @@
 # Parc Fermé - Development Roadmap
 
-> Last updated: January 5, 2026
+> Last updated: January 6, 2026
 
 ## 🏁 Current Sprint: Foundation
 
@@ -19,9 +19,9 @@
 - [x] Python ingestion project structure
 - [x] Unit and Integration tests (backend + frontend)
 - [x] CI/CD pipeline (GitHub Actions)
+- [x] Auth UI pages (Login, Register, Profile)
 
 ### 🚧 In Progress
-- [ ] Auth UI pages (Login, Register, Profile)
 - [ ] OpenF1 data sync implementation
 
 ### 📋 Up Next
