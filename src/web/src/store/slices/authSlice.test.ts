@@ -3,7 +3,6 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../test/mocks/server';
 import { mockAuthResponse } from '../../test/mocks/handlers';
 import authReducer, {
-  authSlice,
   login,
   register,
   logout,

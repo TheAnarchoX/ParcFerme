@@ -138,7 +138,7 @@ describe('useAuth', () => {
     });
 
     it('should register successfully and update state', async () => {
-      const { store, wrapper } = createWrapperWithStore(unauthenticatedState);
+      const { wrapper } = createWrapperWithStore(unauthenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
