@@ -1,0 +1,84 @@
+# PR Labeler Configuration
+# Maps file paths to labels
+
+# Component labels
+api:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/api/**'
+      - 'tests/api/**'
+
+web:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/web/**'
+
+python:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/python/**'
+
+# Type labels
+infrastructure:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docker-compose.yml'
+      - 'Dockerfile*'
+      - '**/Dockerfile'
+      - 'Makefile'
+      - '.github/**'
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**'
+      - '**/*.md'
+      - '!CHANGELOG.md'
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'tests/**'
+      - '**/*.test.*'
+      - '**/*.spec.*'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/*.csproj'
+      - '**/pyproject.toml'
+      - '**/requirements*.txt'
+
+# Feature area labels
+auth:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/Auth/**'
+      - '**/auth*'
+      - '**/Authorization/**'
+
+database:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/Migrations/**'
+      - '**/Data/**'
+      - '**/Models/**'
+
+caching:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/Caching/**'
+      - '**/cache*'
+
+ingestion:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/python/ingestion/**'
+
+# CI/CD
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/workflows/**'

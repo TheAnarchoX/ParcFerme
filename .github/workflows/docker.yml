@@ -1,0 +1,70 @@
+# Docker Compose Validation & Build
+# Validates docker-compose configuration and tests container builds
+
+name: Docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker-compose.yml'
+      - 'Dockerfile*'
+      - '**/Dockerfile'
+      - '.github/workflows/docker.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docker-compose.yml'
+      - 'Dockerfile*'
+      - '**/Dockerfile'
+      - '.github/workflows/docker.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Compose
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose syntax
+        run: docker compose config --quiet
+
+      - name: Check compose file
+        run: docker compose config
+
+  services-health:
+    name: Test Services Start
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start services
+        run: docker compose up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for PostgreSQL..."
+          timeout 60 bash -c 'until docker compose exec -T postgres pg_isready -U parcferme; do sleep 2; done'
+          
+          echo "Waiting for Redis..."
+          timeout 30 bash -c 'until docker compose exec -T redis redis-cli ping | grep -q PONG; do sleep 2; done'
+          
+          echo "Waiting for Elasticsearch..."
+          timeout 90 bash -c 'until curl -s http://localhost:9200/_cluster/health | grep -q "yellow\|green"; do sleep 5; done'
+
+      - name: Check service status
+        run: docker compose ps
+
+      - name: View service logs (on failure)
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v

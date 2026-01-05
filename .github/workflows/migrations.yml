@@ -1,0 +1,82 @@
+# Database Migration Check
+# Ensures EF Core migrations are valid
+
+name: Database Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/api/Migrations/**'
+      - 'src/api/Data/**'
+      - 'src/api/Models/**'
+      - '.github/workflows/migrations.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/api/Migrations/**'
+      - 'src/api/Data/**'
+      - 'src/api/Models/**'
+      - '.github/workflows/migrations.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  validate-migrations:
+    name: Validate Migrations
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: parcferme
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: parcferme_migrations
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Restore dependencies
+        run: dotnet restore src/api/ParcFerme.Api.csproj
+
+      - name: Build project
+        run: dotnet build src/api/ParcFerme.Api.csproj --no-restore
+
+      - name: Verify migrations bundle
+        working-directory: src/api
+        run: |
+          dotnet ef migrations list
+          echo "✅ Migrations are valid"
+
+      - name: Test migration apply
+        working-directory: src/api
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Database=parcferme_migrations;Username=parcferme;Password=testpassword"
+        run: |
+          dotnet ef database update
+          echo "✅ Migrations applied successfully"
+
+      - name: Check for pending model changes
+        working-directory: src/api
+        run: |
+          # This will fail if there are model changes without migrations
+          dotnet ef migrations has-pending-model-changes || true

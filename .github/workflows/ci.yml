@@ -1,0 +1,61 @@
+# CI Status Check
+# Aggregates all CI checks for branch protection rules
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Quick checks that run on every PR
+  quick-checks:
+    name: Quick Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for merge conflicts markers
+        run: |
+          if grep -rn "<<<<<<< " --include="*.ts" --include="*.tsx" --include="*.cs" --include="*.py" --include="*.json" .; then
+            echo "❌ Merge conflict markers found!"
+            exit 1
+          fi
+          echo "✅ No merge conflict markers found"
+
+      - name: Check for console.log in TypeScript
+        run: |
+          if grep -rn "console\.log" --include="*.ts" --include="*.tsx" src/web/src/; then
+            echo "⚠️ console.log statements found (consider removing for production)"
+          fi
+        continue-on-error: true
+
+      - name: Verify solution file
+        run: |
+          if [ ! -f parcferme.sln ]; then
+            echo "❌ Solution file not found!"
+            exit 1
+          fi
+          echo "✅ Solution file exists"
+
+  # This job aggregates all required checks for branch protection
+  ci-complete:
+    name: CI Complete
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - quick-checks
+
+    steps:
+      - name: Check job status
+        run: |
+          if [ "${{ needs.quick-checks.result }}" != "success" ]; then
+            echo "Quick checks failed"
+            exit 1
+          fi
+          echo "✅ All checks passed!"

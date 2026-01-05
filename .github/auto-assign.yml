@@ -1,0 +1,20 @@
+# Auto-assign configuration
+# Configure this based on your team structure
+
+# Add reviewers to PRs
+addReviewers: true
+addAssignees: author
+
+# Number of reviewers to add
+numberOfReviewers: 1
+
+# Review by component ownership
+reviewers:
+  # Add team members here
+  # - username1
+  # - username2
+
+# Skip bot PRs
+skipKeywords:
+  - dependabot
+  - renovate

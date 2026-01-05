@@ -1,0 +1,122 @@
+# Release Workflow
+# Creates releases and generates changelogs when tags are pushed
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: .github/cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+        continue-on-error: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.content }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build and upload release artifacts
+  build-artifacts:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    strategy:
+      matrix:
+        include:
+          - artifact: api
+            path: src/api
+          - artifact: web
+            path: src/web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Build .NET API
+      - name: Setup .NET
+        if: matrix.artifact == 'api'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build API
+        if: matrix.artifact == 'api'
+        run: |
+          dotnet publish src/api/ParcFerme.Api.csproj \
+            --configuration Release \
+            --output ./publish/api \
+            --self-contained false
+
+      # Build React Web
+      - name: Setup Node.js
+        if: matrix.artifact == 'web'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'src/web/package-lock.json'
+
+      - name: Build Web
+        if: matrix.artifact == 'web'
+        run: |
+          cd src/web
+          npm ci
+          npm run build
+          mv dist ../../publish/web
+
+      - name: Create artifact archive
+        run: |
+          cd publish
+          tar -czvf ${{ matrix.artifact }}-${{ github.ref_name }}.tar.gz ${{ matrix.artifact }}
+
+      - name: Upload release artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/${{ matrix.artifact }}-${{ github.ref_name }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
