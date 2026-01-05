@@ -24,6 +24,7 @@
 - [ ] OpenF1 data sync implementation
 
 ### 📋 Up Next
+- [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Session listing and detail pages
 - [ ] "Log a Race" flow (core feature)
 - [ ] Basic feed/home page with recent activity
@@ -54,7 +55,6 @@
 - [ ] User settings page (spoiler mode, preferences)
 
 ### Infrastructure
-- [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Production deployment setup
 - [ ] Error tracking (Sentry or similar)
 - [ ] Basic analytics

@@ -32,8 +32,16 @@ export const tokenStorage = {
 // Axios Instance
 // =========================
 
+// Use absolute URL in test environment for MSW compatibility
+const getBaseUrl = (): string => {
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+    return 'http://localhost/api/v1';
+  }
+  return '/api/v1';
+};
+
 const api: AxiosInstance = axios.create({
-  baseURL: '/api/v1',
+  baseURL: getBaseUrl(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -106,7 +114,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post<AuthResponse>('/api/v1/auth/refresh', {
+        const { data } = await axios.post<AuthResponse>(`${getBaseUrl()}/auth/refresh`, {
           refreshToken,
         });
         

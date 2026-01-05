@@ -1,6 +1,9 @@
 import { http, HttpResponse } from 'msw';
 import type { AuthResponse, User, LoginRequest, RegisterRequest } from '../../types/api';
 
+// Base URL for API requests - matches what axios uses in test environment
+const API_BASE_URL = 'http://localhost/api/v1';
+
 // Test user data
 export const mockUser: User = {
   id: '123e4567-e89b-12d3-a456-426614174000',
@@ -27,22 +30,9 @@ export const mockAuthResponse: AuthResponse = {
   user: mockUser,
 };
 
-// Helper to create handlers for both relative and absolute URLs
-const createHandler = (method: 'get' | 'post' | 'patch', path: string, handler: Parameters<typeof http.get>[1]) => {
-  const absolutePath = `http://localhost${path}`;
-  switch (method) {
-    case 'get':
-      return [http.get(path, handler), http.get(absolutePath, handler)];
-    case 'post':
-      return [http.post(path, handler), http.post(absolutePath, handler)];
-    case 'patch':
-      return [http.patch(path, handler), http.patch(absolutePath, handler)];
-  }
-};
-
 export const handlers = [
   // Register
-  ...createHandler('post', '/api/v1/auth/register', async ({ request }) => {
+  http.post(`${API_BASE_URL}/auth/register`, async ({ request }) => {
     const body = await request.json() as RegisterRequest;
     
     if (body.email === 'existing@parcferme.com') {
@@ -64,7 +54,7 @@ export const handlers = [
   }),
 
   // Login
-  ...createHandler('post', '/api/v1/auth/login', async ({ request }) => {
+  http.post(`${API_BASE_URL}/auth/login`, async ({ request }) => {
     const body = await request.json() as LoginRequest;
     
     if (body.email === 'test@parcferme.com' && body.password === 'TestP@ssw0rd!') {
@@ -78,7 +68,7 @@ export const handlers = [
   }),
 
   // Refresh token
-  ...createHandler('post', '/api/v1/auth/refresh', async ({ request }) => {
+  http.post(`${API_BASE_URL}/auth/refresh`, async ({ request }) => {
     const body = await request.json() as { refreshToken: string };
     
     if (body.refreshToken === 'mock-refresh-token') {
@@ -96,7 +86,7 @@ export const handlers = [
   }),
 
   // Logout
-  ...createHandler('post', '/api/v1/auth/logout', ({ request }) => {
+  http.post(`${API_BASE_URL}/auth/logout`, ({ request }) => {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return HttpResponse.json({}, { status: 401 });
@@ -105,7 +95,7 @@ export const handlers = [
   }),
 
   // Get current user
-  ...createHandler('get', '/api/v1/auth/me', ({ request }) => {
+  http.get(`${API_BASE_URL}/auth/me`, ({ request }) => {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return HttpResponse.json({}, { status: 401 });
@@ -120,7 +110,7 @@ export const handlers = [
   }),
 
   // Update profile
-  ...createHandler('patch', '/api/v1/auth/me', async ({ request }) => {
+  http.patch(`${API_BASE_URL}/auth/me`, async ({ request }) => {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return HttpResponse.json({}, { status: 401 });

@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { server } from '../../test/mocks/server';
+import { mockAuthResponse } from '../../test/mocks/handlers';
 import authReducer, {
   authSlice,
   login,
@@ -19,6 +22,7 @@ import authReducer, {
   selectIsPaddockPass,
 } from './authSlice';
 import { mockUser, mockPaddockPassUser, setupStore } from '../../test/test-utils';
+import { tokenStorage } from '../../lib/api';
 import type { User } from '../../types/api';
 
 // Initial state for reducer tests
@@ -239,59 +243,184 @@ describe('authSlice', () => {
     });
   });
 
-  describe('async thunks with mocked API', () => {
+  describe('async thunks with MSW', () => {
     let store: ReturnType<typeof setupStore>;
 
     beforeEach(() => {
       store = setupStore();
       vi.clearAllMocks();
+      // Clear localStorage tokens before each test
+      tokenStorage.clearTokens();
     });
 
-    // Note: These tests mock the authApi module directly for reliable unit testing.
-    // Integration tests with actual API calls are covered by the MSW setup tests
-    // and backend integration tests.
+    describe('login thunk', () => {
+      it('should authenticate user with valid credentials', async () => {
+        const credentials = { email: 'test@parcferme.com', password: 'TestP@ssw0rd!' };
+        
+        await store.dispatch(login(credentials));
+        
+        const state = store.getState();
+        expect(state.auth.isAuthenticated).toBe(true);
+        expect(state.auth.user).toBeDefined();
+        expect(state.auth.user?.email).toBe('test@parcferme.com');
+        expect(state.auth.error).toBeNull();
+        expect(tokenStorage.getAccessToken()).toBe('mock-access-token');
+        expect(tokenStorage.getRefreshToken()).toBe('mock-refresh-token');
+      });
 
-    it('login thunk rejected on invalid credentials sets error state', async () => {
-      // MSW handles this - returns 401 for wrong credentials
-      const credentials = { email: 'wrong@email.com', password: 'wrongpassword' };
-      
-      await store.dispatch(login(credentials));
-      
-      const state = store.getState();
-      expect(state.auth.isAuthenticated).toBe(false);
-      expect(state.auth.user).toBeNull();
-      expect(state.auth.error).toBeTruthy();
+      it('should reject with invalid credentials', async () => {
+        const credentials = { email: 'wrong@email.com', password: 'wrongpassword' };
+        
+        await store.dispatch(login(credentials));
+        
+        const state = store.getState();
+        expect(state.auth.isAuthenticated).toBe(false);
+        expect(state.auth.user).toBeNull();
+        expect(state.auth.error).toBeTruthy();
+      });
+
+      it('should set loading state while pending', async () => {
+        // Use runtime handler to delay response
+        server.use(
+          http.post('http://localhost/api/v1/auth/login', async () => {
+            // Small delay to allow us to check pending state
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return HttpResponse.json(mockAuthResponse);
+          })
+        );
+
+        const credentials = { email: 'test@parcferme.com', password: 'TestP@ssw0rd!' };
+        const promise = store.dispatch(login(credentials));
+        
+        // Check loading state immediately
+        expect(store.getState().auth.isLoading).toBe(true);
+        
+        await promise;
+        expect(store.getState().auth.isLoading).toBe(false);
+      });
     });
 
-    it('login thunk sets loading state while pending', () => {
-      // Verify the reducer handles pending action correctly
-      const pendingAction = { type: login.pending.type };
-      const state = authSlice.reducer(initialState, pendingAction);
-      expect(state.isLoading).toBe(true);
-      expect(state.error).toBeNull();
+    describe('register thunk', () => {
+      it('should register new user successfully', async () => {
+        const userData = { 
+          email: 'newuser@parcferme.com', 
+          password: 'SecureP@ss123!',
+          displayName: 'New User'
+        };
+        
+        await store.dispatch(register(userData));
+        
+        const state = store.getState();
+        expect(state.auth.isAuthenticated).toBe(true);
+        expect(state.auth.user).toBeDefined();
+        expect(state.auth.user?.email).toBe('newuser@parcferme.com');
+        expect(state.auth.user?.displayName).toBe('New User');
+        expect(state.auth.error).toBeNull();
+        expect(tokenStorage.getAccessToken()).toBe('mock-access-token');
+      });
+
+      it('should reject when email already exists', async () => {
+        const userData = { 
+          email: 'existing@parcferme.com', 
+          password: 'SecureP@ss123!',
+          displayName: 'Existing User'
+        };
+        
+        await store.dispatch(register(userData));
+        
+        const state = store.getState();
+        expect(state.auth.isAuthenticated).toBe(false);
+        expect(state.auth.user).toBeNull();
+        expect(state.auth.error).toBeTruthy();
+      });
+
+      it('should set loading state while pending', async () => {
+        server.use(
+          http.post('http://localhost/api/v1/auth/register', async () => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return HttpResponse.json(mockAuthResponse, { status: 201 });
+          })
+        );
+
+        const userData = { 
+          email: 'newuser@parcferme.com', 
+          password: 'SecureP@ss123!',
+          displayName: 'New User'
+        };
+        const promise = store.dispatch(register(userData));
+        
+        expect(store.getState().auth.isLoading).toBe(true);
+        
+        await promise;
+        expect(store.getState().auth.isLoading).toBe(false);
+      });
     });
 
-    it('register thunk sets loading state while pending', () => {
-      // Verify the reducer handles pending action correctly
-      const pendingAction = { type: register.pending.type };
-      const state = authSlice.reducer(initialState, pendingAction);
-      expect(state.isLoading).toBe(true);
-      expect(state.error).toBeNull();
+    describe('logout thunk', () => {
+      it('should clear authentication state', async () => {
+        // Start with authenticated state
+        tokenStorage.setTokens('mock-access-token', 'mock-refresh-token');
+        store = setupStore({
+          auth: {
+            user: mockUser,
+            isAuthenticated: true,
+            isLoading: false,
+            isInitialized: true,
+            error: null,
+          }
+        });
+        
+        await store.dispatch(logout());
+        
+        const state = store.getState();
+        expect(state.auth.isAuthenticated).toBe(false);
+        expect(state.auth.user).toBeNull();
+        expect(tokenStorage.getAccessToken()).toBeNull();
+        expect(tokenStorage.getRefreshToken()).toBeNull();
+      });
     });
 
-    it('logout thunk clears state when fulfilled', () => {
-      // Start with authenticated state
-      const authenticatedState = {
-        ...initialState,
-        user: mockUser,
-        isAuthenticated: true,
-      };
-      
-      // Verify the reducer handles fulfilled action correctly
-      const fulfilledAction = { type: logout.fulfilled.type };
-      const state = authSlice.reducer(authenticatedState, fulfilledAction);
-      expect(state.isAuthenticated).toBe(false);
-      expect(state.user).toBeNull();
+    describe('fetchCurrentUser thunk', () => {
+      it('should fetch current user when authenticated', async () => {
+        tokenStorage.setTokens('mock-access-token', 'mock-refresh-token');
+        
+        await store.dispatch(fetchCurrentUser());
+        
+        const state = store.getState();
+        expect(state.auth.isAuthenticated).toBe(true);
+        expect(state.auth.user?.email).toBe('test@parcferme.com');
+        expect(state.auth.isInitialized).toBe(true);
+      });
+
+      it('should return PaddockPass user when premium token', async () => {
+        tokenStorage.setTokens('mock-premium-access-token', 'mock-refresh-token');
+        
+        await store.dispatch(fetchCurrentUser());
+        
+        const state = store.getState();
+        expect(state.auth.user?.membershipTier).toBe('PaddockPass');
+      });
+    });
+
+    describe('updateProfile thunk', () => {
+      it('should update user profile', async () => {
+        tokenStorage.setTokens('mock-access-token', 'mock-refresh-token');
+        store = setupStore({
+          auth: {
+            user: mockUser,
+            isAuthenticated: true,
+            isLoading: false,
+            isInitialized: true,
+            error: null,
+          }
+        });
+        
+        const updates = { displayName: 'Updated Name' };
+        await store.dispatch(updateProfile(updates));
+        
+        const state = store.getState();
+        expect(state.auth.user?.displayName).toBe('Updated Name');
+      });
     });
   });
 });

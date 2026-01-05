@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import React, { PropsWithChildren } from 'react';
 import { Provider } from 'react-redux';
@@ -11,6 +11,7 @@ import {
   paddockPassState,
   unauthenticatedState 
 } from '../test/test-utils';
+import { tokenStorage } from '../lib/api';
 
 // Helper to create wrapper with specific state
 function createWrapper(preloadedState?: Parameters<typeof setupStore>[0]) {
@@ -20,7 +21,20 @@ function createWrapper(preloadedState?: Parameters<typeof setupStore>[0]) {
   };
 }
 
+// Helper that returns both store and wrapper
+function createWrapperWithStore(preloadedState?: Parameters<typeof setupStore>[0]) {
+  const store = setupStore(preloadedState);
+  const wrapper = ({ children }: PropsWithChildren<object>) => (
+    <Provider store={store}>{children}</Provider>
+  );
+  return { store, wrapper };
+}
+
 describe('useAuth', () => {
+  beforeEach(() => {
+    tokenStorage.clearTokens();
+  });
+
   describe('state selectors', () => {
     it('should return null user when not authenticated', () => {
       const { result } = renderHook(() => useAuth(), {
@@ -100,54 +114,135 @@ describe('useAuth', () => {
     });
   });
 
-  describe('actions', () => {
-    // Note: Action dispatch tests verify that the hook provides the expected action creators.
-    // The actual async behavior of the actions is tested in authSlice.test.ts.
-    // These tests verify the hook interface without relying on MSW which has 
-    // compatibility issues with axios in the test environment.
-
-    it('should provide login action function', () => {
-      const store = setupStore(unauthenticatedState);
-      const wrapper = ({ children }: PropsWithChildren<object>) => (
-        <Provider store={store}>{children}</Provider>
-      );
+  describe('actions with MSW', () => {
+    it('should login successfully and update state', async () => {
+      const { store, wrapper } = createWrapperWithStore(unauthenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      expect(typeof result.current.login).toBe('function');
+      expect(result.current.isAuthenticated).toBe(false);
+
+      await act(async () => {
+        await result.current.login({ 
+          email: 'test@parcferme.com', 
+          password: 'TestP@ssw0rd!' 
+        });
+      });
+
+      // Wait for state to update
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      expect(result.current.user?.email).toBe('test@parcferme.com');
+      expect(tokenStorage.getAccessToken()).toBe('mock-access-token');
     });
 
-    it('should provide register action function', () => {
-      const store = setupStore(unauthenticatedState);
-      const wrapper = ({ children }: PropsWithChildren<object>) => (
-        <Provider store={store}>{children}</Provider>
-      );
+    it('should register successfully and update state', async () => {
+      const { store, wrapper } = createWrapperWithStore(unauthenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      expect(typeof result.current.register).toBe('function');
+      await act(async () => {
+        await result.current.register({ 
+          email: 'newuser@parcferme.com', 
+          password: 'SecureP@ss123!',
+          displayName: 'New User'
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      expect(result.current.user?.email).toBe('newuser@parcferme.com');
+      expect(result.current.user?.displayName).toBe('New User');
     });
 
-    it('should provide logout action function', () => {
-      const store = setupStore(authenticatedState);
-      const wrapper = ({ children }: PropsWithChildren<object>) => (
-        <Provider store={store}>{children}</Provider>
-      );
+    it('should logout and clear authentication state', async () => {
+      tokenStorage.setTokens('mock-access-token', 'mock-refresh-token');
+      const { store, wrapper } = createWrapperWithStore(authenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      expect(typeof result.current.logout).toBe('function');
+      expect(result.current.isAuthenticated).toBe(true);
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(false);
+      });
+
+      expect(result.current.user).toBeNull();
+      expect(tokenStorage.getAccessToken()).toBeNull();
     });
 
-    it('should provide updateProfile action function', () => {
-      const store = setupStore(authenticatedState);
-      const wrapper = ({ children }: PropsWithChildren<object>) => (
-        <Provider store={store}>{children}</Provider>
-      );
+    it('should update profile successfully', async () => {
+      tokenStorage.setTokens('mock-access-token', 'mock-refresh-token');
+      const { store, wrapper } = createWrapperWithStore(authenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      expect(typeof result.current.updateProfile).toBe('function');
+      expect(result.current.user?.displayName).toBe('Test Driver');
+
+      await act(async () => {
+        await result.current.updateProfile({ displayName: 'Updated Driver' });
+      });
+
+      await waitFor(() => {
+        expect(result.current.user?.displayName).toBe('Updated Driver');
+      });
+    });
+
+    it('should set error on login failure', async () => {
+      const { store, wrapper } = createWrapperWithStore(unauthenticatedState);
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await act(async () => {
+        await result.current.login({ 
+          email: 'wrong@email.com', 
+          password: 'wrongpassword' 
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.error).toBeTruthy();
+      });
+
+      expect(result.current.isAuthenticated).toBe(false);
+    });
+
+    it('should clear error by logging in successfully after failure', async () => {
+      const errorState = {
+        auth: {
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          isInitialized: true,
+          error: 'Previous error',
+        },
+      };
+      const { store, wrapper } = createWrapperWithStore(errorState);
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      expect(result.current.error).toBe('Previous error');
+
+      // A successful login should clear the error
+      await act(async () => {
+        await result.current.login({ 
+          email: 'test@parcferme.com', 
+          password: 'TestP@ssw0rd!' 
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.error).toBeNull();
+        expect(result.current.isAuthenticated).toBe(true);
+      });
     });
   });
 });
