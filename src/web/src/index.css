@@ -1,6 +1,39 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Custom theme for Parc Fermé */
+@theme {
+  /* Brand colors */
+  --color-pf-green-50: #E6FFF2;
+  --color-pf-green-100: #B3FFD9;
+  --color-pf-green-200: #80FFC0;
+  --color-pf-green-300: #4DFFA6;
+  --color-pf-green-400: #1AFF8D;
+  --color-pf-green-500: #00FF7F;
+  --color-pf-green-600: #00CC66;
+  --color-pf-green-700: #00994C;
+  --color-pf-green-800: #006633;
+  --color-pf-green-900: #003319;
+  --color-pf-green: #00FF7F;
+
+  --color-pf-yellow-50: #FFFBEB;
+  --color-pf-yellow-100: #FEF3C7;
+  --color-pf-yellow-200: #FDE68A;
+  --color-pf-yellow-300: #FCD34D;
+  --color-pf-yellow-400: #FBBF24;
+  --color-pf-yellow-500: #FFD700;
+  --color-pf-yellow-600: #D97706;
+  --color-pf-yellow-700: #B45309;
+  --color-pf-yellow-800: #92400E;
+  --color-pf-yellow-900: #78350F;
+  --color-pf-yellow: #FFD700;
+
+  --color-pf-red-500: #FF4444;
+  --color-pf-red: #FF4444;
+
+  /* Fonts */
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
 
 /* Base styles for dark-first design */
 :root {
