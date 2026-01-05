@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -50,7 +51,7 @@ public sealed class AuthController : ControllerBase
 
         // Remove all Unicode control characters (including ASCII 0-31 and 127) that could be used
         // to forge or break log entries. This includes \r, \n, \t, \f, \v, and other control characters.
-        var sb = new System.Text.StringBuilder(value.Length);
+        var sb = new StringBuilder(value.Length);
         foreach (var c in value)
         {
             if (!char.IsControl(c))
