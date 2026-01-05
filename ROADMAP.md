@@ -18,14 +18,14 @@
 - [x] Protected routes and membership gates
 - [x] Python ingestion project structure
 - [x] Unit and Integration tests (backend + frontend)
+- [x] CI/CD pipeline (GitHub Actions)
 
 ### 🚧 In Progress
 - [ ] Auth UI pages (Login, Register, Profile)
 - [ ] OpenF1 data sync implementation
 
 ### 📋 Up Next
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Session listing and detail pages
+- [ ] Session listing and detail pages (with spoiler shield, after this task you should be able to view all session data available)
 - [ ] "Log a Race" flow (core feature)
 - [ ] Basic feed/home page with recent activity
 
