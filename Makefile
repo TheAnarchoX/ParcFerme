@@ -2,7 +2,7 @@
 # Parc Fermé - Development Makefile
 # =========================
 
-.PHONY: help setup up down api web python sync sync-recent db-migrate db-reset logs clean
+.PHONY: help setup up down api web python sync sync-all sync-recent db-migrate db-reset logs clean
 
 # Default target
 help:
@@ -24,6 +24,7 @@ help:
 	@echo ""
 	@echo "Data Sync:"
 	@echo "  make sync         - Sync F1 data for current year from OpenF1"
+	@echo "  make sync-all     - Sync all F1 data (2024 + 2025 seasons)"
 	@echo "  make sync-recent  - Sync F1 data from the last 7 days"
 	@echo "  make sync-2024    - Sync full 2024 season"
 	@echo "  make sync-2025    - Sync full 2025 season"
@@ -90,6 +91,9 @@ python:
 sync:
 	@echo "🏎️  Syncing F1 data for current year..."
 	cd src/python && .venv/bin/python -m ingestion sync
+
+sync-all: sync-2024 sync-2025
+	@echo "✅ All seasons synced!"
 
 sync-recent:
 	@echo "🏎️  Syncing F1 data from the last 7 days..."
