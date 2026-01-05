@@ -101,3 +101,20 @@ User → Log → Review
 1. **Shakedown** (MVP): F1 only, 2024-2025, basic logging + profiles
 2. **Midfield**: Historical archive (1950-2023), Lists, Social Feed
 3. **Podium**: Multi-series, Venue Guides, Gamification, Pro tier
+
+## Git Workflow
+
+### Commit Discipline
+**Commit work between tasks/todos.** After completing each discrete task or todo item:
+1. Stage relevant files with `git add`
+2. Commit with a clear, descriptive message following conventional commits format
+3. Examples:
+   - `feat: add spoiler-aware session endpoint`
+   - `fix: correct dual rating calculation for attended logs`
+   - `refactor: extract OpenF1 cache logic to service`
+   - `test: add WEC multi-driver entrant tests`
+
+This ensures:
+- Reviewable, atomic changes that can be easily understood and reverted if needed
+- Clear history that tracks progress through multi-step tasks
+- Safe checkpoints during complex refactoring or feature development

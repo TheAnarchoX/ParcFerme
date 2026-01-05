@@ -1,3 +1,6 @@
+using ParcFerme.Api.Auth;
+using ParcFerme.Api.Authorization;
+using ParcFerme.Api.Caching;
 using ParcFerme.Api.Data;
 using ParcFerme.Api.Models;
 using Microsoft.AspNetCore.Identity;
@@ -11,11 +14,19 @@ var builder = WebApplication.CreateBuilder(args);
 // =========================
 // Database Configuration
 // =========================
-builder.Services.AddDbContext<ParcFermeDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions => npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "public")
-    ));
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    // In-memory database for integration tests - registration deferred to test host
+    // Tests will call AddDbContext with InMemory provider
+}
+else
+{
+    builder.Services.AddDbContext<ParcFermeDbContext>(options =>
+        options.UseNpgsql(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            npgsqlOptions => npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "public")
+        ));
+}
 
 // =========================
 // Identity Configuration
@@ -70,13 +81,19 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
 // TODO: Add Discord OAuth when ready
 
 // =========================
-// Caching (Redis)
+// Authorization (Membership Tiers)
 // =========================
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "ParcFerme:";
-});
+builder.Services.AddParcFermeAuthorization();
+
+// =========================
+// Auth Services (JWT Token Generation)
+// =========================
+builder.Services.AddParcFermeAuth(builder.Configuration);
+
+// =========================
+// Caching (Redis + Response)
+// =========================
+builder.Services.AddParcFermeCaching(builder.Configuration);
 
 // =========================
 // API Configuration
@@ -103,10 +120,17 @@ builder.Services.AddCors(options =>
 // =========================
 // Health Checks
 // =========================
-builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!)
-    .AddRedis(builder.Configuration.GetConnectionString("Redis")!)
-    .AddElasticsearch(builder.Configuration.GetConnectionString("Elasticsearch")!);
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHealthChecks();
+}
+else
+{
+    builder.Services.AddHealthChecks()
+        .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!)
+        .AddRedis(builder.Configuration.GetConnectionString("Redis")!)
+        .AddElasticsearch(builder.Configuration.GetConnectionString("Elasticsearch")!);
+}
 
 var app = builder.Build();
 
@@ -120,13 +144,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Frontend");
+app.UseResponseCaching();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-// API versioning prefix
-app.MapGroup("/api/v1").MapControllers();
-
 app.Run();
+
+// Marker class for WebApplicationFactory
+public partial class Program { }

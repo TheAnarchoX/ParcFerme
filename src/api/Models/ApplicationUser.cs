@@ -13,6 +13,17 @@ public sealed class ApplicationUser : IdentityUser<Guid>
     public string? Bio { get; set; }
     
     /// <summary>
+    /// Membership tier: Free or PaddockPass (premium).
+    /// Determines access to advanced features.
+    /// </summary>
+    public MembershipTier MembershipTier { get; set; } = MembershipTier.Free;
+    
+    /// <summary>
+    /// When the current membership tier expires (null for Free tier).
+    /// </summary>
+    public DateTime? MembershipExpiresAt { get; set; }
+    
+    /// <summary>
     /// Spoiler protection mode: Strict, Moderate, or None.
     /// Default is Strict (hide all results until logged).
     /// </summary>
@@ -26,11 +37,35 @@ public sealed class ApplicationUser : IdentityUser<Guid>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
     
+    /// <summary>
+    /// Refresh token for JWT token renewal.
+    /// </summary>
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiresAt { get; set; }
+    
     // Navigation properties
     public ICollection<Log> Logs { get; set; } = [];
     public ICollection<UserList> Lists { get; set; } = [];
     public ICollection<UserFollow> Following { get; set; } = [];
     public ICollection<UserFollow> Followers { get; set; } = [];
+    
+    /// <summary>
+    /// Check if user has an active premium membership.
+    /// </summary>
+    public bool HasActivePaddockPass => 
+        MembershipTier == MembershipTier.PaddockPass && 
+        (MembershipExpiresAt == null || MembershipExpiresAt > DateTime.UtcNow);
+}
+
+/// <summary>
+/// Membership tiers for the application.
+/// </summary>
+public enum MembershipTier
+{
+    /// <summary>Free tier with basic features</summary>
+    Free = 0,
+    /// <summary>Premium tier with advanced features (Paddock Pass)</summary>
+    PaddockPass = 1
 }
 
 public enum SpoilerMode

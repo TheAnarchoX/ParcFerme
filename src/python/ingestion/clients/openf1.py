@@ -3,9 +3,9 @@
 from datetime import datetime
 from typing import Any
 
-import httpx
-from pydantic import BaseModel
-from tenacity import retry, stop_after_attempt, wait_exponential
+import httpx # type: ignore
+from pydantic import BaseModel # type: ignore
+from tenacity import retry, stop_after_attempt, wait_exponential # type: ignore
 
 from ingestion.config import settings
 
@@ -54,6 +54,15 @@ class OpenF1Client:
         )
 
     def close(self) -> None:
+        """Close the HTTP client connection.
+
+        This method closes the underlying HTTP client and releases any associated resources.
+        It should be called when the OpenF1 client is no longer needed to ensure proper
+        cleanup of network connections.
+
+        Returns:
+            None
+        """
         self._client.close()
 
     def __enter__(self) -> "OpenF1Client":
