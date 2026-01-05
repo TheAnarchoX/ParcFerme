@@ -7,26 +7,29 @@ setup:
   - name: Install .NET SDK
     run: |
       # .NET 10 is required for the API backend
-      wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
-      chmod +x dotnet-install.sh
-      ./dotnet-install.sh --version latest --channel 10.0
-      export PATH="$HOME/.dotnet:$PATH"
+      # Assumes .NET 10 SDK is pre-installed in the environment (mirrors actions/setup-dotnet@v5)
+      # If not available, use: curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0
       dotnet --version
 
   - name: Install Node.js
     run: |
-      # Node.js 22 is used for the React frontend
-      curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-      sudo apt-get install -y nodejs
+      # Node.js 22 is used for the React frontend (mirrors actions/setup-node@v6)
+      # Use nvm to avoid requiring root access in containerized environments
+      export NVM_DIR="$HOME/.nvm"
+      mkdir -p "$NVM_DIR"
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+      . "$NVM_DIR/nvm.sh"
+      nvm install 22
+      nvm use 22
       node --version
       npm --version
 
   - name: Install Python
     run: |
-      # Python 3.11+ is required for ingestion scripts
-      sudo apt-get update
-      sudo apt-get install -y python3.11 python3.11-venv python3-pip
-      python3.11 --version
+      # Python 3.11+ is required for ingestion scripts (mirrors actions/setup-python@v6)
+      # Assumes Python 3.11 is pre-installed in the environment
+      # If not available, use pyenv: curl https://pyenv.run | bash && pyenv install 3.11 && pyenv global 3.11
+      python3.11 --version || python3 --version
 
   - name: Start Docker services
     run: |
@@ -71,9 +74,10 @@ lint:
   - name: Lint Python code
     working-directory: src/python
     run: |
-      # Ruff is already installed via dev dependencies
-      .venv/bin/ruff check .
-      .venv/bin/ruff format --check .
+      # Install Ruff explicitly to mirror CI workflow behavior (python.yml lines 38-44)
+      pip install ruff
+      ruff check .
+      ruff format --check .
 
 # Type checking commands
 type-check:
@@ -100,7 +104,10 @@ test:
   - name: Test .NET API (integration tests)
     working-directory: .
     environment:
-      ConnectionStrings__DefaultConnection: "Host=localhost;Database=parcferme_test;Username=parcferme;Password=testpassword"
+      # Note: CI uses 'testpassword' with its own PostgreSQL service
+      # Local development uses 'localdev' from docker-compose.yml
+      # Adjust password based on your environment
+      ConnectionStrings__DefaultConnection: "Host=localhost;Database=parcferme_test;Username=parcferme;Password=localdev"
       ConnectionStrings__Redis: "localhost:6379"
     run: |
       # Integration tests use Category=Integration filter to run separately from unit tests
