@@ -35,6 +35,35 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Remove old size labels
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner,
+              repo,
+              issue_number,
+            });
+
+            for (const label of labels) {
+              if (!label.name.startsWith('size/')) continue;
+
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number,
+                  name: label.name,
+                });
+              } catch {
+                // ignore
+              }
+            }
+
       - name: Label PR by size
         uses: codelytv/pr-size-labeler@v1
         with:
