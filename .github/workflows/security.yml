@@ -14,9 +14,51 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Detect which languages need scanning based on changed files
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    outputs:
+      csharp: ${{ steps.filter.outputs.csharp }}
+      javascript-typescript: ${{ steps.filter.outputs.javascript-typescript }}
+      python: ${{ steps.filter.outputs.python }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Check for file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            csharp:
+              - 'src/api/**'
+              - 'tests/api/**'
+              - '**/*.cs'
+              - '**/*.csproj'
+              - '*.sln'
+            javascript-typescript:
+              - 'src/web/**'
+              - '**/*.ts'
+              - '**/*.tsx'
+              - '**/*.js'
+              - '**/*.jsx'
+            python:
+              - 'src/python/**'
+              - '**/*.py'
+
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    needs: detect-changes
+    # Run on schedule, workflow_dispatch, or if relevant files changed
+    if: |
+      github.event_name == 'schedule' || 
+      github.event_name == 'workflow_dispatch' ||
+      (needs.detect-changes.outputs.csharp == 'true' && matrix.language == 'csharp') ||
+      (needs.detect-changes.outputs.javascript-typescript == 'true' && matrix.language == 'javascript-typescript') ||
+      (needs.detect-changes.outputs.python == 'true' && matrix.language == 'python')
     permissions:
       security-events: write
       actions: read
