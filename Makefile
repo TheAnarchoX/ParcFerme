@@ -2,7 +2,7 @@
 # Parc Fermé - Development Makefile
 # =========================
 
-.PHONY: help setup up down api web python db-migrate db-reset logs clean
+.PHONY: help setup up down api web python sync sync-recent db-migrate db-reset logs clean
 
 # Default target
 help:
@@ -21,6 +21,12 @@ help:
 	@echo "  make api          - Run the .NET API (hot reload)"
 	@echo "  make web          - Run the React frontend (hot reload)"
 	@echo "  make python       - Run Python ingestion healthcheck"
+	@echo ""
+	@echo "Data Sync:"
+	@echo "  make sync         - Sync F1 data for current year from OpenF1"
+	@echo "  make sync-recent  - Sync F1 data from the last 7 days"
+	@echo "  make sync-2024    - Sync full 2024 season"
+	@echo "  make sync-2025    - Sync full 2025 season"
 	@echo ""
 	@echo "Database:"
 	@echo "  make db-migrate   - Apply EF Core migrations"
@@ -76,6 +82,26 @@ web:
 python:
 	@echo "🐍 Running Python healthcheck..."
 	cd src/python && .venv/bin/python -m ingestion.healthcheck
+
+# =========================
+# Data Sync (OpenF1)
+# =========================
+
+sync:
+	@echo "🏎️  Syncing F1 data for current year..."
+	cd src/python && .venv/bin/python -m ingestion sync
+
+sync-recent:
+	@echo "🏎️  Syncing F1 data from the last 7 days..."
+	cd src/python && .venv/bin/python -m ingestion sync --recent 7
+
+sync-2024:
+	@echo "🏎️  Syncing full 2024 F1 season..."
+	cd src/python && .venv/bin/python -m ingestion sync --year 2024
+
+sync-2025:
+	@echo "🏎️  Syncing full 2025 F1 season..."
+	cd src/python && .venv/bin/python -m ingestion sync --year 2025
 
 # =========================
 # Database
