@@ -3,9 +3,9 @@
 from datetime import datetime
 from typing import Any
 
-import httpx # type: ignore
-from pydantic import BaseModel # type: ignore
-from tenacity import retry, stop_after_attempt, wait_exponential # type: ignore
+import httpx  # type: ignore
+from pydantic import BaseModel  # type: ignore
+from tenacity import retry, stop_after_attempt, wait_exponential  # type: ignore
 
 from ingestion.config import settings
 

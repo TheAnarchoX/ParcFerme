@@ -12,11 +12,10 @@ from ingestion.config import settings
 def check_postgres() -> bool:
     """Check PostgreSQL connection."""
     try:
-        with psycopg.connect(settings.database_url) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                print("✅ PostgreSQL: Connected")
-                return True
+        with psycopg.connect(settings.database_url) as conn, conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            print("✅ PostgreSQL: Connected")
+            return True
     except Exception as e:
         print(f"❌ PostgreSQL: {e}")
         return False
