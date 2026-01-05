@@ -35,6 +35,19 @@ public sealed class AuthController : ControllerBase
         _logger = logger;
     }
 
+    private static string SanitizeForLogging(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        // Remove characters that could be used to forge or break log entries.
+        return value
+            .Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\n", string.Empty, StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Register a new user account.
     /// </summary>
@@ -73,7 +86,7 @@ public sealed class AuthController : ControllerBase
             return ValidationProblem();
         }
 
-        _logger.LogInformation("New user registered: {UserId} ({Email})", user.Id, user.Email);
+        _logger.LogInformation("New user registered: {UserId} ({Email})", user.Id, SanitizeForLogging(user.Email));
 
         var response = await GenerateAuthResponse(user);
         return CreatedAtAction(nameof(GetCurrentUser), response);
