@@ -115,7 +115,7 @@ describe('useAuth', () => {
 
   describe('actions with MSW', () => {
     it('should login successfully and update state', async () => {
-      const { store, wrapper } = createWrapperWithStore(unauthenticatedState);
+      const { wrapper } = createWrapperWithStore(unauthenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -160,7 +160,7 @@ describe('useAuth', () => {
 
     it('should logout and clear authentication state', async () => {
       tokenStorage.setTokens('mock-access-token', 'mock-refresh-token');
-      const { store, wrapper } = createWrapperWithStore(authenticatedState);
+      const { wrapper } = createWrapperWithStore(authenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -180,7 +180,7 @@ describe('useAuth', () => {
 
     it('should update profile successfully', async () => {
       tokenStorage.setTokens('mock-access-token', 'mock-refresh-token');
-      const { store, wrapper } = createWrapperWithStore(authenticatedState);
+      const { wrapper } = createWrapperWithStore(authenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -196,7 +196,7 @@ describe('useAuth', () => {
     });
 
     it('should set error on login failure', async () => {
-      const { store, wrapper } = createWrapperWithStore(unauthenticatedState);
+      const { wrapper } = createWrapperWithStore(unauthenticatedState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -224,7 +224,7 @@ describe('useAuth', () => {
           error: 'Previous error',
         },
       };
-      const { store, wrapper } = createWrapperWithStore(errorState);
+      const { wrapper } = createWrapperWithStore(errorState);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
