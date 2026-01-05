@@ -20,8 +20,8 @@ appsettings.Development.json
 appsettings.*.local.json
 
 # ----- .NET / C# -----
-src/api/bin/
-src/api/obj/
+**/bin/
+**/obj/
 *.user
 *.userosscache
 *.suo
