@@ -118,6 +118,7 @@ POST /api/v1/logs                # Log a race
 
 - [BLUEPRINT.md](docs/BLUEPRINT.md) — Full product specification
 - [.github/copilot-instructions.md](.github/copilot-instructions.md) — AI coding guidelines
+- [.github/copilot-setup-steps.yaml](.github/copilot-setup-steps.yaml) — Copilot environment setup
 
 ## License
 
