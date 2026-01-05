@@ -22,12 +22,14 @@
 - [x] Auth UI pages (Login, Register, Profile)
 
 ### 🚧 In Progress
-- [ ] OpenF1 data sync implementation
+- [ ] Session listing and detail pages (with spoiler shield, after this task you should be able to view all session data available)
 
 ### 📋 Up Next
-- [ ] Session listing and detail pages (with spoiler shield, after this task you should be able to view all session data available)
 - [ ] "Log a Race" flow (core feature)
 - [ ] Basic feed/home page with recent activity
+
+### ✅ Recently Completed
+- [x] OpenF1 data sync implementation (Python ingestion pipeline)
 
 ---
 
