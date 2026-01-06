@@ -185,8 +185,14 @@ class OpenF1SyncService:
         logger.info("Created driver", name=openf1_driver.full_name, driver_id=str(driver_id))
         return driver_id
 
-    def _get_or_create_team(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID:
-        """Get or create team from OpenF1 driver data (team info is in driver response)."""
+    def _get_or_create_team(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID | None:
+        """Get or create team from OpenF1 driver data (team info is in driver response).
+        
+        Returns None if the driver has no team (e.g., reserve/test drivers).
+        """
+        if not openf1_driver.team_name:
+            return None
+            
         slug = slugify(openf1_driver.team_name)
         if slug in self._team_cache:
             return self._team_cache[slug]
@@ -335,8 +341,20 @@ class OpenF1SyncService:
         if sessions:
             drivers = api.get_drivers_for_meeting(meeting.meeting_key)
             for driver_data in drivers:
+                # Skip drivers without teams (reserve/test drivers not competing)
+                if not driver_data.team_name:
+                    logger.debug(
+                        "Skipping driver without team",
+                        driver=driver_data.full_name,
+                        driver_number=driver_data.driver_number,
+                    )
+                    continue
+                    
                 driver_id = self._get_or_create_driver(repo, driver_data)
                 team_id = self._get_or_create_team(repo, driver_data)
+                
+                # team_id should never be None here since we checked team_name above
+                assert team_id is not None
 
                 # Create entrant linking driver to team for this round
                 entrant = Entrant(
