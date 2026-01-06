@@ -140,9 +140,7 @@ def main() -> int:
     sync_parser.set_defaults(func=cmd_sync)
 
     # Healthcheck command
-    healthcheck_parser = subparsers.add_parser(
-        "healthcheck", help="Check service connectivity"
-    )
+    healthcheck_parser = subparsers.add_parser("healthcheck", help="Check service connectivity")
     healthcheck_parser.set_defaults(func=cmd_healthcheck)
 
     args = parser.parse_args()

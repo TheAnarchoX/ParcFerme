@@ -141,16 +141,19 @@ class TestSessionTypeMapping:
     def test_map_race_session(self) -> None:
         """Test mapping Race session type."""
         from ingestion.models import OPENF1_SESSION_TYPE_MAP
+
         assert OPENF1_SESSION_TYPE_MAP["Race"] == SessionType.RACE
 
     def test_map_qualifying_session(self) -> None:
         """Test mapping Qualifying session type."""
         from ingestion.models import OPENF1_SESSION_TYPE_MAP
+
         assert OPENF1_SESSION_TYPE_MAP["Qualifying"] == SessionType.QUALIFYING
 
     def test_map_practice_sessions(self) -> None:
         """Test mapping Practice session types."""
         from ingestion.models import OPENF1_SESSION_TYPE_MAP
+
         assert OPENF1_SESSION_TYPE_MAP["Practice 1"] == SessionType.FP1
         assert OPENF1_SESSION_TYPE_MAP["Practice 2"] == SessionType.FP2
         assert OPENF1_SESSION_TYPE_MAP["Practice 3"] == SessionType.FP3
@@ -158,6 +161,7 @@ class TestSessionTypeMapping:
     def test_map_sprint_sessions(self) -> None:
         """Test mapping Sprint session types."""
         from ingestion.models import OPENF1_SESSION_TYPE_MAP
+
         assert OPENF1_SESSION_TYPE_MAP["Sprint"] == SessionType.SPRINT
         assert OPENF1_SESSION_TYPE_MAP["Sprint Qualifying"] == SessionType.SPRINT_QUALIFYING
 
@@ -306,9 +310,7 @@ class TestOpenF1SyncService:
         call_args = repo.upsert_circuit.call_args[0][0]
         assert call_args.country == "Bahrain"
 
-    def test_caching_prevents_duplicate_lookups(
-        self, mock_drivers: list[OpenF1Driver]
-    ) -> None:
+    def test_caching_prevents_duplicate_lookups(self, mock_drivers: list[OpenF1Driver]) -> None:
         """Test that caching prevents repeated database lookups."""
         expected_id = uuid4()
 

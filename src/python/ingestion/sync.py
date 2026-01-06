@@ -132,9 +132,7 @@ class OpenF1SyncService:
         logger.info("Created season", year=year, season_id=str(season_id))
         return season_id
 
-    def _get_or_create_circuit(
-        self, repo: RacingRepository, meeting: OpenF1Meeting
-    ) -> UUID:
+    def _get_or_create_circuit(self, repo: RacingRepository, meeting: OpenF1Meeting) -> UUID:
         """Get or create circuit from meeting data."""
         slug = slugify(meeting.circuit_short_name)
         if slug in self._circuit_cache:
@@ -156,9 +154,7 @@ class OpenF1SyncService:
         logger.info("Created circuit", name=circuit.name, circuit_id=str(circuit_id))
         return circuit_id
 
-    def _get_or_create_driver(
-        self, repo: RacingRepository, openf1_driver: OpenF1Driver
-    ) -> UUID:
+    def _get_or_create_driver(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID:
         """Get or create driver from OpenF1 driver data."""
         slug = slugify(openf1_driver.full_name)
         if slug in self._driver_cache:
@@ -188,9 +184,7 @@ class OpenF1SyncService:
         logger.info("Created driver", name=openf1_driver.full_name, driver_id=str(driver_id))
         return driver_id
 
-    def _get_or_create_team(
-        self, repo: RacingRepository, openf1_driver: OpenF1Driver
-    ) -> UUID:
+    def _get_or_create_team(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID:
         """Get or create team from OpenF1 driver data (team info is in driver response)."""
         slug = slugify(openf1_driver.team_name)
         if slug in self._team_cache:
@@ -280,9 +274,7 @@ class OpenF1SyncService:
 
         for i, meeting in enumerate(meetings, 1):
             try:
-                self._sync_meeting(
-                    api, repo, meeting, season_id, include_results, stats
-                )
+                self._sync_meeting(api, repo, meeting, season_id, include_results, stats)
                 stats["meetings_synced"] += 1
                 logger.info(
                     "Synced meeting",
@@ -473,9 +465,7 @@ class OpenF1SyncService:
 
         for meeting in recent_meetings:
             try:
-                self._sync_meeting(
-                    api, repo, meeting, season_id, include_results, stats
-                )
+                self._sync_meeting(api, repo, meeting, season_id, include_results, stats)
                 stats["meetings_synced"] += 1
             except Exception as e:
                 logger.error(

@@ -206,9 +206,9 @@ class RacingRepository:
         """Get a circuit by its slug."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                '''SELECT "Id", "Name", "Slug", "Location", "Country", "CountryCode",
+                """SELECT "Id", "Name", "Slug", "Location", "Country", "CountryCode",
                               "LayoutMapUrl", "Latitude", "Longitude", "LengthMeters"
-                       FROM "Circuits" WHERE "Slug" = %s''',
+                       FROM "Circuits" WHERE "Slug" = %s""",
                 (slug,),
             )
             row = cur.fetchone()
@@ -270,9 +270,9 @@ class RacingRepository:
         """Get a round by its OpenF1 meeting key."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                '''SELECT "Id", "SeasonId", "CircuitId", "Name", "Slug", "RoundNumber",
+                """SELECT "Id", "SeasonId", "CircuitId", "Name", "Slug", "RoundNumber",
                               "DateStart", "DateEnd", "OpenF1MeetingKey"
-                       FROM "Rounds" WHERE "OpenF1MeetingKey" = %s''',
+                       FROM "Rounds" WHERE "OpenF1MeetingKey" = %s""",
                 (meeting_key,),
             )
             row = cur.fetchone()
@@ -326,8 +326,8 @@ class RacingRepository:
         """Get a session by its OpenF1 session key."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                '''SELECT "Id", "RoundId", "Type", "StartTimeUtc", "Status", "OpenF1SessionKey"
-                       FROM "Sessions" WHERE "OpenF1SessionKey" = %s''',
+                """SELECT "Id", "RoundId", "Type", "StartTimeUtc", "Status", "OpenF1SessionKey"
+                       FROM "Sessions" WHERE "OpenF1SessionKey" = %s""",
                 (session_key,),
             )
             row = cur.fetchone()
@@ -380,9 +380,9 @@ class RacingRepository:
         """Get a driver by slug."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                '''SELECT "Id", "FirstName", "LastName", "Slug", "Abbreviation",
+                """SELECT "Id", "FirstName", "LastName", "Slug", "Abbreviation",
                           "Nationality", "HeadshotUrl"
-                   FROM "Drivers" WHERE "Slug" = %s''',
+                   FROM "Drivers" WHERE "Slug" = %s""",
                 (slug,),
             )
             row = cur.fetchone()
@@ -434,8 +434,8 @@ class RacingRepository:
         """Get a team by slug."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                '''SELECT "Id", "Name", "Slug", "ShortName", "LogoUrl", "PrimaryColor"
-                       FROM "Teams" WHERE "Slug" = %s''',
+                """SELECT "Id", "Name", "Slug", "ShortName", "LogoUrl", "PrimaryColor"
+                       FROM "Teams" WHERE "Slug" = %s""",
                 (slug,),
             )
             row = cur.fetchone()
@@ -482,8 +482,8 @@ class RacingRepository:
         """Get an entrant by round and driver."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                '''SELECT "Id", "RoundId", "DriverId", "TeamId", "CarNumber"
-                       FROM "Entrants" WHERE "RoundId" = %s AND "DriverId" = %s''',
+                """SELECT "Id", "RoundId", "DriverId", "TeamId", "CarNumber"
+                       FROM "Entrants" WHERE "RoundId" = %s AND "DriverId" = %s""",
                 (str(round_id), str(driver_id)),
             )
             row = cur.fetchone()
@@ -501,8 +501,8 @@ class RacingRepository:
         """Get an entrant by round and car number."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                '''SELECT "Id", "RoundId", "DriverId", "TeamId", "CarNumber"
-                       FROM "Entrants" WHERE "RoundId" = %s AND "CarNumber" = %s''',
+                """SELECT "Id", "RoundId", "DriverId", "TeamId", "CarNumber"
+                       FROM "Entrants" WHERE "RoundId" = %s AND "CarNumber" = %s""",
                 (str(round_id), car_number),
             )
             row = cur.fetchone()

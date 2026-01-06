@@ -197,6 +197,7 @@ class OpenF1Client:
             - error: str | None
         """
         import time
+
         start = time.monotonic()
         try:
             # Try a minimal request - latest session
