@@ -199,7 +199,7 @@ export function SeriesDetailPage() {
         />
         <div className="pt-4">
           <PageHeader
-            icon="🏁"
+            icon={seriesData.logoUrl || "🏁"}
             title={seriesData.name}
             subtitle={seriesData.description}
           />

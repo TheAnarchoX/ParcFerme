@@ -70,16 +70,17 @@ interface PageHeaderProps {
   title: string;
   /** Optional subtitle/description */
   subtitle?: string;
-  /** Optional icon/emoji */
+  /** Optional icon/emoji or image URL */
   icon?: string;
-  /** Optional actions (buttons, etc.) to show on the right */
-  actions?: ReactNode;
   /** Additional CSS classes */
   className?: string;
+  /** Optional actions (buttons, etc.) to show on the right */
+  actions?: ReactNode;
 }
 
 /**
  * Consistent page header with title, subtitle, and optional actions.
+ * Icon can be an emoji string or an image URL (detected by http/https prefix).
  */
 export function PageHeader({ 
   title, 
@@ -88,11 +89,25 @@ export function PageHeader({
   actions,
   className = '' 
 }: PageHeaderProps) {
+  // Determine if icon is an image URL or emoji
+  const isImageUrl = icon?.startsWith('http://') || icon?.startsWith('https://') || icon?.startsWith('/');
+  
   return (
     <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 ${className}`}>
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-neutral-100 flex items-center gap-3">
-          {icon && <span className="text-3xl" aria-hidden="true">{icon}</span>}
+          {icon && (
+            isImageUrl ? (
+              <img 
+                src={icon} 
+                alt="" 
+                className="w-8 h-8 object-contain" 
+                aria-hidden="true"
+              />
+            ) : (
+              <span className="text-3xl" aria-hidden="true">{icon}</span>
+            )
+          )}
           {title}
         </h1>
         {subtitle && (
