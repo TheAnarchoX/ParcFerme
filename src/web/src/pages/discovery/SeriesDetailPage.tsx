@@ -33,18 +33,44 @@ interface StatsCardProps {
   label: string;
   value: number | string;
   icon: string;
+  description?: string;
 }
 
-function StatsCard({ label, value, icon }: StatsCardProps) {
+function StatsCard({ label, value, icon, description }: StatsCardProps) {
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-      <div className="flex items-center gap-3">
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 hover:border-neutral-700 transition-all">
+      <div className="flex items-center gap-3 mb-1">
         <span className="text-2xl">{icon}</span>
-        <div>
+        <div className="flex-1">
           <p className="text-2xl font-bold text-neutral-100">{value}</p>
           <p className="text-sm text-neutral-500">{label}</p>
         </div>
       </div>
+      {description && (
+        <p className="text-xs text-neutral-600 mt-2">{description}</p>
+      )}
+    </div>
+  );
+}
+
+// =========================
+// Info Card Component
+// =========================
+
+interface InfoCardProps {
+  title: string;
+  children: React.ReactNode;
+  icon?: string;
+}
+
+function InfoCard({ title, children, icon }: InfoCardProps) {
+  return (
+    <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-5">
+      <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+        {icon && <span className="text-base">{icon}</span>}
+        {title}
+      </h3>
+      {children}
     </div>
   );
 }
@@ -189,6 +215,16 @@ export function SeriesDetailPage() {
   
   const color = getSeriesColor(seriesSlug);
   
+  // Calculate additional insights
+  const currentSeason = seriesData.seasons.find(s => s.isCurrent);
+  const completedSeasons = seriesData.seasons.filter(s => s.isCompleted).length;
+  const avgRoundsPerSeason = seriesData.stats.totalSeasons > 0 
+    ? Math.round(seriesData.stats.totalRounds / seriesData.stats.totalSeasons) 
+    : 0;
+  const avgSessionsPerRound = seriesData.stats.totalRounds > 0
+    ? (seriesData.stats.totalSessions / seriesData.stats.totalRounds).toFixed(1)
+    : 0;
+  
   return (
     <MainLayout showBreadcrumbs>
       {/* Series header with color accent */}
@@ -205,25 +241,156 @@ export function SeriesDetailPage() {
           />
         </div>
       </div>
-      
-      {/* Stats Section */}
-      {seriesData.stats && (
-        <Section>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatsCard icon="📅" label="Seasons" value={seriesData.stats.totalSeasons} />
-            <StatsCard icon="🏎️" label="Rounds" value={seriesData.stats.totalRounds} />
-            <StatsCard icon="📺" label="Sessions" value={seriesData.stats.totalSessions} />
-            <StatsCard icon="👤" label="Drivers" value={seriesData.stats.totalDrivers} />
-            <StatsCard icon="🏢" label="Teams" value={seriesData.stats.totalTeams} />
-            <StatsCard icon="🗺️" label="Circuits" value={seriesData.stats.totalCircuits} />
+
+      {/* Main content grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Left column: Stats and info (2/3 width on large screens) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Primary Stats */}
+          {seriesData.stats && (
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Championship Statistics</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <StatsCard 
+                  icon="📅" 
+                  label="Seasons" 
+                  value={seriesData.stats.totalSeasons}
+                  description={`${completedSeasons} completed`}
+                />
+                <StatsCard 
+                  icon="🏎️" 
+                  label="Rounds" 
+                  value={seriesData.stats.totalRounds}
+                  description={`Avg ${avgRoundsPerSeason} per season`}
+                />
+                <StatsCard 
+                  icon="📺" 
+                  label="Sessions" 
+                  value={seriesData.stats.totalSessions}
+                  description={`Avg ${avgSessionsPerRound} per round`}
+                />
+                <StatsCard 
+                  icon="👤" 
+                  label="Drivers" 
+                  value={seriesData.stats.totalDrivers}
+                  description="All-time participants"
+                />
+                <StatsCard 
+                  icon="🏢" 
+                  label="Teams" 
+                  value={seriesData.stats.totalTeams}
+                  description="Constructor entries"
+                />
+                <StatsCard 
+                  icon="🗺️" 
+                  label="Circuits" 
+                  value={seriesData.stats.totalCircuits}
+                  description="Unique venues"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Season Timeline/History Preview */}
+          {seriesData.seasons.length > 0 && (
+            <InfoCard title="Season History" icon="📊">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-400">First Season:</span>
+                  <span className="text-neutral-100 font-medium">
+                    {Math.min(...seriesData.seasons.map(s => s.year))}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-400">Latest Season:</span>
+                  <span className="text-neutral-100 font-medium">
+                    {Math.max(...seriesData.seasons.map(s => s.year))}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-400">Active Seasons:</span>
+                  <span className="text-neutral-100 font-medium">
+                    {seriesData.seasons.filter(s => !s.isCompleted).length}
+                  </span>
+                </div>
+                {currentSeason && (
+                  <div className="pt-2 mt-2 border-t border-neutral-800">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-neutral-400">Current Season:</span>
+                      <Link 
+                        to={ROUTES.SEASON_DETAIL(seriesSlug, currentSeason.year)}
+                        className="text-accent-green hover:underline font-medium flex items-center gap-1"
+                      >
+                        {currentSeason.year}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="text-neutral-500 text-xs">Rounds this season:</span>
+                      <span className="text-neutral-400 text-xs">{currentSeason.roundCount}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </InfoCard>
+          )}
+        </div>
+
+        {/* Right column: Quick info (1/3 width on large screens) */}
+        <div className="space-y-6">
+          {seriesData.description && (
+            <InfoCard title="About" icon="ℹ️">
+              <p className="text-sm text-neutral-300 leading-relaxed">
+                {seriesData.description}
+              </p>
+            </InfoCard>
+          )}
+
+          <InfoCard title="Quick Facts" icon="⚡">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Format:</span>
+                <span className="text-neutral-100">
+                  {avgSessionsPerRound} sessions/round
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Calendar:</span>
+                <span className="text-neutral-100">
+                  ~{avgRoundsPerSeason} rounds/year
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Grid Size:</span>
+                <span className="text-neutral-100">
+                  {seriesData.stats.totalTeams > 0 ? `${seriesData.stats.totalTeams} teams` : 'Varies'}
+                </span>
+              </div>
+            </div>
+          </InfoCard>
+
+          {/* Color indicator */}
+          <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-12 h-12 rounded-lg" 
+                style={{ backgroundColor: color }}
+              />
+              <div>
+                <p className="text-xs text-neutral-500 uppercase tracking-wide">Brand Color</p>
+                <p className="text-sm text-neutral-300 font-mono">{color}</p>
+              </div>
+            </div>
           </div>
-        </Section>
-      )}
+        </div>
+      </div>
       
       {/* Seasons Section */}
-      <Section title="Seasons" subtitle="Select a season to browse rounds and sessions">
+      <Section title="All Seasons" subtitle="Browse championship seasons by year">
         {seriesData.seasons.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {seriesData.seasons.map((season) => (
               <SeasonCard 
                 key={season.id} 
