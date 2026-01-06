@@ -58,6 +58,51 @@ export async function getHealth(): Promise<DetailedHealthResponse> {
   }
 }
 
+/**
+ * Get health check for database only.
+ */
+export async function getDatabaseHealth(): Promise<DependencyHealth> {
+  try {
+    const response = await api.get<DependencyHealth>('/status/health/database');
+    return response.data;
+  } catch (error: unknown) {
+    if (isAxiosErrorWithData(error)) {
+      return error.response.data as DependencyHealth;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get health check for Redis only.
+ */
+export async function getRedisHealth(): Promise<DependencyHealth> {
+  try {
+    const response = await api.get<DependencyHealth>('/status/health/redis');
+    return response.data;
+  } catch (error: unknown) {
+    if (isAxiosErrorWithData(error)) {
+      return error.response.data as DependencyHealth;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get health check for OpenF1 API only.
+ */
+export async function getOpenF1Health(): Promise<DependencyHealth> {
+  try {
+    const response = await api.get<DependencyHealth>('/status/health/openf1');
+    return response.data;
+  } catch (error: unknown) {
+    if (isAxiosErrorWithData(error)) {
+      return error.response.data as DependencyHealth;
+    }
+    throw error;
+  }
+}
+
 // Type guard for axios error with response data
 function isAxiosErrorWithData(error: unknown): error is { response: { data: unknown } } {
   return (
@@ -77,4 +122,7 @@ function isAxiosErrorWithData(error: unknown): error is { response: { data: unkn
 export const statusApi = {
   getStatus,
   getHealth,
+  getDatabaseHealth,
+  getRedisHealth,
+  getOpenF1Health,
 };

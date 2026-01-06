@@ -80,7 +80,7 @@ export function ProfilePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-950">
+    <div className="min-h-screen">
       <Header />
       
       <main className="pt-24 pb-12 px-4">
@@ -97,7 +97,7 @@ export function ProfilePage() {
                 />
               ) : (
                 <div className="w-24 h-24 rounded-full bg-pf-green/20 flex items-center justify-center">
-                  <span className="text-pf-green text-3xl font-bold">
+                  <span className="text-accent-green text-3xl font-racing">
                     {user?.displayName.charAt(0).toUpperCase()}
                   </span>
                 </div>

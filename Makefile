@@ -20,6 +20,7 @@ help:
 	@echo "Development:"
 	@echo "  make api          - Run the .NET API (hot reload)"
 	@echo "  make web          - Run the React frontend (hot reload)"
+	@echo "  make web-host     - Run the React frontend (hot reload) with the --host flag for LAN access"
 	@echo "  make python       - Run Python ingestion healthcheck"
 	@echo ""
 	@echo "Data Sync:"
@@ -79,6 +80,10 @@ api:
 web:
 	@echo "🚀 Starting React frontend on http://localhost:3000"
 	cd src/web && npm run dev
+
+web-host:
+	@echo "🚀 Starting React frontend on http://localhost:3000 with LAN access"
+	cd src/web && npm run dev -- --host
 
 python:
 	@echo "🐍 Running Python healthcheck..."

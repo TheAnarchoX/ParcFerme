@@ -83,6 +83,36 @@ public class StatusController : ControllerBase
         return overallHealthy ? Ok(response) : StatusCode(503, response);
     }
 
+    /// <summary>
+    /// Health check for database only.
+    /// </summary>
+    [HttpGet("health/database")]
+    public async Task<IActionResult> GetDatabaseHealth(CancellationToken cancellationToken)
+    {
+        var health = await CheckDatabaseAsync(cancellationToken);
+        return health.Healthy ? Ok(health) : StatusCode(503, health);
+    }
+
+    /// <summary>
+    /// Health check for Redis only.
+    /// </summary>
+    [HttpGet("health/redis")]
+    public async Task<IActionResult> GetRedisHealth(CancellationToken cancellationToken)
+    {
+        var health = await CheckRedisAsync(cancellationToken);
+        return health.Healthy ? Ok(health) : StatusCode(503, health);
+    }
+
+    /// <summary>
+    /// Health check for OpenF1 API only.
+    /// </summary>
+    [HttpGet("health/openf1")]
+    public async Task<IActionResult> GetOpenF1Health(CancellationToken cancellationToken)
+    {
+        var health = await CheckOpenF1Async(cancellationToken);
+        return health.Healthy ? Ok(health) : StatusCode(503, health);
+    }
+
     private async Task<DependencyHealth> CheckDatabaseAsync(CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();

@@ -12,7 +12,7 @@ function AppRoutes() {
 
   if (!isInitialized) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-950">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pf-green" />
           <p className="text-neutral-400 text-sm">Loading...</p>
@@ -44,7 +44,7 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-neutral-950">
+      <div className="min-h-screen app-background">
         <AppRoutes />
       </div>
     </BrowserRouter>

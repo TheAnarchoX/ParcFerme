@@ -12,10 +12,10 @@ interface AuthLayoutProps {
  */
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-neutral-950">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
       {/* Logo */}
       <Link to="/" className="mb-8 group">
-        <h1 className="text-3xl font-bold text-pf-green group-hover:text-pf-green-400 transition-colors">
+        <h1 className="text-3xl brand-logo group-hover:opacity-80 transition-opacity">
           Parc Fermé
         </h1>
       </Link>
@@ -38,7 +38,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
 
       {/* Footer */}
       <p className="mt-8 text-sm text-neutral-600">
-        © 2026 Parc Fermé. Spoiler-free motorsport logging.
+        © 2026 <span className="font-racing text-neutral-500">Parc Fermé</span>. Spoiler-free motorsport logging.
       </p>
     </div>
   );

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Racing+Sans+One&display=swap');
 
 /* Custom theme for Parc Fermé */
 @theme {
@@ -48,6 +49,15 @@ body {
   min-height: 100vh;
 }
 
+/* Subtle gradient background for the app */
+.app-background {
+  background: 
+    radial-gradient(ellipse 100% 80% at 50% -30%, rgba(0, 255, 127, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 100% 100%, rgba(0, 153, 76, 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(0, 255, 127, 0.04) 0%, transparent 35%),
+    linear-gradient(180deg, #0a0a0a 0%, #0d0d0d 50%, #0a0a0a 100%);
+  background-attachment: fixed;
+}
 /* Spoiler blur effect */
 .spoiler-blur {
   filter: blur(8px);
@@ -60,4 +70,38 @@ body {
 
 .spoiler-revealed {
   filter: none;
+}
+
+/* Racing-inspired typography */
+.font-racing {
+  font-family: 'Racing Sans One', cursive;
+  letter-spacing: 0.02em;
+}
+
+/* Accent text styles with subtle glow effects */
+.text-accent-green {
+  color: #00FF7F;
+  text-shadow: 0 0 30px rgba(0, 255, 127, 0.4);
+}
+
+.text-accent-yellow {
+  color: #FFD700;
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+}
+
+.text-accent-red {
+  color: #FF4444;
+  text-shadow: 0 0 30px rgba(255, 68, 68, 0.4);
+}
+
+/* Brand logo styling */
+.brand-logo {
+  font-family: 'Racing Sans One', cursive;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #00FF7F 0%, #00CC66 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(0, 255, 127, 0.3));
 }

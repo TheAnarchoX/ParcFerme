@@ -20,6 +20,7 @@
 - [x] Unit and Integration tests (backend + frontend)
 - [x] CI/CD pipeline (GitHub Actions)
 - [x] Auth UI pages (Login, Register, Profile)
+- [x] OpenF1 data sync implementation (Python ingestion pipeline)
 
 ### 🚧 In Progress
 - [ ] Session listing and detail pages (with spoiler shield, after this task you should be able to view all session data available)
@@ -27,10 +28,6 @@
 ### 📋 Up Next
 - [ ] "Log a Race" flow (core feature)
 - [ ] Basic feed/home page with recent activity
-
-### ✅ Recently Completed
-- [x] OpenF1 data sync implementation (Python ingestion pipeline)
-
 ---
 
 ## 🗓️ Phase 1: Shakedown (MVP)
@@ -43,9 +40,11 @@
 - [ ] Logs API (CRUD for race logs)
 - [ ] Reviews API (create, read, like)
 - [ ] User profiles API
+- [ ] Gravatar integration
 - [ ] OpenF1 data sync (scheduled job)
 - [ ] Seed 2024-2025 F1 calendar data
 - [ ] WEC data integration (multi-series, multi-class and multi-driver support. This task requires the development of a custom scraper for https://fiawec.alkamelsystems.com/)
+- [ ] Admin/Mod tools (basic user management, content moderation queue) + distinguished mod/admin roles that are separate from normal users and membership tiers with elevated permissions and their own badges
 
 ### Frontend
 - [ ] Auth pages (Login, Register, Forgot Password)

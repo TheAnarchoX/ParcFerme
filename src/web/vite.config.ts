@@ -18,5 +18,6 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    allowedHosts: ['localhost', 'cxzqo-83-86-101-123.a.free.pinggy.link']
   },
 })

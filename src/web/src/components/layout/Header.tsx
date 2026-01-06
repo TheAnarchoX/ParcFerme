@@ -14,7 +14,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <span className="text-xl font-bold text-pf-green group-hover:text-pf-green-400 transition-colors">
+            <span className="text-xl font-bold brand-logo group-hover:opacity-80 transition-opacity">
               Parc Fermé
             </span>
           </Link>
@@ -53,7 +53,7 @@ export function Header() {
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-pf-green/20 flex items-center justify-center">
-                      <span className="text-pf-green text-sm font-medium">
+                      <span className="text-accent-green text-sm font-racing">
                         {user?.displayName.charAt(0).toUpperCase()}
                       </span>
                     </div>
