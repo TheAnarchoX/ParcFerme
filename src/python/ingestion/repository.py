@@ -18,6 +18,7 @@ from psycopg_pool import ConnectionPool  # type: ignore
 from ingestion.config import settings
 from ingestion.models import (
     Circuit,
+    CircuitAlias,
     Driver,
     DriverAlias,
     Entrant,
@@ -25,6 +26,7 @@ from ingestion.models import (
     Round,
     Season,
     Series,
+    SeriesAlias,
     Session,
     SessionStatus,
     SessionType,
@@ -739,6 +741,207 @@ class RacingRepository:
                     source=row["Source"],
                 )
             return None
+
+    # =========================
+    # Series Alias Operations
+    # =========================
+
+    def upsert_series_alias(self, alias: SeriesAlias) -> UUID:
+        """Upsert a series alias and return its ID."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                INSERT INTO "SeriesAliases" ("Id", "SeriesId", "AliasName", "AliasSlug",
+                                            "LogoUrl", "ValidFrom", "ValidUntil", "Source")
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT ("SeriesId", "AliasSlug") DO UPDATE SET
+                    "AliasName" = EXCLUDED."AliasName",
+                    "LogoUrl" = EXCLUDED."LogoUrl",
+                    "ValidFrom" = EXCLUDED."ValidFrom",
+                    "ValidUntil" = EXCLUDED."ValidUntil",
+                    "Source" = EXCLUDED."Source"
+                RETURNING "Id"
+                """,
+                (
+                    str(alias.id),
+                    str(alias.series_id),
+                    alias.alias_name,
+                    alias.alias_slug,
+                    alias.logo_url,
+                    alias.valid_from,
+                    alias.valid_until,
+                    alias.source,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return _to_uuid(row["Id"]) if row else alias.id
+
+    def get_all_series_aliases(self) -> list[SeriesAlias]:
+        """Get all series aliases from the database."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "SeriesId", "AliasName", "AliasSlug", "LogoUrl",
+                          "ValidFrom", "ValidUntil", "Source"
+                   FROM "SeriesAliases\""""
+            )
+            rows = cur.fetchall()
+            return [
+                SeriesAlias(
+                    id=_to_uuid(row["Id"]),
+                    series_id=_to_uuid(row["SeriesId"]),
+                    alias_name=row["AliasName"],
+                    alias_slug=row["AliasSlug"],
+                    logo_url=row["LogoUrl"],
+                    valid_from=row["ValidFrom"],
+                    valid_until=row["ValidUntil"],
+                    source=row["Source"],
+                )
+                for row in rows
+            ]
+
+    def get_series_alias_by_slug(self, alias_slug: str) -> SeriesAlias | None:
+        """Find a series alias by its slug."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "SeriesId", "AliasName", "AliasSlug", "LogoUrl",
+                          "ValidFrom", "ValidUntil", "Source"
+                   FROM "SeriesAliases" WHERE "AliasSlug" = %s""",
+                (alias_slug,),
+            )
+            row = cur.fetchone()
+            if row:
+                return SeriesAlias(
+                    id=_to_uuid(row["Id"]),
+                    series_id=_to_uuid(row["SeriesId"]),
+                    alias_name=row["AliasName"],
+                    alias_slug=row["AliasSlug"],
+                    logo_url=row["LogoUrl"],
+                    valid_from=row["ValidFrom"],
+                    valid_until=row["ValidUntil"],
+                    source=row["Source"],
+                )
+            return None
+
+    def get_all_series(self) -> list[Series]:
+        """Get all series from the database."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "Name", "Slug", "LogoUrl"
+                   FROM "Series\""""
+            )
+            rows = cur.fetchall()
+            return [
+                Series(
+                    id=_to_uuid(row["Id"]),
+                    name=row["Name"],
+                    slug=row["Slug"],
+                    logo_url=row["LogoUrl"],
+                )
+                for row in rows
+            ]
+
+    # =========================
+    # Circuit Alias Operations
+    # =========================
+
+    def upsert_circuit_alias(self, alias: CircuitAlias) -> UUID:
+        """Upsert a circuit alias and return its ID."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                INSERT INTO "CircuitAliases" ("Id", "CircuitId", "AliasName", "AliasSlug",
+                                             "ValidFrom", "ValidUntil", "Source")
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT ("CircuitId", "AliasSlug") DO UPDATE SET
+                    "AliasName" = EXCLUDED."AliasName",
+                    "ValidFrom" = EXCLUDED."ValidFrom",
+                    "ValidUntil" = EXCLUDED."ValidUntil",
+                    "Source" = EXCLUDED."Source"
+                RETURNING "Id"
+                """,
+                (
+                    str(alias.id),
+                    str(alias.circuit_id),
+                    alias.alias_name,
+                    alias.alias_slug,
+                    alias.valid_from,
+                    alias.valid_until,
+                    alias.source,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return _to_uuid(row["Id"]) if row else alias.id
+
+    def get_all_circuit_aliases(self) -> list[CircuitAlias]:
+        """Get all circuit aliases from the database."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "CircuitId", "AliasName", "AliasSlug",
+                          "ValidFrom", "ValidUntil", "Source"
+                   FROM "CircuitAliases\""""
+            )
+            rows = cur.fetchall()
+            return [
+                CircuitAlias(
+                    id=_to_uuid(row["Id"]),
+                    circuit_id=_to_uuid(row["CircuitId"]),
+                    alias_name=row["AliasName"],
+                    alias_slug=row["AliasSlug"],
+                    valid_from=row["ValidFrom"],
+                    valid_until=row["ValidUntil"],
+                    source=row["Source"],
+                )
+                for row in rows
+            ]
+
+    def get_circuit_alias_by_slug(self, alias_slug: str) -> CircuitAlias | None:
+        """Find a circuit alias by its slug."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "CircuitId", "AliasName", "AliasSlug",
+                          "ValidFrom", "ValidUntil", "Source"
+                   FROM "CircuitAliases" WHERE "AliasSlug" = %s""",
+                (alias_slug,),
+            )
+            row = cur.fetchone()
+            if row:
+                return CircuitAlias(
+                    id=_to_uuid(row["Id"]),
+                    circuit_id=_to_uuid(row["CircuitId"]),
+                    alias_name=row["AliasName"],
+                    alias_slug=row["AliasSlug"],
+                    valid_from=row["ValidFrom"],
+                    valid_until=row["ValidUntil"],
+                    source=row["Source"],
+                )
+            return None
+
+    def get_all_circuits(self) -> list[Circuit]:
+        """Get all circuits from the database."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "Name", "Slug", "Location", "Country", "CountryCode",
+                          "LayoutMapUrl", "Latitude", "Longitude", "LengthMeters"
+                   FROM "Circuits\""""
+            )
+            rows = cur.fetchall()
+            return [
+                Circuit(
+                    id=_to_uuid(row["Id"]),
+                    name=row["Name"],
+                    slug=row["Slug"],
+                    location=row["Location"],
+                    country=row["Country"],
+                    country_code=row["CountryCode"],
+                    layout_map_url=row["LayoutMapUrl"],
+                    latitude=row["Latitude"],
+                    longitude=row["Longitude"],
+                    length_meters=row["LengthMeters"],
+                )
+                for row in rows
+            ]
 
     # =========================
     # Entrant Operations

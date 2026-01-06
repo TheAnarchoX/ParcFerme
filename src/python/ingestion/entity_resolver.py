@@ -27,7 +27,7 @@ from uuid import UUID
 
 import structlog  # type: ignore
 
-from ingestion.models import Driver, DriverAlias, Team, TeamAlias, slugify
+from ingestion.models import Driver, DriverAlias, Team, TeamAlias, Series, SeriesAlias, Circuit, CircuitAlias, slugify
 
 if TYPE_CHECKING:
     from ingestion.repository import RacingRepository
@@ -59,6 +59,30 @@ class ResolvedTeam:
     old_name: str | None = None
 
 
+@dataclass
+class ResolvedSeries:
+    """Result of resolving a series from incoming data."""
+
+    series: Series
+    is_new: bool
+    existing_id: UUID | None
+    aliases_to_add: list[SeriesAlias] = field(default_factory=list)
+    name_changed: bool = False
+    old_name: str | None = None
+
+
+@dataclass
+class ResolvedCircuit:
+    """Result of resolving a circuit from incoming data."""
+
+    circuit: Circuit
+    is_new: bool
+    existing_id: UUID | None
+    aliases_to_add: list[CircuitAlias] = field(default_factory=list)
+    name_changed: bool = False
+    old_name: str | None = None
+
+
 class EntityResolver:
     """Resolves and normalizes entity identities during ingestion.
 
@@ -86,8 +110,12 @@ class EntityResolver:
         self._driver_cache: dict[str, Driver] = {}  # slug -> Driver
         self._driver_by_number: dict[int, Driver] = {}  # driver_number -> Driver
         self._team_cache: dict[str, Team] = {}  # slug -> Team
+        self._series_cache: dict[str, Series] = {}  # slug -> Series
+        self._circuit_cache: dict[str, Circuit] = {}  # slug -> Circuit
         self._driver_alias_cache: dict[str, UUID] = {}  # alias_slug -> driver_id
         self._team_alias_cache: dict[str, UUID] = {}  # alias_slug -> team_id
+        self._series_alias_cache: dict[str, UUID] = {}  # alias_slug -> series_id
+        self._circuit_alias_cache: dict[str, UUID] = {}  # alias_slug -> circuit_id
         self._cache_initialized = False
 
     @staticmethod
@@ -99,7 +127,7 @@ class EntityResolver:
             with open(aliases_file, encoding="utf-8") as f:
                 return json.load(f)
         logger.warning("Known aliases file not found", path=str(aliases_file))
-        return {"drivers": {}, "teams": {}, "circuits": {}}
+        return {"drivers": {}, "teams": {}, "circuits": {}, "series": {}}
 
     def _init_cache(self) -> None:
         """Initialize caches from database."""
@@ -121,6 +149,16 @@ class EntityResolver:
         for team in teams:
             self._team_cache[team.slug] = team
 
+        # Load all series
+        all_series = self.repository.get_all_series()
+        for series in all_series:
+            self._series_cache[series.slug] = series
+
+        # Load all circuits
+        circuits = self.repository.get_all_circuits()
+        for circuit in circuits:
+            self._circuit_cache[circuit.slug] = circuit
+
         # Load all driver aliases
         driver_aliases = self.repository.get_all_driver_aliases()
         for alias in driver_aliases:
@@ -131,13 +169,27 @@ class EntityResolver:
         for alias in team_aliases:
             self._team_alias_cache[alias.alias_slug] = alias.team_id
 
+        # Load all series aliases
+        series_aliases = self.repository.get_all_series_aliases()
+        for alias in series_aliases:
+            self._series_alias_cache[alias.alias_slug] = alias.series_id
+
+        # Load all circuit aliases
+        circuit_aliases = self.repository.get_all_circuit_aliases()
+        for alias in circuit_aliases:
+            self._circuit_alias_cache[alias.alias_slug] = alias.circuit_id
+
         self._cache_initialized = True
         logger.info(
             "Entity resolver cache initialized",
             drivers=len(self._driver_cache),
             teams=len(self._team_cache),
+            series=len(self._series_cache),
+            circuits=len(self._circuit_cache),
             driver_aliases=len(self._driver_alias_cache),
             team_aliases=len(self._team_alias_cache),
+            series_aliases=len(self._series_alias_cache),
+            circuit_aliases=len(self._circuit_alias_cache),
         )
 
     def resolve_driver(
@@ -708,7 +760,11 @@ class EntityResolver:
         return None
 
     def update_cache_after_upsert(
-        self, driver: Driver | None = None, team: Team | None = None
+        self,
+        driver: Driver | None = None,
+        team: Team | None = None,
+        series: Series | None = None,
+        circuit: Circuit | None = None,
     ) -> None:
         """Update internal cache after upserting an entity."""
         if driver:
@@ -721,11 +777,465 @@ class EntityResolver:
         if team:
             self._team_cache[team.slug] = team
 
+        if series:
+            self._series_cache[series.slug] = series
+
+        if circuit:
+            self._circuit_cache[circuit.slug] = circuit
+
     def add_alias_to_cache(
-        self, driver_alias: DriverAlias | None = None, team_alias: TeamAlias | None = None
+        self,
+        driver_alias: DriverAlias | None = None,
+        team_alias: TeamAlias | None = None,
+        series_alias: SeriesAlias | None = None,
+        circuit_alias: CircuitAlias | None = None,
     ) -> None:
         """Add an alias to the internal cache."""
         if driver_alias:
             self._driver_alias_cache[driver_alias.alias_slug] = driver_alias.driver_id
         if team_alias:
             self._team_alias_cache[team_alias.alias_slug] = team_alias.team_id
+        if series_alias:
+            self._series_alias_cache[series_alias.alias_slug] = series_alias.series_id
+        if circuit_alias:
+            self._circuit_alias_cache[circuit_alias.alias_slug] = circuit_alias.circuit_id
+
+    # =========================
+    # Series Resolution
+    # =========================
+
+    def resolve_series(
+        self,
+        name: str,
+        logo_url: str | None = None,
+    ) -> ResolvedSeries:
+        """Resolve a series from incoming data.
+
+        Similar strategy to teams but simpler.
+
+        Args:
+            name: Series name from source
+            logo_url: URL to series logo
+
+        Returns:
+            ResolvedSeries with series entity and resolution metadata
+        """
+        self._init_cache()
+
+        incoming_slug = slugify(name)
+
+        # Strategy 1: Exact slug match
+        if incoming_slug in self._series_cache:
+            existing = self._series_cache[incoming_slug]
+            return self._create_series_resolution(
+                existing=existing,
+                incoming_slug=incoming_slug,
+                name=name,
+                logo_url=logo_url,
+            )
+
+        # Strategy 2: Known alias lookup (from JSON config)
+        canonical = self._find_known_series_alias(name, incoming_slug)
+        if canonical:
+            canonical_slug = slugify(canonical["canonical_name"])
+            if canonical_slug in self._series_cache:
+                existing = self._series_cache[canonical_slug]
+                return self._create_series_resolution(
+                    existing=existing,
+                    incoming_slug=incoming_slug,
+                    name=canonical["canonical_name"],
+                    logo_url=logo_url,
+                    original_name=name,
+                )
+
+        # Strategy 3: Database alias lookup
+        if incoming_slug in self._series_alias_cache:
+            series_id = self._series_alias_cache[incoming_slug]
+            existing = self._find_series_by_id(series_id)
+            if existing:
+                return self._create_series_resolution(
+                    existing=existing,
+                    incoming_slug=incoming_slug,
+                    name=name,
+                    logo_url=logo_url,
+                )
+
+        # No match found - create new series
+        if canonical:
+            final_name = canonical["canonical_name"]
+            final_slug = slugify(final_name)
+        else:
+            final_name = name
+            final_slug = incoming_slug
+
+        new_series = Series(
+            name=final_name,
+            slug=final_slug,
+            logo_url=logo_url,
+        )
+
+        # Add alias if incoming slug differs from canonical
+        aliases_to_add = []
+        if incoming_slug != final_slug:
+            aliases_to_add.append(
+                SeriesAlias(
+                    series_id=new_series.id,
+                    alias_name=name,
+                    alias_slug=incoming_slug,
+                    source="ingestion",
+                )
+            )
+
+        return ResolvedSeries(
+            series=new_series,
+            is_new=True,
+            existing_id=None,
+            aliases_to_add=aliases_to_add,
+        )
+
+    def _create_series_resolution(
+        self,
+        existing: Series,
+        incoming_slug: str,
+        name: str,
+        logo_url: str | None,
+        original_name: str | None = None,
+    ) -> ResolvedSeries:
+        """Create a resolution result for an existing series match."""
+        name_changed = existing.name != name
+
+        # Create updated series with latest values
+        updated_series = Series(
+            id=existing.id,
+            name=name,
+            slug=slugify(name) if name_changed else existing.slug,
+            logo_url=logo_url or existing.logo_url,
+        )
+
+        # Track aliases to add
+        aliases_to_add = []
+
+        # If name changed, add old name as alias
+        if name_changed:
+            old_slug = existing.slug
+            if old_slug != updated_series.slug:
+                aliases_to_add.append(
+                    SeriesAlias(
+                        series_id=existing.id,
+                        alias_name=existing.name,
+                        alias_slug=old_slug,
+                        source="canonical-update",
+                    )
+                )
+
+        # If incoming slug differs from canonical, add as alias
+        if incoming_slug != updated_series.slug:
+            if incoming_slug not in self._series_alias_cache:
+                alias_name = original_name or name
+                aliases_to_add.append(
+                    SeriesAlias(
+                        series_id=existing.id,
+                        alias_name=alias_name,
+                        alias_slug=incoming_slug,
+                        source="ingestion",
+                    )
+                )
+
+        return ResolvedSeries(
+            series=updated_series,
+            is_new=False,
+            existing_id=existing.id,
+            aliases_to_add=aliases_to_add,
+            name_changed=name_changed,
+            old_name=existing.name if name_changed else None,
+        )
+
+    def _find_known_series_alias(self, name: str, slug: str) -> dict | None:
+        """Look up series in known aliases config."""
+        all_series = self._known_aliases.get("series", {})
+
+        for canonical_slug, data in all_series.items():
+            if isinstance(data, dict):
+                if canonical_slug == slug:
+                    return {**data, "canonical_slug": canonical_slug}
+                # Check aliases
+                for alias in data.get("aliases", []):
+                    if slugify(alias.get("name", "")) == slug:
+                        return {**data, "canonical_slug": canonical_slug}
+
+        return None
+
+    def _find_series_by_id(self, series_id: UUID) -> Series | None:
+        """Find a series in cache by ID."""
+        for series in self._series_cache.values():
+            if series.id == series_id:
+                return series
+        return None
+
+    # =========================
+    # Circuit Resolution
+    # =========================
+
+    def resolve_circuit(
+        self,
+        name: str,
+        location: str,
+        country: str,
+        country_code: str | None = None,
+        layout_map_url: str | None = None,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        length_meters: int | None = None,
+    ) -> ResolvedCircuit:
+        """Resolve a circuit from incoming data.
+
+        Args:
+            name: Circuit name from source
+            location: City/location name
+            country: Country name
+            country_code: ISO country code
+            layout_map_url: URL to circuit layout image
+            latitude: Circuit latitude
+            longitude: Circuit longitude
+            length_meters: Track length in meters
+
+        Returns:
+            ResolvedCircuit with circuit entity and resolution metadata
+        """
+        self._init_cache()
+
+        incoming_slug = slugify(name)
+
+        # Strategy 1: Exact slug match
+        if incoming_slug in self._circuit_cache:
+            existing = self._circuit_cache[incoming_slug]
+            return self._create_circuit_resolution(
+                existing=existing,
+                incoming_slug=incoming_slug,
+                name=name,
+                location=location,
+                country=country,
+                country_code=country_code,
+                layout_map_url=layout_map_url,
+                latitude=latitude,
+                longitude=longitude,
+                length_meters=length_meters,
+            )
+
+        # Strategy 2: Known alias lookup (from JSON config)
+        canonical = self._find_known_circuit_alias(name, incoming_slug)
+        if canonical:
+            canonical_slug = slugify(canonical["canonical_name"])
+            if canonical_slug in self._circuit_cache:
+                existing = self._circuit_cache[canonical_slug]
+                return self._create_circuit_resolution(
+                    existing=existing,
+                    incoming_slug=incoming_slug,
+                    name=canonical["canonical_name"],
+                    location=location,
+                    country=country,
+                    country_code=country_code,
+                    layout_map_url=layout_map_url,
+                    latitude=latitude,
+                    longitude=longitude,
+                    length_meters=length_meters,
+                    original_name=name,
+                )
+
+        # Strategy 3: Database alias lookup
+        if incoming_slug in self._circuit_alias_cache:
+            circuit_id = self._circuit_alias_cache[incoming_slug]
+            existing = self._find_circuit_by_id(circuit_id)
+            if existing:
+                return self._create_circuit_resolution(
+                    existing=existing,
+                    incoming_slug=incoming_slug,
+                    name=name,
+                    location=location,
+                    country=country,
+                    country_code=country_code,
+                    layout_map_url=layout_map_url,
+                    latitude=latitude,
+                    longitude=longitude,
+                    length_meters=length_meters,
+                )
+
+        # Strategy 4: Fuzzy slug match
+        fuzzy_match = self._fuzzy_match_circuit(incoming_slug)
+        if fuzzy_match:
+            return self._create_circuit_resolution(
+                existing=fuzzy_match,
+                incoming_slug=incoming_slug,
+                name=name,
+                location=location,
+                country=country,
+                country_code=country_code,
+                layout_map_url=layout_map_url,
+                latitude=latitude,
+                longitude=longitude,
+                length_meters=length_meters,
+            )
+
+        # No match found - create new circuit
+        if canonical:
+            final_name = canonical["canonical_name"]
+            final_slug = slugify(final_name)
+        else:
+            final_name = name
+            final_slug = incoming_slug
+
+        new_circuit = Circuit(
+            name=final_name,
+            slug=final_slug,
+            location=location,
+            country=country,
+            country_code=country_code,
+            layout_map_url=layout_map_url,
+            latitude=latitude,
+            longitude=longitude,
+            length_meters=length_meters,
+        )
+
+        # Add alias if incoming slug differs from canonical
+        aliases_to_add = []
+        if incoming_slug != final_slug:
+            aliases_to_add.append(
+                CircuitAlias(
+                    circuit_id=new_circuit.id,
+                    alias_name=name,
+                    alias_slug=incoming_slug,
+                    source="ingestion",
+                )
+            )
+
+        return ResolvedCircuit(
+            circuit=new_circuit,
+            is_new=True,
+            existing_id=None,
+            aliases_to_add=aliases_to_add,
+        )
+
+    def _create_circuit_resolution(
+        self,
+        existing: Circuit,
+        incoming_slug: str,
+        name: str,
+        location: str,
+        country: str,
+        country_code: str | None,
+        layout_map_url: str | None,
+        latitude: float | None,
+        longitude: float | None,
+        length_meters: int | None,
+        original_name: str | None = None,
+    ) -> ResolvedCircuit:
+        """Create a resolution result for an existing circuit match."""
+        name_changed = existing.name != name
+
+        # Create updated circuit with latest values
+        updated_circuit = Circuit(
+            id=existing.id,
+            name=name,
+            slug=slugify(name) if name_changed else existing.slug,
+            location=location or existing.location,
+            country=country or existing.country,
+            country_code=country_code or existing.country_code,
+            layout_map_url=layout_map_url or existing.layout_map_url,
+            latitude=latitude or existing.latitude,
+            longitude=longitude or existing.longitude,
+            length_meters=length_meters or existing.length_meters,
+        )
+
+        # Track aliases to add
+        aliases_to_add = []
+
+        # If name changed, add old name as alias
+        if name_changed:
+            old_slug = existing.slug
+            if old_slug != updated_circuit.slug:
+                aliases_to_add.append(
+                    CircuitAlias(
+                        circuit_id=existing.id,
+                        alias_name=existing.name,
+                        alias_slug=old_slug,
+                        source="canonical-update",
+                    )
+                )
+
+        # If incoming slug differs from canonical, add as alias
+        if incoming_slug != updated_circuit.slug:
+            if incoming_slug not in self._circuit_alias_cache:
+                alias_name = original_name or name
+                aliases_to_add.append(
+                    CircuitAlias(
+                        circuit_id=existing.id,
+                        alias_name=alias_name,
+                        alias_slug=incoming_slug,
+                        source="ingestion",
+                    )
+                )
+
+        return ResolvedCircuit(
+            circuit=updated_circuit,
+            is_new=False,
+            existing_id=existing.id,
+            aliases_to_add=aliases_to_add,
+            name_changed=name_changed,
+            old_name=existing.name if name_changed else None,
+        )
+
+    def _find_known_circuit_alias(self, name: str, slug: str) -> dict | None:
+        """Look up circuit in known aliases config."""
+        circuits = self._known_aliases.get("circuits", {})
+
+        for canonical_slug, data in circuits.items():
+            if isinstance(data, dict):
+                if canonical_slug == slug:
+                    return {**data, "canonical_slug": canonical_slug}
+                # Check aliases
+                for alias in data.get("aliases", []):
+                    if slugify(alias.get("name", "")) == slug:
+                        return {**data, "canonical_slug": canonical_slug}
+
+        return None
+
+    def _find_circuit_by_id(self, circuit_id: UUID) -> Circuit | None:
+        """Find a circuit in cache by ID."""
+        for circuit in self._circuit_cache.values():
+            if circuit.id == circuit_id:
+                return circuit
+        return None
+
+    def _fuzzy_match_circuit(self, slug: str) -> Circuit | None:
+        """Attempt fuzzy matching for circuit slug.
+
+        Handles common variations like:
+        - Missing hyphens
+        - Truncated names
+        - Title sponsor variations
+        """
+        normalized = re.sub(r"[^a-z0-9]", "", slug)
+
+        for existing_slug, circuit in self._circuit_cache.items():
+            existing_normalized = re.sub(r"[^a-z0-9]", "", existing_slug)
+
+            # Check if one contains the other (truncation)
+            if normalized in existing_normalized or existing_normalized in normalized:
+                logger.debug(
+                    "Fuzzy match (containment)",
+                    incoming=slug,
+                    matched=existing_slug,
+                )
+                return circuit
+
+            # Simple Levenshtein check for short strings
+            if len(normalized) <= 20 and len(existing_normalized) <= 20:
+                if self._levenshtein_distance(normalized, existing_normalized) <= 3:
+                    logger.debug(
+                        "Fuzzy match (levenshtein)",
+                        incoming=slug,
+                        matched=existing_slug,
+                    )
+                    return circuit
+
+        return None

@@ -602,5 +602,52 @@
         {"name": "Yas Island", "source": "location"}
       ]
     }
+  },
+  
+  "series": {
+    "_description": "Series aliases keyed by canonical slug. Handles name variations and historical names.",
+    
+    "formula-1": {
+      "canonical_name": "Formula 1",
+      "aliases": [
+        {"name": "F1", "source": "abbreviation"},
+        {"name": "FIA Formula One World Championship", "source": "official"},
+        {"name": "Formula One", "source": "historical"}
+      ]
+    },
+    
+    "motogp": {
+      "canonical_name": "MotoGP",
+      "aliases": [
+        {"name": "FIM MotoGP World Championship", "source": "official"},
+        {"name": "MotoGP World Championship", "source": "common"}
+      ]
+    },
+    
+    "indycar": {
+      "canonical_name": "IndyCar",
+      "aliases": [
+        {"name": "NTT IndyCar Series", "source": "official"},
+        {"name": "IndyCar Series", "source": "common"},
+        {"name": "Indy Racing League", "source": "historical"}
+      ]
+    },
+    
+    "wec": {
+      "canonical_name": "World Endurance Championship",
+      "aliases": [
+        {"name": "WEC", "source": "abbreviation"},
+        {"name": "FIA World Endurance Championship", "source": "official"}
+      ]
+    },
+    
+    "formula-e": {
+      "canonical_name": "Formula E",
+      "aliases": [
+        {"name": "FE", "source": "abbreviation"},
+        {"name": "ABB FIA Formula E World Championship", "source": "official"},
+        {"name": "FIA Formula E Championship", "source": "historical"}
+      ]
+    }
   }
 }

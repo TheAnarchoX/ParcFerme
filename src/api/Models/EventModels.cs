@@ -15,6 +15,7 @@ public sealed class Series
     public string? LogoUrl { get; set; }
     
     public ICollection<Season> Seasons { get; set; } = [];
+    public ICollection<SeriesAlias> Aliases { get; set; } = [];
 }
 
 /// <summary>
@@ -126,6 +127,7 @@ public sealed class Circuit
     
     public ICollection<Round> Rounds { get; set; } = [];
     public ICollection<Grandstand> Grandstands { get; set; } = [];
+    public ICollection<CircuitAlias> Aliases { get; set; } = [];
 }
 
 /// <summary>
@@ -281,6 +283,85 @@ public sealed class TeamAlias
     
     public Team Team { get; set; } = null!;
     public Series? Series { get; set; }
+}
+
+/// <summary>
+/// Historical alias for a series (name variations, rebrands).
+/// Enables tracking series identity across name changes and sponsorship changes.
+/// </summary>
+public sealed class SeriesAlias
+{
+    public Guid Id { get; set; }
+    public Guid SeriesId { get; set; }
+    
+    /// <summary>
+    /// The alias name (e.g., "FIA Formula One World Championship").
+    /// </summary>
+    public required string AliasName { get; set; }
+    
+    /// <summary>
+    /// Slug form of the alias for matching.
+    /// </summary>
+    public required string AliasSlug { get; set; }
+    
+    /// <summary>
+    /// Logo URL if different from canonical.
+    /// </summary>
+    public string? LogoUrl { get; set; }
+    
+    /// <summary>
+    /// When this alias started being used (optional).
+    /// </summary>
+    public DateOnly? ValidFrom { get; set; }
+    
+    /// <summary>
+    /// When this alias stopped being used (optional).
+    /// </summary>
+    public DateOnly? ValidUntil { get; set; }
+    
+    /// <summary>
+    /// Source of this alias (e.g., "OpenF1", "Manual", "Historical").
+    /// </summary>
+    public string? Source { get; set; }
+    
+    public Series Series { get; set; } = null!;
+}
+
+/// <summary>
+/// Historical alias for a circuit (name variations, title sponsor changes).
+/// Enables tracking circuit identity across name changes.
+/// </summary>
+public sealed class CircuitAlias
+{
+    public Guid Id { get; set; }
+    public Guid CircuitId { get; set; }
+    
+    /// <summary>
+    /// The alias name (e.g., "Heineken Dutch Grand Prix Circuit").
+    /// </summary>
+    public required string AliasName { get; set; }
+    
+    /// <summary>
+    /// Slug form of the alias for matching.
+    /// </summary>
+    public required string AliasSlug { get; set; }
+    
+    /// <summary>
+    /// When this alias started being used (optional).
+    /// </summary>
+    public DateOnly? ValidFrom { get; set; }
+    
+    /// <summary>
+    /// When this alias stopped being used (optional).
+    /// </summary>
+    public DateOnly? ValidUntil { get; set; }
+    
+    /// <summary>
+    /// Source of this alias (e.g., "OpenF1", "Manual", "Historical").
+    /// </summary>
+    public string? Source { get; set; }
+    
+    public Circuit Circuit { get; set; } = null!;
 }
 
 /// <summary>

@@ -5,8 +5,24 @@ from uuid import uuid4
 
 import pytest
 
-from ingestion.entity_resolver import EntityResolver, ResolvedDriver, ResolvedTeam
-from ingestion.models import Driver, DriverAlias, Team, TeamAlias, slugify
+from ingestion.entity_resolver import (
+    EntityResolver,
+    ResolvedDriver,
+    ResolvedTeam,
+    ResolvedSeries,
+    ResolvedCircuit,
+)
+from ingestion.models import (
+    Driver,
+    DriverAlias,
+    Team,
+    TeamAlias,
+    Series,
+    SeriesAlias,
+    Circuit,
+    CircuitAlias,
+    slugify,
+)
 
 
 @pytest.fixture
@@ -15,8 +31,12 @@ def mock_repository():
     repo = MagicMock()
     repo.get_all_drivers.return_value = []
     repo.get_all_teams.return_value = []
+    repo.get_all_series.return_value = []
+    repo.get_all_circuits.return_value = []
     repo.get_all_driver_aliases.return_value = []
     repo.get_all_team_aliases.return_value = []
+    repo.get_all_series_aliases.return_value = []
+    repo.get_all_circuit_aliases.return_value = []
     return repo
 
 
@@ -119,6 +139,110 @@ def resolver_with_teams(mock_repository):
         "red_bull": red_bull,
         "mercedes": mercedes,
         "rb": rb,
+    }
+
+
+@pytest.fixture
+def resolver_with_series(mock_repository):
+    """Create resolver pre-populated with sample series."""
+    f1 = Series(
+        id=uuid4(),
+        name="Formula 1",
+        slug="formula-1",
+        logo_url="https://example.com/f1-logo.png",
+    )
+    motogp = Series(
+        id=uuid4(),
+        name="MotoGP",
+        slug="motogp",
+        logo_url="https://example.com/motogp-logo.png",
+    )
+    indycar = Series(
+        id=uuid4(),
+        name="IndyCar",
+        slug="indycar",
+        logo_url="https://example.com/indycar-logo.png",
+    )
+
+    mock_repository.get_all_series.return_value = [f1, motogp, indycar]
+    mock_repository.get_all_series_aliases.return_value = [
+        SeriesAlias(
+            id=uuid4(),
+            series_id=f1.id,
+            alias_name="F1",
+            alias_slug="f1",
+            source="abbreviation",
+        )
+    ]
+
+    resolver = EntityResolver(repository=mock_repository)
+    return resolver, {
+        "f1": f1,
+        "motogp": motogp,
+        "indycar": indycar,
+    }
+
+
+@pytest.fixture
+def resolver_with_circuits(mock_repository):
+    """Create resolver pre-populated with sample circuits."""
+    silverstone = Circuit(
+        id=uuid4(),
+        name="Silverstone",
+        slug="silverstone",
+        location="Silverstone",
+        country="United Kingdom",
+        country_code="GB",
+        latitude=52.0786,
+        longitude=-1.0169,
+        length_meters=5891,
+    )
+    monaco = Circuit(
+        id=uuid4(),
+        name="Monaco",
+        slug="monaco",
+        location="Monte Carlo",
+        country="Monaco",
+        country_code="MC",
+        latitude=43.7347,
+        longitude=7.4206,
+        length_meters=3337,
+    )
+    spa = Circuit(
+        id=uuid4(),
+        name="Spa-Francorchamps",
+        slug="spa-francorchamps",
+        location="Stavelot",
+        country="Belgium",
+        country_code="BE",
+        latitude=50.4372,
+        longitude=5.9714,
+        length_meters=7004,
+    )
+
+    mock_repository.get_all_circuits.return_value = [silverstone, monaco, spa]
+    mock_repository.get_all_circuit_aliases.return_value = [
+        CircuitAlias(
+            id=uuid4(),
+            circuit_id=monaco.id,
+            alias_name="Circuit de Monaco",
+            alias_slug="circuit-de-monaco",
+            source="official",
+        ),
+        CircuitAlias(
+            id=uuid4(),
+            circuit_id=spa.id,
+            alias_name="Spa",
+            alias_slug="spa",
+            source="short",
+        ),
+    ]
+
+    resolver = EntityResolver(repository=mock_repository)
+    return resolver, {
+        "silverstone": silverstone,
+        "monaco": monaco,
+        "spa": spa,
     }
 
 
@@ -442,6 +566,247 @@ class TestTeamResolution:
         assert result.existing_id == teams["rb"].id
 
 
+class TestSeriesResolution:
+    """Tests for series entity resolution."""
+
+    def test_resolve_series_exact_slug_match(self, resolver_with_series):
+        """Should match existing series by exact slug."""
+        resolver, series_dict = resolver_with_series
+
+        result = resolver.resolve_series(
+            name="Formula 1",
+            logo_url="https://example.com/new-f1-logo.png",
+        )
+
+        assert not result.is_new
+        assert result.existing_id == series_dict["f1"].id
+        assert result.series.name == "Formula 1"
+
+    def test_resolve_series_by_database_alias(self, resolver_with_series):
+        """Should match series via database alias."""
+        resolver, series_dict = resolver_with_series
+
+        # "F1" should match Formula 1 via alias
+        result = resolver.resolve_series(
+            name="F1",
+        )
+
+        assert not result.is_new
+        assert result.existing_id == series_dict["f1"].id
+
+    def test_resolve_series_by_known_alias(self, mock_repository):
+        """Should match series via known aliases config."""
+        f1 = Series(
+            id=uuid4(),
+            name="Formula 1",
+            slug="formula-1",
+        )
+
+        mock_repository.get_all_series.return_value = [f1]
+        mock_repository.get_all_series_aliases.return_value = []
+
+        resolver = EntityResolver(repository=mock_repository)
+
+        # "FIA Formula One World Championship" should resolve to "Formula 1"
+        result = resolver.resolve_series(
+            name="FIA Formula One World Championship",
+        )
+
+        assert not result.is_new
+        assert result.existing_id == f1.id
+        # Should add incoming name as alias
+        alias_slugs = [a.alias_slug for a in result.aliases_to_add]
+        assert "fia-formula-one-world-championship" in alias_slugs
+
+    def test_resolve_series_creates_new(self, mock_repository):
+        """Should create new series when no match found."""
+        resolver = EntityResolver(repository=mock_repository)
+
+        result = resolver.resolve_series(
+            name="Formula E",
+            logo_url="https://example.com/fe-logo.png",
+        )
+
+        assert result.is_new
+        assert result.existing_id is None
+        assert result.series.name == "Formula E"
+        assert result.series.slug == "formula-e"
+        assert result.series.logo_url == "https://example.com/fe-logo.png"
+
+    def test_resolve_series_updates_name_via_known_alias(self, resolver_with_series):
+        """Should update series name when canonical name from known alias differs."""
+        resolver, series_dict = resolver_with_series
+
+        # Use official name that maps to Formula 1 via known alias
+        result = resolver.resolve_series(
+            name="FIA Formula One World Championship",
+        )
+
+        assert not result.is_new
+        assert result.existing_id == series_dict["f1"].id
+        # Name should be canonical from known alias
+        assert result.series.name == "Formula 1"
+        # Incoming variant should be added as alias
+        alias_slugs = [a.alias_slug for a in result.aliases_to_add]
+        assert "fia-formula-one-world-championship" in alias_slugs
+
+    def test_resolve_series_adds_alias_for_variant(self, resolver_with_series):
+        """Should add alias when incoming name differs from canonical."""
+        resolver, series_dict = resolver_with_series
+
+        # Use variant name that matches by known alias
+        result = resolver.resolve_series(
+            name="NTT IndyCar Series",
+        )
+
+        # Should match IndyCar
+        assert not result.is_new
+        # Should have alias for the variant name
+        alias_slugs = [a.alias_slug for a in result.aliases_to_add]
+        assert "ntt-indycar-series" in alias_slugs
+
+
+class TestCircuitResolution:
+    """Tests for circuit entity resolution."""
+
+    def test_resolve_circuit_exact_slug_match(self, resolver_with_circuits):
+        """Should match existing circuit by exact slug."""
+        resolver, circuits = resolver_with_circuits
+
+        result = resolver.resolve_circuit(
+            name="Silverstone",
+            location="Silverstone",
+            country="United Kingdom",
+            country_code="GB",
+            length_meters=5891,
+        )
+
+        assert not result.is_new
+        assert result.existing_id == circuits["silverstone"].id
+        assert result.circuit.name == "Silverstone"
+
+    def test_resolve_circuit_by_database_alias(self, resolver_with_circuits):
+        """Should match circuit via database alias."""
+        resolver, circuits = resolver_with_circuits
+
+        # "Circuit de Monaco" should match Monaco via alias
+        result = resolver.resolve_circuit(
+            name="Circuit de Monaco",
+            location="Monte Carlo",
+            country="Monaco",
+        )
+
+        assert not result.is_new
+        assert result.existing_id == circuits["monaco"].id
+
+    def test_resolve_circuit_by_known_alias(self, mock_repository):
+        """Should match circuit via known aliases config."""
+        monaco = Circuit(
+            id=uuid4(),
+            name="Monaco",
+            slug="monaco",
+            location="Monte Carlo",
+            country="Monaco",
+        )
+
+        mock_repository.get_all_circuits.return_value = [monaco]
+        mock_repository.get_all_circuit_aliases.return_value = []
+
+        resolver = EntityResolver(repository=mock_repository)
+
+        # "Monte Carlo" should resolve to "Monaco"
+        result = resolver.resolve_circuit(
+            name="Monte Carlo",
+            location="Monte Carlo",
+            country="Monaco",
+        )
+
+        assert not result.is_new
+        assert result.existing_id == monaco.id
+        # Should add incoming name as alias
+        alias_slugs = [a.alias_slug for a in result.aliases_to_add]
+        assert "monte-carlo" in alias_slugs
+
+    def test_resolve_circuit_creates_new(self, mock_repository):
+        """Should create new circuit when no match found."""
+        resolver = EntityResolver(repository=mock_repository)
+
+        result = resolver.resolve_circuit(
+            name="Suzuka",
+            location="Suzuka",
+            country="Japan",
+            country_code="JP",
+            latitude=34.8431,
+            longitude=136.5407,
+            length_meters=5807,
+        )
+
+        assert result.is_new
+        assert result.existing_id is None
+        assert result.circuit.name == "Suzuka"
+        assert result.circuit.slug == "suzuka"
+        assert result.circuit.latitude == 34.8431
+
+    def test_resolve_circuit_updates_name_via_known_alias(self, resolver_with_circuits):
+        """Should update circuit name when canonical name from known alias differs."""
+        resolver, circuits = resolver_with_circuits
+
+        # "Monte Carlo" should resolve to "Monaco" via known alias
+        result = resolver.resolve_circuit(
+            name="Monte Carlo",
+            location="Monte Carlo",
+            country="Monaco",
+        )
+
+        assert not result.is_new
+        assert result.existing_id == circuits["monaco"].id
+        # Name should be canonical from known alias
+        assert result.circuit.name == "Monaco"
+        # Incoming variant should be added as alias
+        alias_slugs = [a.alias_slug for a in result.aliases_to_add]
+        assert "monte-carlo" in alias_slugs
+
+    def test_resolve_circuit_fuzzy_match_containment(self, mock_repository):
+        """Should fuzzy match when one slug contains the other."""
+        existing = Circuit(
+            id=uuid4(),
+            name="Autodromo Nazionale Monza",
+            slug="autodromo-nazionale-monza",
+            location="Monza",
+            country="Italy",
+        )
+
+        mock_repository.get_all_circuits.return_value = [existing]
+        mock_repository.get_all_circuit_aliases.return_value = []
+
+        resolver = EntityResolver(repository=mock_repository)
+
+        # "Monza" should fuzzy match "Autodromo Nazionale Monza"
+        result = resolver.resolve_circuit(
+            name="Monza",
+            location="Monza",
+            country="Italy",
+        )
+
+        assert not result.is_new
+        assert result.existing_id == existing.id
+
+    def test_resolve_circuit_adds_alias_for_variant(self, resolver_with_circuits):
+        """Should add alias when incoming name differs from canonical."""
+        resolver, circuits = resolver_with_circuits
+
+        # "Spa" should match Spa-Francorchamps via alias
+        result = resolver.resolve_circuit(
+            name="Spa",
+            location="Stavelot",
+            country="Belgium",
+        )
+
+        # Should match via DB alias, no new alias needed
+        assert not result.is_new
+        assert result.existing_id == circuits["spa"].id
+
+
 class TestSlugify:
     """Tests for the slugify utility function."""
 
@@ -528,6 +893,40 @@ class TestCacheManagement:
         assert "test-team" in resolver._team_cache
         assert resolver._team_cache["test-team"] == team
 
+    def test_update_cache_after_upsert_series(self, mock_repository):
+        """Should update series cache after upsert."""
+        resolver = EntityResolver(repository=mock_repository)
+        resolver._cache_initialized = True
+
+        series = Series(
+            id=uuid4(),
+            name="Test Series",
+            slug="test-series",
+        )
+
+        resolver.update_cache_after_upsert(series=series)
+
+        assert "test-series" in resolver._series_cache
+        assert resolver._series_cache["test-series"] == series
+
+    def test_update_cache_after_upsert_circuit(self, mock_repository):
+        """Should update circuit cache after upsert."""
+        resolver = EntityResolver(repository=mock_repository)
+        resolver._cache_initialized = True
+
+        circuit = Circuit(
+            id=uuid4(),
+            name="Test Circuit",
+            slug="test-circuit",
+            location="Test City",
+            country="Test Country",
+        )
+
+        resolver.update_cache_after_upsert(circuit=circuit)
+
+        assert "test-circuit" in resolver._circuit_cache
+        assert resolver._circuit_cache["test-circuit"] == circuit
+
     def test_add_alias_to_cache(self, mock_repository):
         """Should add aliases to cache."""
         resolver = EntityResolver(repository=mock_repository)
@@ -549,7 +948,28 @@ class TestCacheManagement:
             alias_slug="team-alias",
         )
 
-        resolver.add_alias_to_cache(driver_alias=driver_alias, team_alias=team_alias)
+        series_id = uuid4()
+        series_alias = SeriesAlias(
+            id=uuid4(),
+            series_id=series_id,
+            alias_name="Series Alias",
+            alias_slug="series-alias",
+        )
+
+        circuit_id = uuid4()
+        circuit_alias = CircuitAlias(
+            id=uuid4(),
+            circuit_id=circuit_id,
+            alias_name="Circuit Alias",
+            alias_slug="circuit-alias",
+        )
+
+        resolver.add_alias_to_cache(
+            driver_alias=driver_alias,
+            team_alias=team_alias,
+            series_alias=series_alias,
+            circuit_alias=circuit_alias,
+        )
 
         assert "test-alias" in resolver._driver_alias_cache
         assert resolver._driver_alias_cache["test-alias"] == driver_id
@@ -565,10 +985,11 @@ class TestKnownAliasesLoading:
         resolver = EntityResolver(repository=mock_repository)
         aliases = resolver._known_aliases
 
-        # Should have drivers, teams, circuits sections
+        # Should have drivers, teams, circuits, series sections
         assert "drivers" in aliases
         assert "teams" in aliases
         assert "circuits" in aliases
+        assert "series" in aliases
 
         # Should have some known drivers
         assert "max-verstappen" in aliases["drivers"]
@@ -577,6 +998,14 @@ class TestKnownAliasesLoading:
         # Should have some known teams
         assert "red-bull-racing" in aliases["teams"]
         assert "rb" in aliases["teams"]
+
+        # Should have some known circuits
+        assert "monaco" in aliases["circuits"]
+        assert "silverstone" in aliases["circuits"]
+
+        # Should have some known series
+        assert "formula-1" in aliases["series"]
+        assert "motogp" in aliases["series"]
 
     def test_find_known_driver_alias_by_number(self, mock_repository):
         """Should find driver by driver number in known aliases."""
@@ -607,3 +1036,23 @@ class TestKnownAliasesLoading:
 
         assert result is not None
         assert result["canonical_name"] == "Racing Bulls"
+
+    def test_find_known_series_alias(self, mock_repository):
+        """Should find series by alias in known aliases."""
+        resolver = EntityResolver(repository=mock_repository)
+
+        # "F1" should match Formula 1
+        result = resolver._find_known_series_alias("F1", "f1")
+
+        assert result is not None
+        assert result["canonical_name"] == "Formula 1"
+
+    def test_find_known_circuit_alias(self, mock_repository):
+        """Should find circuit by alias in known aliases."""
+        resolver = EntityResolver(repository=mock_repository)
+
+        # "Monte Carlo" should match Monaco
+        result = resolver._find_known_circuit_alias("Monte Carlo", "monte-carlo")
+
+        assert result is not None
+        assert result["canonical_name"] == "Monaco"

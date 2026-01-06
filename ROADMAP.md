@@ -25,10 +25,11 @@
   - [x] Backend: SpoilerShieldService, SessionDtos, SessionsController
   - [x] Frontend: spoilerSlice, useSpoilerShield hook, SpoilerMask/SpoilerBlur components
 - [x] Bug: Fix Antonelli driver duplicate (added DriverNumber field as stable identifier, merged duplicates, updated ingestion to use driver numbers)
-- [x] Entity normalization and alias tracking (Teams, Drivers, Circuits)
+- [x] Entity normalization and alias tracking (Teams, Drivers, Circuits, Series)
   - [x] DriverAlias and TeamAlias database tables with EF Core migration
+  - [x] SeriesAlias and CircuitAlias database tables with EF Core migration
   - [x] EntityResolver service with multi-strategy matching (driver number, slug, known alias, DB alias, fuzzy match)
-  - [x] known_aliases.json config with F1 canonical names and historical aliases
+  - [x] known_aliases.json config with F1 canonical names and historical aliases (drivers, teams, circuits, series)
   - [x] Repository updates for ID-first upsert logic to respect entity resolver decisions
   - [x] Comprehensive tests (33 entity resolver tests, 81 total Python tests passing)
 

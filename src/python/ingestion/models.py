@@ -167,6 +167,31 @@ class TeamAlias(BaseModel):
     source: str | None = None
 
 
+class SeriesAlias(BaseModel):
+    """Historical alias for a series (name variations, rebrands)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    series_id: UUID
+    alias_name: str
+    alias_slug: str
+    logo_url: str | None = None
+    valid_from: date | None = None
+    valid_until: date | None = None
+    source: str | None = None
+
+
+class CircuitAlias(BaseModel):
+    """Historical alias for a circuit (name variations, title sponsor changes)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    circuit_id: UUID
+    alias_name: str
+    alias_slug: str
+    valid_from: date | None = None
+    valid_until: date | None = None
+    source: str | None = None
+
+
 class Entrant(BaseModel):
     """Links a driver to a team for a specific round."""
 

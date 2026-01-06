@@ -11,10 +11,12 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
 
     // Event Cluster
     public DbSet<Series> Series => Set<Series>();
+    public DbSet<SeriesAlias> SeriesAliases => Set<SeriesAlias>();
     public DbSet<Season> Seasons => Set<Season>();
     public DbSet<Round> Rounds => Set<Round>();
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Circuit> Circuits => Set<Circuit>();
+    public DbSet<CircuitAlias> CircuitAliases => Set<CircuitAlias>();
     public DbSet<Grandstand> Grandstands => Set<Grandstand>();
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<DriverAlias> DriverAliases => Set<DriverAlias>();
@@ -44,6 +46,16 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
         modelBuilder.Entity<Series>(entity =>
         {
             entity.HasIndex(e => e.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<SeriesAlias>(entity =>
+        {
+            entity.HasIndex(e => e.AliasSlug);
+            entity.HasIndex(e => new { e.SeriesId, e.AliasSlug }).IsUnique();
+            entity.HasOne(e => e.Series)
+                  .WithMany(s => s.Aliases)
+                  .HasForeignKey(e => e.SeriesId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Season>(entity =>
@@ -81,6 +93,16 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
         modelBuilder.Entity<Circuit>(entity =>
         {
             entity.HasIndex(e => e.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<CircuitAlias>(entity =>
+        {
+            entity.HasIndex(e => e.AliasSlug);
+            entity.HasIndex(e => new { e.CircuitId, e.AliasSlug }).IsUnique();
+            entity.HasOne(e => e.Circuit)
+                  .WithMany(c => c.Aliases)
+                  .HasForeignKey(e => e.CircuitId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Grandstand>(entity =>
