@@ -59,6 +59,9 @@ python -m ingestion sync --year 2024 --no-results
 
 # Test connection
 python -m ingestion healthcheck
+
+# Verify what data has been synced
+python -m ingestion.verify
 ```
 
 ### Bulk Sync (Entire API)
@@ -99,11 +102,12 @@ python -m ingestion.bulk_sync --all --max-retries 5
 ingestion/
 ├── __main__.py         # CLI entry point for single year sync
 ├── bulk_sync.py        # Bulk scraper for entire API
-├── sync.py             # Sync orchestration logic
+├── sync.py              # Sync orchestration logic
 ├── repository.py       # Database operations with upserts
 ├── models.py           # Pydantic models for validation
 ├── config.py           # Settings from environment
 ├── healthcheck.py      # API and DB health checks
+├── verify.py           # Database verification utility
 ├── clients/
 │   └── openf1.py      # OpenF1 API client with retry logic
 └── tests/             # Unit tests
