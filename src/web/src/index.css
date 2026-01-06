@@ -74,7 +74,7 @@ body {
 
 /* Racing-inspired typography */
 .font-racing {
-    font-family: 'Racing Sans One', Inter, system-ui, sans-serif;  
+    font-family: 'Unbounded', Inter, system-ui, sans-serif;  
     letter-spacing: 0.02em;
 }
 
@@ -96,7 +96,7 @@ body {
 
 /* Brand logo styling */
 .brand-logo {
-  font-family: "Racing Sans One", Inter, system-ui, sans-serif;
+  font-family: 'Unbounded', sans-serif;
   font-weight: 800;
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, #00FF7F 0%, #00CC66 100%);
