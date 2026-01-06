@@ -6,7 +6,7 @@ synced to PostgreSQL. They mirror the C# models in ParcFerme.Api.Models.
 """
 
 from datetime import date, datetime
-from enum import Enum
+from enum import Enum, IntEnum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -16,41 +16,41 @@ from pydantic import BaseModel, Field
 # =========================
 
 
-class SessionType(str, Enum):
+class SessionType(IntEnum):
     """Type of racing session."""
 
-    FP1 = "FP1"
-    FP2 = "FP2"
-    FP3 = "FP3"
-    QUALIFYING = "Qualifying"
-    SPRINT_QUALIFYING = "SprintQualifying"
-    SPRINT = "Sprint"
-    RACE = "Race"
-    WARMUP = "Warmup"
+    FP1 = 0
+    FP2 = 1
+    FP3 = 2
+    QUALIFYING = 3
+    SPRINT_QUALIFYING = 4
+    SPRINT = 5
+    RACE = 6
+    WARMUP = 7
     # MotoGP-specific
-    MOTO3_RACE = "Moto3Race"
-    MOTO2_RACE = "Moto2Race"
-    MOTOGP_RACE = "MotoGPRace"
+    MOTO3_RACE = 8
+    MOTO2_RACE = 9
+    MOTOGP_RACE = 10
 
 
-class SessionStatus(str, Enum):
+class SessionStatus(IntEnum):
     """Status of a session."""
 
-    SCHEDULED = "Scheduled"
-    IN_PROGRESS = "InProgress"
-    COMPLETED = "Completed"
-    CANCELLED = "Cancelled"
-    DELAYED = "Delayed"
+    SCHEDULED = 0
+    IN_PROGRESS = 1
+    COMPLETED = 2
+    CANCELLED = 3
+    DELAYED = 4
 
 
-class ResultStatus(str, Enum):
+class ResultStatus(IntEnum):
     """Result status for an entrant."""
 
-    FINISHED = "Finished"
-    DNF = "DNF"
-    DNS = "DNS"
-    DSQ = "DSQ"
-    NC = "NC"  # Not Classified
+    FINISHED = 0
+    DNF = 1
+    DNS = 2
+    DSQ = 3
+    NC = 4  # Not Classified
 
 
 # =========================

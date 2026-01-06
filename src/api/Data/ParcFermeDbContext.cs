@@ -69,7 +69,7 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
 
         modelBuilder.Entity<Session>(entity =>
         {
-            entity.HasIndex(e => e.OpenF1SessionKey);
+                  entity.HasIndex(e => e.OpenF1SessionKey).IsUnique();
             entity.HasOne(e => e.Round)
                   .WithMany(r => r.Sessions)
                   .HasForeignKey(e => e.RoundId)
@@ -101,7 +101,7 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
 
         modelBuilder.Entity<Entrant>(entity =>
         {
-            entity.HasIndex(e => new { e.RoundId, e.DriverId, e.TeamId });
+            entity.HasIndex(e => new { e.RoundId, e.DriverId }).IsUnique();
             entity.HasOne(e => e.Round)
                   .WithMany(r => r.Entrants)
                   .HasForeignKey(e => e.RoundId)

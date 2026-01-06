@@ -96,6 +96,11 @@ User → Log → Review
 - Mock OpenF1 responses for CI
 - WEC edge cases: multi-driver cars
 
+## Ingestion / OpenF1 Sync
+
+- Before running `python -m ingestion sync`, ensure the DB has the unique indexes expected by the ingest upserts: `Sessions.OpenF1SessionKey` unique and `Entrants (RoundId, DriverId, TeamId)` unique. Apply the migration `20260106195000_AddUniqueIndexesForIngestion` (e.g., `cd src/api && dotnet ef database update`) first.
+- OpenF1 may rate-limit (429). The client retries automatically; if you see repeated 429s during a bulk year sync, add a small per-meeting pause or retry the command.
+
 ## Development Phases
 
 1. **Shakedown** (MVP): F1 only, 2024-2025, basic logging + profiles

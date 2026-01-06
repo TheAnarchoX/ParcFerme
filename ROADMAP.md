@@ -23,11 +23,13 @@
 - [x] OpenF1 data sync implementation (Python ingestion pipeline)
 
 ### 🚧 In Progress
+- [ ] Spoiler shield implementation (core feature)
 - [ ] Session listing and detail pages (with spoiler shield, after this task you should be able to view all session data available)
 
 ### 📋 Up Next
 - [ ] "Log a Race" flow (core feature)
 - [ ] Basic feed/home page with recent activity
+
 ---
 
 ## 🗓️ Phase 1: Shakedown (MVP)
@@ -55,6 +57,7 @@
 - [ ] Log race modal/page
 - [ ] User profile page
 - [ ] User settings page (spoiler mode, preferences)
+- [ ] Admin/Mod dashboard
 
 ### Infrastructure
 - [ ] Production deployment setup
