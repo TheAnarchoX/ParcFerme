@@ -74,19 +74,19 @@ body {
 
 /* Racing-inspired typography */
 .font-racing {
-  font-family: 'Racing Sans One', cursive;
-  letter-spacing: 0.02em;
+    font-family: 'Racing Sans One', Inter, system-ui, sans-serif;  
+    letter-spacing: 0.02em;
 }
 
 /* Accent text styles with subtle glow effects */
 .text-accent-green {
   color: #00FF7F;
-  text-shadow: 0 0 30px rgba(0, 255, 127, 0.4);
+  text-shadow: 0 0 30px rgba(0, 255, 127, 0.2);
 }
 
 .text-accent-yellow {
   color: #FFD700;
-  text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
 }
 
 .text-accent-red {
@@ -96,12 +96,12 @@ body {
 
 /* Brand logo styling */
 .brand-logo {
-  font-family: 'Racing Sans One', cursive;
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  font-family: "Racing Sans One", Inter, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   background: linear-gradient(135deg, #00FF7F 0%, #00CC66 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 20px rgba(0, 255, 127, 0.3));
+  filter: drop-shadow(0 0 20px rgba(0, 255, 127, 0.2));
 }
