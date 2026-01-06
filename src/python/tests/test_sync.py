@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 
@@ -13,13 +13,9 @@ from ingestion.clients.openf1 import (
     OpenF1Session,
 )
 from ingestion.models import (
-    Circuit,
-    Driver,
-    Season,
     Series,
     SessionStatus,
     SessionType,
-    Team,
     slugify,
 )
 from ingestion.repository import RacingRepository
@@ -256,7 +252,7 @@ class TestOpenF1SyncService:
     def test_get_or_create_driver(self, mock_drivers: list[OpenF1Driver]) -> None:
         """Test driver creation from OpenF1 data."""
         expected_id = uuid4()
-        
+
         repo = MagicMock(spec=RacingRepository)
         repo.get_driver_by_slug.return_value = None
         repo.upsert_driver.return_value = expected_id
@@ -266,7 +262,7 @@ class TestOpenF1SyncService:
 
         assert driver_id == expected_id
         repo.upsert_driver.assert_called_once()
-        
+
         # Verify the driver was created with correct data
         call_args = repo.upsert_driver.call_args[0][0]
         assert call_args.first_name == "Max"
@@ -276,7 +272,7 @@ class TestOpenF1SyncService:
     def test_get_or_create_team(self, mock_drivers: list[OpenF1Driver]) -> None:
         """Test team creation from OpenF1 driver data."""
         expected_id = uuid4()
-        
+
         repo = MagicMock(spec=RacingRepository)
         repo.get_team_by_slug.return_value = None
         repo.upsert_team.return_value = expected_id
@@ -286,7 +282,7 @@ class TestOpenF1SyncService:
 
         assert team_id == expected_id
         repo.upsert_team.assert_called_once()
-        
+
         # Verify the team was created with correct data
         call_args = repo.upsert_team.call_args[0][0]
         assert call_args.name == "Red Bull Racing"
@@ -295,7 +291,7 @@ class TestOpenF1SyncService:
     def test_get_or_create_circuit(self, mock_meeting: OpenF1Meeting) -> None:
         """Test circuit creation from meeting data."""
         expected_id = uuid4()
-        
+
         repo = MagicMock(spec=RacingRepository)
         repo.get_circuit_by_slug.return_value = None
         repo.upsert_circuit.return_value = expected_id
@@ -305,7 +301,7 @@ class TestOpenF1SyncService:
 
         assert circuit_id == expected_id
         repo.upsert_circuit.assert_called_once()
-        
+
         # Verify the circuit was created with correct data
         call_args = repo.upsert_circuit.call_args[0][0]
         assert call_args.country == "Bahrain"
@@ -315,13 +311,13 @@ class TestOpenF1SyncService:
     ) -> None:
         """Test that caching prevents repeated database lookups."""
         expected_id = uuid4()
-        
+
         repo = MagicMock(spec=RacingRepository)
         repo.get_driver_by_slug.return_value = None
         repo.upsert_driver.return_value = expected_id
 
         service = OpenF1SyncService()
-        
+
         # First call should hit the database
         driver_id1 = service._get_or_create_driver(repo, mock_drivers[0])
         # Second call should use cache

@@ -5,7 +5,7 @@ Orchestrates fetching data from OpenF1 API and storing it in the database.
 This is the core of the data ingestion pipeline.
 """
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import structlog  # type: ignore
@@ -18,10 +18,10 @@ from ingestion.clients.openf1 import (
     OpenF1Session,
 )
 from ingestion.models import (
+    OPENF1_SESSION_TYPE_MAP,
     Circuit,
     Driver,
     Entrant,
-    OPENF1_SESSION_TYPE_MAP,
     Result,
     ResultStatus,
     Round,

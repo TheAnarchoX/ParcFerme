@@ -4,12 +4,11 @@ from datetime import datetime
 from typing import Any
 
 import httpx  # type: ignore
-from pydantic import BaseModel, Field  # type: ignore
+import structlog  # type: ignore
+from pydantic import BaseModel  # type: ignore
 from tenacity import retry, stop_after_attempt, wait_exponential  # type: ignore
 
 from ingestion.config import settings
-
-import structlog  # type: ignore
 
 logger = structlog.get_logger()
 
@@ -348,9 +347,10 @@ class OpenF1Client:
 
         fastest: OpenF1Lap | None = None
         for lap in laps:
-            if lap.lap_duration is not None:
-                if fastest is None or lap.lap_duration < (fastest.lap_duration or float("inf")):
-                    fastest = lap
+            if lap.lap_duration is not None and (
+                fastest is None or lap.lap_duration < (fastest.lap_duration or float("inf"))
+            ):
+                fastest = lap
         return fastest.driver_number if fastest else None
 
     def get_stints(self, session_key: int, driver_number: int | None = None) -> list[OpenF1Stint]:

@@ -28,7 +28,11 @@ structlog.configure(
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
-        structlog.dev.ConsoleRenderer() if settings.log_level == "DEBUG" else structlog.processors.JSONRenderer(),
+        (
+            structlog.dev.ConsoleRenderer()
+            if settings.log_level == "DEBUG"
+            else structlog.processors.JSONRenderer()
+        ),
     ],
     wrapper_class=structlog.stdlib.BoundLogger,
     context_class=dict,

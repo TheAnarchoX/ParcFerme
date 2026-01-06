@@ -3,16 +3,12 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from ingestion.clients.openf1 import (
     OpenF1Client,
     OpenF1Driver,
     OpenF1Meeting,
-    OpenF1Position,
     OpenF1Session,
 )
-
 
 # Sample API responses for mocking
 MOCK_MEETINGS_RESPONSE = [
@@ -97,10 +93,34 @@ MOCK_DRIVERS_RESPONSE = [
 ]
 
 MOCK_POSITIONS_RESPONSE = [
-    {"session_key": 9472, "meeting_key": 1229, "driver_number": 1, "position": 2, "date": "2024-03-02T16:30:00+00:00"},
-    {"session_key": 9472, "meeting_key": 1229, "driver_number": 44, "position": 3, "date": "2024-03-02T16:30:00+00:00"},
-    {"session_key": 9472, "meeting_key": 1229, "driver_number": 1, "position": 1, "date": "2024-03-02T17:00:00+00:00"},
-    {"session_key": 9472, "meeting_key": 1229, "driver_number": 44, "position": 7, "date": "2024-03-02T17:00:00+00:00"},
+    {
+        "session_key": 9472,
+        "meeting_key": 1229,
+        "driver_number": 1,
+        "position": 2,
+        "date": "2024-03-02T16:30:00+00:00",
+    },
+    {
+        "session_key": 9472,
+        "meeting_key": 1229,
+        "driver_number": 44,
+        "position": 3,
+        "date": "2024-03-02T16:30:00+00:00",
+    },
+    {
+        "session_key": 9472,
+        "meeting_key": 1229,
+        "driver_number": 1,
+        "position": 1,
+        "date": "2024-03-02T17:00:00+00:00",
+    },
+    {
+        "session_key": 9472,
+        "meeting_key": 1229,
+        "driver_number": 44,
+        "position": 7,
+        "date": "2024-03-02T17:00:00+00:00",
+    },
 ]
 
 

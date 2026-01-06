@@ -3,8 +3,6 @@
 from datetime import date, datetime
 from uuid import UUID
 
-import pytest
-
 from ingestion.models import (
     Circuit,
     Driver,
