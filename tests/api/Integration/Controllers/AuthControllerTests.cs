@@ -42,7 +42,7 @@ public class AuthControllerTests : IClassFixture<ParcFermeWebApplicationFactory>
         var request = CreateValidRegisterRequest(email);
         var response = await _client.PostAsJsonAsync("/api/v1/auth/register", request);
         response.EnsureSuccessStatusCode();
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>(TestHelpers.JsonOptions);
         return authResponse!;
     }
 
@@ -77,7 +77,7 @@ public class AuthControllerTests : IClassFixture<ParcFermeWebApplicationFactory>
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/v1/auth/register", request);
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>(TestHelpers.JsonOptions);
 
         // Assert
         authResponse.Should().NotBeNull();
@@ -97,7 +97,7 @@ public class AuthControllerTests : IClassFixture<ParcFermeWebApplicationFactory>
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/v1/auth/register", request);
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>(TestHelpers.JsonOptions);
 
         // Assert
         authResponse!.User.SpoilerMode.Should().Be(SpoilerMode.Strict, "Default should be Strict for spoiler protection");
@@ -216,7 +216,7 @@ public class AuthControllerTests : IClassFixture<ParcFermeWebApplicationFactory>
         // Act
         var response = await _client.PostAsJsonAsync("/api/v1/auth/login", 
             new LoginRequest { Email = email, Password = password });
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>(TestHelpers.JsonOptions);
 
         // Assert
         authResponse.Should().NotBeNull();
@@ -278,7 +278,7 @@ public class AuthControllerTests : IClassFixture<ParcFermeWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var newAuthResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var newAuthResponse = await response.Content.ReadFromJsonAsync<AuthResponse>(TestHelpers.JsonOptions);
         newAuthResponse.Should().NotBeNull();
         newAuthResponse!.AccessToken.Should().NotBeNullOrWhiteSpace();
         newAuthResponse.RefreshToken.Should().NotBeNullOrWhiteSpace();
@@ -363,7 +363,7 @@ public class AuthControllerTests : IClassFixture<ParcFermeWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var user = await response.Content.ReadFromJsonAsync<UserDto>();
+        var user = await response.Content.ReadFromJsonAsync<UserDto>(TestHelpers.JsonOptions);
         user.Should().NotBeNull();
         user!.Id.Should().Be(authResponse.User.Id);
         user.Email.Should().Be(authResponse.User.Email);
@@ -416,7 +416,7 @@ public class AuthControllerTests : IClassFixture<ParcFermeWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var updatedUser = await response.Content.ReadFromJsonAsync<UserDto>();
+        var updatedUser = await response.Content.ReadFromJsonAsync<UserDto>(TestHelpers.JsonOptions);
         updatedUser.Should().NotBeNull();
         updatedUser!.DisplayName.Should().Be("Updated Name");
         updatedUser.Bio.Should().Be("Racing enthusiast");
@@ -438,7 +438,7 @@ public class AuthControllerTests : IClassFixture<ParcFermeWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var updatedUser = await response.Content.ReadFromJsonAsync<UserDto>();
+        var updatedUser = await response.Content.ReadFromJsonAsync<UserDto>(TestHelpers.JsonOptions);
         updatedUser!.SpoilerMode.Should().Be(SpoilerMode.None);
     }
 
