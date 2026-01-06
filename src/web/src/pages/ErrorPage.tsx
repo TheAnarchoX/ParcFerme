@@ -1,4 +1,4 @@
-import { Link, useLocation, useRouteError, isRouteErrorResponse } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { MainLayout, Section } from '../components/layout/MainLayout';
 import { Button } from '../components/ui/Button';
 import { ROUTES } from '../types/navigation';
@@ -14,34 +14,15 @@ interface ErrorPageProps {
 
 /**
  * Generic error page - handles 4xx and 5xx errors with navigation intact.
- * Can be used as a route error boundary or standalone error display.
+ * Can be used as a standalone error display page.
  */
 export function ErrorPage({ statusCode, title, message }: ErrorPageProps) {
   const location = useLocation();
-  const routeError = useRouteError?.();
   
   // Determine error details
-  let errorCode = statusCode || 500;
-  let errorTitle = title || 'Something Went Wrong';
-  let errorMessage = message || 'We encountered an unexpected error. Please try again later.';
-  
-  // Handle route error responses
-  if (isRouteErrorResponse?.(routeError)) {
-    errorCode = routeError.status;
-    if (routeError.status === 404) {
-      errorTitle = 'Page Not Found';
-      errorMessage = 'The page you\'re looking for doesn\'t exist or has been moved.';
-    } else if (routeError.status === 403) {
-      errorTitle = 'Access Denied';
-      errorMessage = 'You don\'t have permission to view this page.';
-    } else if (routeError.status === 401) {
-      errorTitle = 'Authentication Required';
-      errorMessage = 'Please sign in to access this page.';
-    } else if (routeError.status >= 500) {
-      errorTitle = 'Server Error';
-      errorMessage = 'Our servers are having trouble. Please try again in a few moments.';
-    }
-  }
+  const errorCode = statusCode || 500;
+  const errorTitle = title || 'Something Went Wrong';
+  const errorMessage = message || 'We encountered an unexpected error. Please try again later.';
   
   // Error type styling
   const isClientError = errorCode >= 400 && errorCode < 500;
