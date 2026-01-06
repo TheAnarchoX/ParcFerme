@@ -101,7 +101,7 @@ export function PageHeader({
               <img 
                 src={icon} 
                 alt="" 
-                className="w-8 h-8 object-contain" 
+                className="w-12 h-12 md:w-16 md:h-16 object-contain" 
                 aria-hidden="true"
               />
             ) : (
