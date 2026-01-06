@@ -37,6 +37,12 @@ interface SeriesCardProps {
 }
 
 function SeriesCard({ series }: SeriesCardProps) {
+  // Guard against invalid data
+  if (!series.slug || !series.name) {
+    console.warn('Invalid series data:', series);
+    return null;
+  }
+  
   const color = getSeriesColor(series.slug);
   
   return (
@@ -123,6 +129,7 @@ export function SeriesListPage() {
         setIsLoading(true);
         setError(null);
         const data = await seriesApi.getAllSeries();
+        console.log('Fetched series data:', data);
         if (!cancelled) {
           setSeries(data);
         }
@@ -176,9 +183,11 @@ export function SeriesListPage() {
           />
         ) : series.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-            {series.map((s) => (
-              <SeriesCard key={s.id} series={s} />
-            ))}
+            {series
+              .filter((s) => s.slug && s.name) // Filter out invalid series
+              .map((s) => (
+                <SeriesCard key={s.id} series={s} />
+              ))}
           </div>
         ) : (
           <EmptyState
