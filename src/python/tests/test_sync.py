@@ -260,8 +260,13 @@ class TestOpenF1SyncService:
         repo = MagicMock(spec=RacingRepository)
         repo.get_driver_by_slug.return_value = None
         repo.upsert_driver.return_value = expected_id
+        repo.get_all_drivers.return_value = []
+        repo.get_all_driver_aliases.return_value = []
+        repo.get_all_teams.return_value = []
+        repo.get_all_team_aliases.return_value = []
 
-        service = OpenF1SyncService()
+        service = OpenF1SyncService(repository=repo)
+        service._ensure_clients()  # Initialize entity resolver
         driver_id = service._get_or_create_driver(repo, mock_drivers[0])
 
         assert driver_id == expected_id
@@ -270,7 +275,7 @@ class TestOpenF1SyncService:
         # Verify the driver was created with correct data
         call_args = repo.upsert_driver.call_args[0][0]
         assert call_args.first_name == "Max"
-        assert call_args.last_name == "VERSTAPPEN"
+        assert call_args.last_name == "Verstappen"  # Canonical from known_aliases
         assert call_args.abbreviation == "VER"
 
     def test_get_or_create_team(self, mock_drivers: list[OpenF1Driver]) -> None:
@@ -280,8 +285,13 @@ class TestOpenF1SyncService:
         repo = MagicMock(spec=RacingRepository)
         repo.get_team_by_slug.return_value = None
         repo.upsert_team.return_value = expected_id
+        repo.get_all_drivers.return_value = []
+        repo.get_all_driver_aliases.return_value = []
+        repo.get_all_teams.return_value = []
+        repo.get_all_team_aliases.return_value = []
 
-        service = OpenF1SyncService()
+        service = OpenF1SyncService(repository=repo)
+        service._ensure_clients()  # Initialize entity resolver
         team_id = service._get_or_create_team(repo, mock_drivers[0])
 
         assert team_id == expected_id
@@ -317,8 +327,13 @@ class TestOpenF1SyncService:
         repo = MagicMock(spec=RacingRepository)
         repo.get_driver_by_slug.return_value = None
         repo.upsert_driver.return_value = expected_id
+        repo.get_all_drivers.return_value = []
+        repo.get_all_driver_aliases.return_value = []
+        repo.get_all_teams.return_value = []
+        repo.get_all_team_aliases.return_value = []
 
-        service = OpenF1SyncService()
+        service = OpenF1SyncService(repository=repo)
+        service._ensure_clients()  # Initialize entity resolver
 
         # First call should hit the database
         driver_id1 = service._get_or_create_driver(repo, mock_drivers[0])

@@ -158,10 +158,68 @@ public sealed class Driver
     
     /// <summary>
     /// Permanent racing number (e.g., 44 for Hamilton). Used as stable identifier.
+    /// Note: This may be null for historical drivers or vary by series.
     /// </summary>
     public int? DriverNumber { get; set; }
     
+    /// <summary>
+    /// OpenF1 driver_number - serves as stable external identifier for F1.
+    /// This is the racing number from OpenF1 which is consistent per driver.
+    /// </summary>
+    public int? OpenF1DriverNumber { get; set; }
+    
     public ICollection<Entrant> Entrants { get; set; } = [];
+    public ICollection<DriverAlias> Aliases { get; set; } = [];
+}
+
+/// <summary>
+/// Historical alias for a driver (name variations, previous names).
+/// Enables tracking driver identity across name changes and spelling variations.
+/// </summary>
+public sealed class DriverAlias
+{
+    public Guid Id { get; set; }
+    public Guid DriverId { get; set; }
+    
+    /// <summary>
+    /// The alias name (e.g., "Andrea Kimi Antonelli", "Kimi Antonelli").
+    /// </summary>
+    public required string AliasName { get; set; }
+    
+    /// <summary>
+    /// Slug form of the alias for matching.
+    /// </summary>
+    public required string AliasSlug { get; set; }
+    
+    /// <summary>
+    /// Optional series context - alias may only apply to specific series.
+    /// Null means it applies universally.
+    /// </summary>
+    public Guid? SeriesId { get; set; }
+    
+    /// <summary>
+    /// Optional driver number if this alias had a different racing number.
+    /// Used for tracking number changes or series-specific numbers.
+    /// </summary>
+    public int? DriverNumber { get; set; }
+    
+    /// <summary>
+    /// When this alias started being used (optional).
+    /// </summary>
+    public DateOnly? ValidFrom { get; set; }
+    
+    /// <summary>
+    /// When this alias stopped being used (optional).
+    /// </summary>
+    public DateOnly? ValidUntil { get; set; }
+    
+    /// <summary>
+    /// Source of this alias (e.g., "OpenF1", "Manual", "Historical").
+    /// </summary>
+    public string? Source { get; set; }
+    
+    public Driver Driver { get; set; } = null!;
+    public Series? Series { get; set; }
 }
 
 /// <summary>
@@ -178,6 +236,51 @@ public sealed class Team
     public string? PrimaryColor { get; set; }
     
     public ICollection<Entrant> Entrants { get; set; } = [];
+    public ICollection<TeamAlias> Aliases { get; set; } = [];
+}
+
+/// <summary>
+/// Historical alias for a team (name variations, previous names).
+/// Enables tracking team identity across rebrands and sponsorship changes.
+/// </summary>
+public sealed class TeamAlias
+{
+    public Guid Id { get; set; }
+    public Guid TeamId { get; set; }
+    
+    /// <summary>
+    /// The alias name (e.g., "Red Bull RBPT", "Scuderia AlphaTauri").
+    /// </summary>
+    public required string AliasName { get; set; }
+    
+    /// <summary>
+    /// Slug form of the alias for matching.
+    /// </summary>
+    public required string AliasSlug { get; set; }
+    
+    /// <summary>
+    /// Optional series context - alias may only apply to specific series.
+    /// Null means it applies universally.
+    /// </summary>
+    public Guid? SeriesId { get; set; }
+    
+    /// <summary>
+    /// When this alias started being used (optional).
+    /// </summary>
+    public DateOnly? ValidFrom { get; set; }
+    
+    /// <summary>
+    /// When this alias stopped being used (optional).
+    /// </summary>
+    public DateOnly? ValidUntil { get; set; }
+    
+    /// <summary>
+    /// Source of this alias (e.g., "OpenF1", "Manual", "Historical").
+    /// </summary>
+    public string? Source { get; set; }
+    
+    public Team Team { get; set; } = null!;
+    public Series? Series { get; set; }
 }
 
 /// <summary>

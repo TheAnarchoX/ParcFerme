@@ -19,6 +19,7 @@ from ingestion.config import settings
 from ingestion.models import (
     Circuit,
     Driver,
+    DriverAlias,
     Entrant,
     Result,
     Round,
@@ -28,6 +29,7 @@ from ingestion.models import (
     SessionStatus,
     SessionType,
     Team,
+    TeamAlias,
 )
 
 logger = structlog.get_logger()
@@ -349,13 +351,34 @@ class RacingRepository:
     def upsert_driver(self, driver: Driver) -> UUID:
         """Upsert a driver and return its ID.
         
-        Uses DriverNumber as primary conflict resolution (stable identifier),
-        falling back to Slug for drivers without numbers.
+        If driver.id is set and exists in DB, updates that driver.
+        Otherwise uses OpenF1DriverNumber, DriverNumber, and Slug to find existing.
         """
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-            # First try to find by driver number if available
             existing_id = None
-            if driver.driver_number is not None:
+            
+            # First check if driver.id is set and exists (entity resolver match)
+            if driver.id is not None:
+                cur.execute(
+                    'SELECT "Id" FROM "Drivers" WHERE "Id" = %s',
+                    (str(driver.id),),
+                )
+                row = cur.fetchone()
+                if row:
+                    existing_id = _to_uuid(row["Id"])
+            
+            # Try OpenF1 driver number (most stable for new drivers)
+            if existing_id is None and driver.openf1_driver_number is not None:
+                cur.execute(
+                    'SELECT "Id" FROM "Drivers" WHERE "OpenF1DriverNumber" = %s',
+                    (driver.openf1_driver_number,),
+                )
+                row = cur.fetchone()
+                if row:
+                    existing_id = _to_uuid(row["Id"])
+            
+            # Try driver number if not found
+            if existing_id is None and driver.driver_number is not None:
                 cur.execute(
                     'SELECT "Id" FROM "Drivers" WHERE "DriverNumber" = %s',
                     (driver.driver_number,),
@@ -364,7 +387,7 @@ class RacingRepository:
                 if row:
                     existing_id = _to_uuid(row["Id"])
             
-            # If not found by number, try slug
+            # Fall back to slug
             if existing_id is None:
                 cur.execute(
                     'SELECT "Id" FROM "Drivers" WHERE "Slug" = %s',
@@ -386,7 +409,8 @@ class RacingRepository:
                         "Abbreviation" = %s,
                         "Nationality" = %s,
                         "HeadshotUrl" = %s,
-                        "DriverNumber" = %s
+                        "DriverNumber" = %s,
+                        "OpenF1DriverNumber" = %s
                     WHERE "Id" = %s
                     RETURNING "Id"
                     """,
@@ -398,6 +422,7 @@ class RacingRepository:
                         driver.nationality,
                         driver.headshot_url,
                         driver.driver_number,
+                        driver.openf1_driver_number,
                         str(existing_id),
                     ),
                 )
@@ -406,8 +431,9 @@ class RacingRepository:
                 cur.execute(
                     """
                     INSERT INTO "Drivers" ("Id", "FirstName", "LastName", "Slug",
-                                          "Abbreviation", "Nationality", "HeadshotUrl", "DriverNumber")
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                          "Abbreviation", "Nationality", "HeadshotUrl",
+                                          "DriverNumber", "OpenF1DriverNumber")
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING "Id"
                     """,
                     (
@@ -419,6 +445,7 @@ class RacingRepository:
                         driver.nationality,
                         driver.headshot_url,
                         driver.driver_number,
+                        driver.openf1_driver_number,
                     ),
                 )
             
@@ -431,7 +458,7 @@ class RacingRepository:
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 """SELECT "Id", "FirstName", "LastName", "Slug", "Abbreviation",
-                          "Nationality", "HeadshotUrl"
+                          "Nationality", "HeadshotUrl", "DriverNumber", "OpenF1DriverNumber"
                    FROM "Drivers" WHERE "Slug" = %s""",
                 (slug,),
             )
@@ -445,8 +472,34 @@ class RacingRepository:
                     abbreviation=row["Abbreviation"],
                     nationality=row["Nationality"],
                     headshot_url=row["HeadshotUrl"],
+                    driver_number=row["DriverNumber"],
+                    openf1_driver_number=row["OpenF1DriverNumber"],
                 )
             return None
+
+    def get_all_drivers(self) -> list[Driver]:
+        """Get all drivers from the database."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "FirstName", "LastName", "Slug", "Abbreviation",
+                          "Nationality", "HeadshotUrl", "DriverNumber", "OpenF1DriverNumber"
+                   FROM "Drivers\""""
+            )
+            rows = cur.fetchall()
+            return [
+                Driver(
+                    id=_to_uuid(row["Id"]),
+                    first_name=row["FirstName"],
+                    last_name=row["LastName"],
+                    slug=row["Slug"],
+                    abbreviation=row["Abbreviation"],
+                    nationality=row["Nationality"],
+                    headshot_url=row["HeadshotUrl"],
+                    driver_number=row["DriverNumber"],
+                    openf1_driver_number=row["OpenF1DriverNumber"],
+                )
+                for row in rows
+            ]
 
     # =========================
     # Team Operations
@@ -497,6 +550,193 @@ class RacingRepository:
                     short_name=row["ShortName"],
                     logo_url=row["LogoUrl"],
                     primary_color=row["PrimaryColor"],
+                )
+            return None
+
+    def get_all_teams(self) -> list[Team]:
+        """Get all teams from the database."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "Name", "Slug", "ShortName", "LogoUrl", "PrimaryColor"
+                   FROM "Teams\""""
+            )
+            rows = cur.fetchall()
+            return [
+                Team(
+                    id=_to_uuid(row["Id"]),
+                    name=row["Name"],
+                    slug=row["Slug"],
+                    short_name=row["ShortName"],
+                    logo_url=row["LogoUrl"],
+                    primary_color=row["PrimaryColor"],
+                )
+                for row in rows
+            ]
+
+    # =========================
+    # Driver Alias Operations
+    # =========================
+
+    def upsert_driver_alias(self, alias: DriverAlias) -> UUID:
+        """Upsert a driver alias and return its ID."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                INSERT INTO "DriverAliases" ("Id", "DriverId", "AliasName", "AliasSlug",
+                                            "SeriesId", "DriverNumber", "ValidFrom",
+                                            "ValidUntil", "Source")
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT ("DriverId", "AliasSlug") DO UPDATE SET
+                    "AliasName" = EXCLUDED."AliasName",
+                    "SeriesId" = EXCLUDED."SeriesId",
+                    "DriverNumber" = EXCLUDED."DriverNumber",
+                    "ValidFrom" = EXCLUDED."ValidFrom",
+                    "ValidUntil" = EXCLUDED."ValidUntil",
+                    "Source" = EXCLUDED."Source"
+                RETURNING "Id"
+                """,
+                (
+                    str(alias.id),
+                    str(alias.driver_id),
+                    alias.alias_name,
+                    alias.alias_slug,
+                    str(alias.series_id) if alias.series_id else None,
+                    alias.driver_number,
+                    alias.valid_from,
+                    alias.valid_until,
+                    alias.source,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return _to_uuid(row["Id"]) if row else alias.id
+
+    def get_all_driver_aliases(self) -> list[DriverAlias]:
+        """Get all driver aliases from the database."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "DriverId", "AliasName", "AliasSlug", "SeriesId",
+                          "DriverNumber", "ValidFrom", "ValidUntil", "Source"
+                   FROM "DriverAliases\""""
+            )
+            rows = cur.fetchall()
+            return [
+                DriverAlias(
+                    id=_to_uuid(row["Id"]),
+                    driver_id=_to_uuid(row["DriverId"]),
+                    alias_name=row["AliasName"],
+                    alias_slug=row["AliasSlug"],
+                    series_id=_to_uuid(row["SeriesId"]) if row["SeriesId"] else None,
+                    driver_number=row["DriverNumber"],
+                    valid_from=row["ValidFrom"],
+                    valid_until=row["ValidUntil"],
+                    source=row["Source"],
+                )
+                for row in rows
+            ]
+
+    def get_driver_alias_by_slug(self, alias_slug: str) -> DriverAlias | None:
+        """Find a driver alias by its slug."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "DriverId", "AliasName", "AliasSlug", "SeriesId",
+                          "DriverNumber", "ValidFrom", "ValidUntil", "Source"
+                   FROM "DriverAliases" WHERE "AliasSlug" = %s""",
+                (alias_slug,),
+            )
+            row = cur.fetchone()
+            if row:
+                return DriverAlias(
+                    id=_to_uuid(row["Id"]),
+                    driver_id=_to_uuid(row["DriverId"]),
+                    alias_name=row["AliasName"],
+                    alias_slug=row["AliasSlug"],
+                    series_id=_to_uuid(row["SeriesId"]) if row["SeriesId"] else None,
+                    driver_number=row["DriverNumber"],
+                    valid_from=row["ValidFrom"],
+                    valid_until=row["ValidUntil"],
+                    source=row["Source"],
+                )
+            return None
+
+    # =========================
+    # Team Alias Operations
+    # =========================
+
+    def upsert_team_alias(self, alias: TeamAlias) -> UUID:
+        """Upsert a team alias and return its ID."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                INSERT INTO "TeamAliases" ("Id", "TeamId", "AliasName", "AliasSlug",
+                                          "SeriesId", "ValidFrom", "ValidUntil", "Source")
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT ("TeamId", "AliasSlug") DO UPDATE SET
+                    "AliasName" = EXCLUDED."AliasName",
+                    "SeriesId" = EXCLUDED."SeriesId",
+                    "ValidFrom" = EXCLUDED."ValidFrom",
+                    "ValidUntil" = EXCLUDED."ValidUntil",
+                    "Source" = EXCLUDED."Source"
+                RETURNING "Id"
+                """,
+                (
+                    str(alias.id),
+                    str(alias.team_id),
+                    alias.alias_name,
+                    alias.alias_slug,
+                    str(alias.series_id) if alias.series_id else None,
+                    alias.valid_from,
+                    alias.valid_until,
+                    alias.source,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return _to_uuid(row["Id"]) if row else alias.id
+
+    def get_all_team_aliases(self) -> list[TeamAlias]:
+        """Get all team aliases from the database."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "TeamId", "AliasName", "AliasSlug", "SeriesId",
+                          "ValidFrom", "ValidUntil", "Source"
+                   FROM "TeamAliases\""""
+            )
+            rows = cur.fetchall()
+            return [
+                TeamAlias(
+                    id=_to_uuid(row["Id"]),
+                    team_id=_to_uuid(row["TeamId"]),
+                    alias_name=row["AliasName"],
+                    alias_slug=row["AliasSlug"],
+                    series_id=_to_uuid(row["SeriesId"]) if row["SeriesId"] else None,
+                    valid_from=row["ValidFrom"],
+                    valid_until=row["ValidUntil"],
+                    source=row["Source"],
+                )
+                for row in rows
+            ]
+
+    def get_team_alias_by_slug(self, alias_slug: str) -> TeamAlias | None:
+        """Find a team alias by its slug."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """SELECT "Id", "TeamId", "AliasName", "AliasSlug", "SeriesId",
+                          "ValidFrom", "ValidUntil", "Source"
+                   FROM "TeamAliases" WHERE "AliasSlug" = %s""",
+                (alias_slug,),
+            )
+            row = cur.fetchone()
+            if row:
+                return TeamAlias(
+                    id=_to_uuid(row["Id"]),
+                    team_id=_to_uuid(row["TeamId"]),
+                    alias_name=row["AliasName"],
+                    alias_slug=row["AliasSlug"],
+                    series_id=_to_uuid(row["SeriesId"]) if row["SeriesId"] else None,
+                    valid_from=row["ValidFrom"],
+                    valid_until=row["ValidUntil"],
+                    source=row["Source"],
                 )
             return None
 

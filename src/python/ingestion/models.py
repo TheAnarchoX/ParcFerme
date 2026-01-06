@@ -126,6 +126,21 @@ class Driver(BaseModel):
     nationality: str | None = None
     headshot_url: str | None = None
     driver_number: int | None = None
+    openf1_driver_number: int | None = None
+
+
+class DriverAlias(BaseModel):
+    """Historical alias for a driver (name variations, previous names)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    driver_id: UUID
+    alias_name: str
+    alias_slug: str
+    series_id: UUID | None = None
+    driver_number: int | None = None
+    valid_from: date | None = None
+    valid_until: date | None = None
+    source: str | None = None
 
 
 class Team(BaseModel):
@@ -137,6 +152,19 @@ class Team(BaseModel):
     short_name: str | None = None
     logo_url: str | None = None
     primary_color: str | None = None
+
+
+class TeamAlias(BaseModel):
+    """Historical alias for a team (name variations, rebrands)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    team_id: UUID
+    alias_name: str
+    alias_slug: str
+    series_id: UUID | None = None
+    valid_from: date | None = None
+    valid_until: date | None = None
+    source: str | None = None
 
 
 class Entrant(BaseModel):

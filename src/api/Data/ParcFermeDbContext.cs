@@ -17,7 +17,9 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
     public DbSet<Circuit> Circuits => Set<Circuit>();
     public DbSet<Grandstand> Grandstands => Set<Grandstand>();
     public DbSet<Driver> Drivers => Set<Driver>();
+    public DbSet<DriverAlias> DriverAliases => Set<DriverAlias>();
     public DbSet<Team> Teams => Set<Team>();
+    public DbSet<TeamAlias> TeamAliases => Set<TeamAlias>();
     public DbSet<Entrant> Entrants => Set<Entrant>();
     public DbSet<Result> Results => Set<Result>();
 
@@ -92,11 +94,40 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
         modelBuilder.Entity<Driver>(entity =>
         {
             entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.OpenF1DriverNumber);
+        });
+
+        modelBuilder.Entity<DriverAlias>(entity =>
+        {
+            entity.HasIndex(e => e.AliasSlug);
+            entity.HasIndex(e => new { e.DriverId, e.AliasSlug }).IsUnique();
+            entity.HasOne(e => e.Driver)
+                  .WithMany(d => d.Aliases)
+                  .HasForeignKey(e => e.DriverId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Series)
+                  .WithMany()
+                  .HasForeignKey(e => e.SeriesId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Team>(entity =>
         {
             entity.HasIndex(e => e.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<TeamAlias>(entity =>
+        {
+            entity.HasIndex(e => e.AliasSlug);
+            entity.HasIndex(e => new { e.TeamId, e.AliasSlug }).IsUnique();
+            entity.HasOne(e => e.Team)
+                  .WithMany(t => t.Aliases)
+                  .HasForeignKey(e => e.TeamId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Series)
+                  .WithMany()
+                  .HasForeignKey(e => e.SeriesId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Entrant>(entity =>

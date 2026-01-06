@@ -25,12 +25,17 @@
   - [x] Backend: SpoilerShieldService, SessionDtos, SessionsController
   - [x] Frontend: spoilerSlice, useSpoilerShield hook, SpoilerMask/SpoilerBlur components
 - [x] Bug: Fix Antonelli driver duplicate (added DriverNumber field as stable identifier, merged duplicates, updated ingestion to use driver numbers)
+- [x] Entity normalization and alias tracking (Teams, Drivers, Circuits)
+  - [x] DriverAlias and TeamAlias database tables with EF Core migration
+  - [x] EntityResolver service with multi-strategy matching (driver number, slug, known alias, DB alias, fuzzy match)
+  - [x] known_aliases.json config with F1 canonical names and historical aliases
+  - [x] Repository updates for ID-first upsert logic to respect entity resolver decisions
+  - [x] Comprehensive tests (33 entity resolver tests, 81 total Python tests passing)
 
 ### 🚧 In Progress
 
 
 ### 📋 Up Next
-- [ ] Ingestion: normalize and reconcile entity identities (Teams, Drivers—including names and numbers—and any other named/identified entities like Circuits) using an alias/history map. Always update the canonical `Name`/`Slug` to the latest official value, merge incoming records via stable identifiers (OpenF1 IDs/keys), and fall back to deterministic matching to prevent duplicates (e.g. Antonelli/Kimi/Andrea Kimi, Red Bull Racing vs Red Bull RBPT). This should produce a consistent canonical view over time while preserving historical integrity, and also expose historical name/number changes in the UI (e.g. via tooltips).
 - [ ] Session discovery + detail pages (spoiler shield end-to-end; after this task users can browse sessions by series/season/round and view session details with results properly masked until logged)
 - [ ] Driver discovery + detail pages (spoiler shield; profile, teams over time, seasons participated; includes tabular + statistical views)
 - [ ] Team discovery + detail pages (spoiler shield; overview, seasons participated, drivers roster over time; includes tabular + statistical views)

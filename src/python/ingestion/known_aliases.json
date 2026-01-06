@@ -1,0 +1,606 @@
+{
+  "$schema": "./known_aliases_schema.json",
+  "_comment": "Known entity aliases for Parc Fermé ingestion. Loaded at sync time to handle name variations.",
+  
+  "drivers": {
+    "_description": "Driver aliases keyed by canonical slug. Each entry has 'canonical_name' and 'aliases' array.",
+    
+    "andrea-kimi-antonelli": {
+      "canonical_name": "Andrea Kimi Antonelli",
+      "canonical_first_name": "Andrea Kimi",
+      "canonical_last_name": "Antonelli",
+      "aliases": [
+        {"name": "Kimi Antonelli", "source": "OpenF1-2024"},
+        {"name": "ANTONELLI", "source": "broadcast"},
+        {"name": "ANT", "source": "abbreviation"}
+      ],
+      "driver_numbers": [12],
+      "notes": "Mercedes junior, promoted to F1 in 2025. Name appears as 'Kimi Antonelli' in some OpenF1 data."
+    },
+    
+    "max-verstappen": {
+      "canonical_name": "Max Verstappen",
+      "canonical_first_name": "Max",
+      "canonical_last_name": "Verstappen",
+      "aliases": [
+        {"name": "M VERSTAPPEN", "source": "broadcast"},
+        {"name": "VER", "source": "abbreviation"}
+      ],
+      "driver_numbers": [1, 33],
+      "notes": "Switched from 33 to 1 after 2021 championship."
+    },
+    
+    "lewis-hamilton": {
+      "canonical_name": "Lewis Hamilton",
+      "canonical_first_name": "Lewis",
+      "canonical_last_name": "Hamilton",
+      "aliases": [
+        {"name": "L HAMILTON", "source": "broadcast"},
+        {"name": "HAM", "source": "abbreviation"}
+      ],
+      "driver_numbers": [44],
+      "notes": "Moving to Ferrari in 2025."
+    },
+    
+    "george-russell": {
+      "canonical_name": "George Russell",
+      "canonical_first_name": "George", 
+      "canonical_last_name": "Russell",
+      "aliases": [
+        {"name": "G RUSSELL", "source": "broadcast"},
+        {"name": "RUS", "source": "abbreviation"}
+      ],
+      "driver_numbers": [63]
+    },
+    
+    "lando-norris": {
+      "canonical_name": "Lando Norris",
+      "canonical_first_name": "Lando",
+      "canonical_last_name": "Norris",
+      "aliases": [
+        {"name": "L NORRIS", "source": "broadcast"},
+        {"name": "NOR", "source": "abbreviation"}
+      ],
+      "driver_numbers": [4]
+    },
+    
+    "oscar-piastri": {
+      "canonical_name": "Oscar Piastri",
+      "canonical_first_name": "Oscar",
+      "canonical_last_name": "Piastri",
+      "aliases": [
+        {"name": "O PIASTRI", "source": "broadcast"},
+        {"name": "PIA", "source": "abbreviation"}
+      ],
+      "driver_numbers": [81]
+    },
+    
+    "charles-leclerc": {
+      "canonical_name": "Charles Leclerc",
+      "canonical_first_name": "Charles",
+      "canonical_last_name": "Leclerc",
+      "aliases": [
+        {"name": "C LECLERC", "source": "broadcast"},
+        {"name": "LEC", "source": "abbreviation"}
+      ],
+      "driver_numbers": [16]
+    },
+    
+    "carlos-sainz": {
+      "canonical_name": "Carlos Sainz",
+      "canonical_first_name": "Carlos",
+      "canonical_last_name": "Sainz",
+      "aliases": [
+        {"name": "C SAINZ", "source": "broadcast"},
+        {"name": "Carlos Sainz Jr", "source": "historical"},
+        {"name": "SAI", "source": "abbreviation"}
+      ],
+      "driver_numbers": [55]
+    },
+    
+    "sergio-perez": {
+      "canonical_name": "Sergio Perez",
+      "canonical_first_name": "Sergio",
+      "canonical_last_name": "Perez",
+      "aliases": [
+        {"name": "S PEREZ", "source": "broadcast"},
+        {"name": "Sergio Pérez", "source": "official"},
+        {"name": "PER", "source": "abbreviation"},
+        {"name": "Checo Perez", "source": "nickname"}
+      ],
+      "driver_numbers": [11]
+    },
+    
+    "fernando-alonso": {
+      "canonical_name": "Fernando Alonso",
+      "canonical_first_name": "Fernando",
+      "canonical_last_name": "Alonso",
+      "aliases": [
+        {"name": "F ALONSO", "source": "broadcast"},
+        {"name": "ALO", "source": "abbreviation"}
+      ],
+      "driver_numbers": [14]
+    },
+    
+    "lance-stroll": {
+      "canonical_name": "Lance Stroll",
+      "canonical_first_name": "Lance",
+      "canonical_last_name": "Stroll",
+      "aliases": [
+        {"name": "L STROLL", "source": "broadcast"},
+        {"name": "STR", "source": "abbreviation"}
+      ],
+      "driver_numbers": [18]
+    },
+    
+    "esteban-ocon": {
+      "canonical_name": "Esteban Ocon",
+      "canonical_first_name": "Esteban",
+      "canonical_last_name": "Ocon",
+      "aliases": [
+        {"name": "E OCON", "source": "broadcast"},
+        {"name": "OCO", "source": "abbreviation"}
+      ],
+      "driver_numbers": [31]
+    },
+    
+    "pierre-gasly": {
+      "canonical_name": "Pierre Gasly",
+      "canonical_first_name": "Pierre",
+      "canonical_last_name": "Gasly",
+      "aliases": [
+        {"name": "P GASLY", "source": "broadcast"},
+        {"name": "GAS", "source": "abbreviation"}
+      ],
+      "driver_numbers": [10]
+    },
+    
+    "yuki-tsunoda": {
+      "canonical_name": "Yuki Tsunoda",
+      "canonical_first_name": "Yuki",
+      "canonical_last_name": "Tsunoda",
+      "aliases": [
+        {"name": "Y TSUNODA", "source": "broadcast"},
+        {"name": "TSU", "source": "abbreviation"}
+      ],
+      "driver_numbers": [22]
+    },
+    
+    "daniel-ricciardo": {
+      "canonical_name": "Daniel Ricciardo",
+      "canonical_first_name": "Daniel",
+      "canonical_last_name": "Ricciardo",
+      "aliases": [
+        {"name": "D RICCIARDO", "source": "broadcast"},
+        {"name": "RIC", "source": "abbreviation"}
+      ],
+      "driver_numbers": [3]
+    },
+    
+    "alexander-albon": {
+      "canonical_name": "Alexander Albon",
+      "canonical_first_name": "Alexander",
+      "canonical_last_name": "Albon",
+      "aliases": [
+        {"name": "A ALBON", "source": "broadcast"},
+        {"name": "Alex Albon", "source": "common"},
+        {"name": "ALB", "source": "abbreviation"}
+      ],
+      "driver_numbers": [23]
+    },
+    
+    "logan-sargeant": {
+      "canonical_name": "Logan Sargeant",
+      "canonical_first_name": "Logan",
+      "canonical_last_name": "Sargeant",
+      "aliases": [
+        {"name": "L SARGEANT", "source": "broadcast"},
+        {"name": "SAR", "source": "abbreviation"}
+      ],
+      "driver_numbers": [2]
+    },
+    
+    "valtteri-bottas": {
+      "canonical_name": "Valtteri Bottas",
+      "canonical_first_name": "Valtteri",
+      "canonical_last_name": "Bottas",
+      "aliases": [
+        {"name": "V BOTTAS", "source": "broadcast"},
+        {"name": "BOT", "source": "abbreviation"}
+      ],
+      "driver_numbers": [77]
+    },
+    
+    "guanyu-zhou": {
+      "canonical_name": "Guanyu Zhou",
+      "canonical_first_name": "Guanyu",
+      "canonical_last_name": "Zhou",
+      "aliases": [
+        {"name": "G ZHOU", "source": "broadcast"},
+        {"name": "Zhou Guanyu", "source": "chinese-order"},
+        {"name": "ZHO", "source": "abbreviation"}
+      ],
+      "driver_numbers": [24]
+    },
+    
+    "kevin-magnussen": {
+      "canonical_name": "Kevin Magnussen",
+      "canonical_first_name": "Kevin",
+      "canonical_last_name": "Magnussen",
+      "aliases": [
+        {"name": "K MAGNUSSEN", "source": "broadcast"},
+        {"name": "MAG", "source": "abbreviation"}
+      ],
+      "driver_numbers": [20]
+    },
+    
+    "nico-hulkenberg": {
+      "canonical_name": "Nico Hulkenberg",
+      "canonical_first_name": "Nico",
+      "canonical_last_name": "Hulkenberg",
+      "aliases": [
+        {"name": "N HULKENBERG", "source": "broadcast"},
+        {"name": "Nico Hülkenberg", "source": "official"},
+        {"name": "HUL", "source": "abbreviation"}
+      ],
+      "driver_numbers": [27]
+    },
+    
+    "oliver-bearman": {
+      "canonical_name": "Oliver Bearman",
+      "canonical_first_name": "Oliver",
+      "canonical_last_name": "Bearman",
+      "aliases": [
+        {"name": "O BEARMAN", "source": "broadcast"},
+        {"name": "BEA", "source": "abbreviation"}
+      ],
+      "driver_numbers": [87]
+    },
+    
+    "jack-doohan": {
+      "canonical_name": "Jack Doohan",
+      "canonical_first_name": "Jack",
+      "canonical_last_name": "Doohan",
+      "aliases": [
+        {"name": "J DOOHAN", "source": "broadcast"},
+        {"name": "DOO", "source": "abbreviation"}
+      ],
+      "driver_numbers": [7]
+    },
+    
+    "isack-hadjar": {
+      "canonical_name": "Isack Hadjar",
+      "canonical_first_name": "Isack",
+      "canonical_last_name": "Hadjar",
+      "aliases": [
+        {"name": "I HADJAR", "source": "broadcast"},
+        {"name": "HAD", "source": "abbreviation"}
+      ],
+      "driver_numbers": [6]
+    },
+    
+    "gabriel-bortoleto": {
+      "canonical_name": "Gabriel Bortoleto",
+      "canonical_first_name": "Gabriel",
+      "canonical_last_name": "Bortoleto",
+      "aliases": [
+        {"name": "G BORTOLETO", "source": "broadcast"},
+        {"name": "BOR", "source": "abbreviation"}
+      ],
+      "driver_numbers": [5]
+    },
+    
+    "liam-lawson": {
+      "canonical_name": "Liam Lawson",
+      "canonical_first_name": "Liam",
+      "canonical_last_name": "Lawson",
+      "aliases": [
+        {"name": "L LAWSON", "source": "broadcast"},
+        {"name": "LAW", "source": "abbreviation"}
+      ],
+      "driver_numbers": [30]
+    }
+  },
+  
+  "teams": {
+    "_description": "Team aliases keyed by canonical slug. Handles rebrands and sponsorship name changes.",
+    
+    "red-bull-racing": {
+      "canonical_name": "Red Bull Racing",
+      "aliases": [
+        {"name": "Red Bull Racing Honda RBPT", "source": "OpenF1-2024"},
+        {"name": "Oracle Red Bull Racing", "source": "official-2022+"},
+        {"name": "Red Bull Racing RBPT", "source": "OpenF1-2023"},
+        {"name": "Red Bull Racing Honda", "source": "historical"},
+        {"name": "Red Bull Racing Renault", "source": "historical"}
+      ],
+      "notes": "Power unit supplier name sometimes appended."
+    },
+    
+    "mercedes": {
+      "canonical_name": "Mercedes",
+      "aliases": [
+        {"name": "Mercedes-AMG Petronas F1 Team", "source": "official"},
+        {"name": "Mercedes-AMG Petronas", "source": "OpenF1"}
+      ]
+    },
+    
+    "ferrari": {
+      "canonical_name": "Ferrari",
+      "aliases": [
+        {"name": "Scuderia Ferrari", "source": "official"},
+        {"name": "Scuderia Ferrari HP", "source": "official-2024+"}
+      ]
+    },
+    
+    "mclaren": {
+      "canonical_name": "McLaren",
+      "aliases": [
+        {"name": "McLaren F1 Team", "source": "official"},
+        {"name": "McLaren Mercedes", "source": "historical"},
+        {"name": "McLaren Honda", "source": "historical"},
+        {"name": "McLaren Renault", "source": "historical"}
+      ]
+    },
+    
+    "aston-martin": {
+      "canonical_name": "Aston Martin",
+      "aliases": [
+        {"name": "Aston Martin Aramco F1 Team", "source": "official"},
+        {"name": "Aston Martin Aramco Cognizant F1 Team", "source": "official-2022-2023"},
+        {"name": "Aston Martin Aramco Mercedes", "source": "OpenF1"}
+      ]
+    },
+    
+    "alpine": {
+      "canonical_name": "Alpine",
+      "aliases": [
+        {"name": "Alpine F1 Team", "source": "official"},
+        {"name": "BWT Alpine F1 Team", "source": "official-2022-2023"},
+        {"name": "Alpine Renault", "source": "OpenF1"}
+      ]
+    },
+    
+    "williams": {
+      "canonical_name": "Williams",
+      "aliases": [
+        {"name": "Williams Racing", "source": "official"},
+        {"name": "Williams Mercedes", "source": "OpenF1"}
+      ]
+    },
+    
+    "rb": {
+      "canonical_name": "Racing Bulls",
+      "aliases": [
+        {"name": "RB", "source": "short"},
+        {"name": "Visa Cash App RB F1 Team", "source": "official-2024+"},
+        {"name": "Visa Cash App RB", "source": "OpenF1-2024+"},
+        {"name": "RB F1 Team", "source": "short-2024+"},
+        {"name": "AlphaTauri", "source": "historical-2023"},
+        {"name": "Scuderia AlphaTauri", "source": "official-2020-2023"},
+        {"name": "AlphaTauri Honda RBPT", "source": "OpenF1-2023"},
+        {"name": "Scuderia Toro Rosso", "source": "historical-pre-2020"},
+        {"name": "Toro Rosso", "source": "historical-pre-2020"}
+      ],
+      "notes": "Rebranded from AlphaTauri to RB/Racing Bulls in 2024."
+    },
+    
+    "haas": {
+      "canonical_name": "Haas",
+      "aliases": [
+        {"name": "Haas F1 Team", "source": "official"},
+        {"name": "MoneyGram Haas F1 Team", "source": "official-2023+"},
+        {"name": "Haas Ferrari", "source": "OpenF1"}
+      ]
+    },
+    
+    "kick-sauber": {
+      "canonical_name": "Kick Sauber",
+      "aliases": [
+        {"name": "Stake F1 Team Kick Sauber", "source": "official-2024"},
+        {"name": "Sauber", "source": "short"},
+        {"name": "Alfa Romeo", "source": "historical-2019-2023"},
+        {"name": "Alfa Romeo F1 Team", "source": "official-2022-2023"},
+        {"name": "Alfa Romeo Racing", "source": "official-2019-2021"},
+        {"name": "Alfa Romeo Ferrari", "source": "OpenF1-2023"}
+      ],
+      "notes": "Was Alfa Romeo 2019-2023, becoming Audi in 2026."
+    }
+  },
+  
+  "circuits": {
+    "_description": "Circuit aliases keyed by canonical slug. Handles name variations and historical names.",
+    
+    "bahrain-international-circuit": {
+      "canonical_name": "Bahrain International Circuit",
+      "aliases": [
+        {"name": "Bahrain", "source": "short"},
+        {"name": "Sakhir", "source": "location"}
+      ]
+    },
+    
+    "jeddah-corniche-circuit": {
+      "canonical_name": "Jeddah Corniche Circuit",
+      "aliases": [
+        {"name": "Jeddah", "source": "short"},
+        {"name": "Jeddah Street Circuit", "source": "alternative"}
+      ]
+    },
+    
+    "albert-park": {
+      "canonical_name": "Albert Park",
+      "aliases": [
+        {"name": "Albert Park Circuit", "source": "official"},
+        {"name": "Melbourne", "source": "city"}
+      ]
+    },
+    
+    "suzuka": {
+      "canonical_name": "Suzuka",
+      "aliases": [
+        {"name": "Suzuka International Racing Course", "source": "official"},
+        {"name": "Suzuka Circuit", "source": "common"}
+      ]
+    },
+    
+    "shanghai": {
+      "canonical_name": "Shanghai International Circuit",
+      "aliases": [
+        {"name": "Shanghai", "source": "short"}
+      ]
+    },
+    
+    "miami": {
+      "canonical_name": "Miami International Autodrome",
+      "aliases": [
+        {"name": "Miami", "source": "short"},
+        {"name": "Miami Gardens", "source": "location"}
+      ]
+    },
+    
+    "imola": {
+      "canonical_name": "Imola",
+      "aliases": [
+        {"name": "Autodromo Enzo e Dino Ferrari", "source": "official"},
+        {"name": "Autodromo Internazionale Enzo e Dino Ferrari", "source": "full-official"}
+      ]
+    },
+    
+    "monaco": {
+      "canonical_name": "Monaco",
+      "aliases": [
+        {"name": "Circuit de Monaco", "source": "official"},
+        {"name": "Monte Carlo", "source": "location"}
+      ]
+    },
+    
+    "montreal": {
+      "canonical_name": "Circuit Gilles Villeneuve",
+      "aliases": [
+        {"name": "Montreal", "source": "city"},
+        {"name": "Gilles Villeneuve", "source": "short"}
+      ]
+    },
+    
+    "barcelona": {
+      "canonical_name": "Circuit de Barcelona-Catalunya",
+      "aliases": [
+        {"name": "Barcelona", "source": "city"},
+        {"name": "Catalunya", "source": "short"},
+        {"name": "Montmeló", "source": "location"}
+      ]
+    },
+    
+    "spielberg": {
+      "canonical_name": "Red Bull Ring",
+      "aliases": [
+        {"name": "Spielberg", "source": "location"},
+        {"name": "A1-Ring", "source": "historical"},
+        {"name": "Österreichring", "source": "historical"}
+      ]
+    },
+    
+    "silverstone": {
+      "canonical_name": "Silverstone",
+      "aliases": [
+        {"name": "Silverstone Circuit", "source": "official"}
+      ]
+    },
+    
+    "hungaroring": {
+      "canonical_name": "Hungaroring",
+      "aliases": [
+        {"name": "Budapest", "source": "city"}
+      ]
+    },
+    
+    "spa": {
+      "canonical_name": "Spa-Francorchamps",
+      "aliases": [
+        {"name": "Spa", "source": "short"},
+        {"name": "Circuit de Spa-Francorchamps", "source": "official"}
+      ]
+    },
+    
+    "zandvoort": {
+      "canonical_name": "Zandvoort",
+      "aliases": [
+        {"name": "Circuit Zandvoort", "source": "official"},
+        {"name": "Circuit Park Zandvoort", "source": "historical"}
+      ]
+    },
+    
+    "monza": {
+      "canonical_name": "Monza",
+      "aliases": [
+        {"name": "Autodromo Nazionale Monza", "source": "official"},
+        {"name": "Autodromo Nazionale di Monza", "source": "full-official"}
+      ]
+    },
+    
+    "baku": {
+      "canonical_name": "Baku City Circuit",
+      "aliases": [
+        {"name": "Baku", "source": "short"},
+        {"name": "Azerbaijan", "source": "country"}
+      ]
+    },
+    
+    "singapore": {
+      "canonical_name": "Marina Bay Street Circuit",
+      "aliases": [
+        {"name": "Singapore", "source": "country"},
+        {"name": "Marina Bay", "source": "short"}
+      ]
+    },
+    
+    "austin": {
+      "canonical_name": "Circuit of the Americas",
+      "aliases": [
+        {"name": "Austin", "source": "city"},
+        {"name": "COTA", "source": "abbreviation"}
+      ]
+    },
+    
+    "mexico-city": {
+      "canonical_name": "Autódromo Hermanos Rodríguez",
+      "aliases": [
+        {"name": "Mexico City", "source": "city"},
+        {"name": "Autodromo Hermanos Rodriguez", "source": "ascii"}
+      ]
+    },
+    
+    "interlagos": {
+      "canonical_name": "Interlagos",
+      "aliases": [
+        {"name": "Autódromo José Carlos Pace", "source": "official"},
+        {"name": "São Paulo", "source": "city"},
+        {"name": "Sao Paulo", "source": "ascii"}
+      ]
+    },
+    
+    "las-vegas": {
+      "canonical_name": "Las Vegas Street Circuit",
+      "aliases": [
+        {"name": "Las Vegas", "source": "short"}
+      ]
+    },
+    
+    "losail": {
+      "canonical_name": "Losail International Circuit",
+      "aliases": [
+        {"name": "Qatar", "source": "country"},
+        {"name": "Losail", "source": "short"}
+      ]
+    },
+    
+    "yas-marina": {
+      "canonical_name": "Yas Marina Circuit",
+      "aliases": [
+        {"name": "Abu Dhabi", "source": "city"},
+        {"name": "Yas Marina", "source": "short"},
+        {"name": "Yas Island", "source": "location"}
+      ]
+    }
+  }
+}

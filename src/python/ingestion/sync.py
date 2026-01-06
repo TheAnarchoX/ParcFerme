@@ -18,6 +18,7 @@ from ingestion.clients.openf1 import (
     OpenF1Session,
     OpenF1SessionResult,
 )
+from ingestion.entity_resolver import EntityResolver
 from ingestion.models import (
     OPENF1_SESSION_TYPE_MAP,
     Circuit,
@@ -57,6 +58,11 @@ class OpenF1SyncService:
           - Fetch and create/update Drivers and Teams
           - Create Entrants (driver-team links)
           - Fetch and store Results (⚠️ spoiler data)
+    
+    Entity resolution:
+    - Uses EntityResolver to match incoming data to existing entities
+    - Updates canonical names to latest values
+    - Tracks historical aliases for name/number changes
     """
 
     def __init__(
@@ -67,12 +73,13 @@ class OpenF1SyncService:
         self._api_client = api_client
         self._repository = repository
         self._owns_clients = False
+        self._entity_resolver: EntityResolver | None = None
 
         # Caches to avoid repeated DB lookups during a sync
         self._series_id: UUID | None = None
         self._season_cache: dict[int, UUID] = {}  # year -> season_id
         self._circuit_cache: dict[str, UUID] = {}  # slug -> circuit_id
-        self._driver_cache: dict[str, UUID] = {}  # slug -> driver_id
+        self._driver_cache: dict[int, UUID] = {}  # driver_number -> driver_id
         self._team_cache: dict[str, UUID] = {}  # slug -> team_id
 
     def _ensure_clients(self) -> tuple[OpenF1Client, RacingRepository]:
@@ -84,6 +91,11 @@ class OpenF1SyncService:
             self._repository = RacingRepository()
             self._repository.connect()
             self._owns_clients = True
+        if self._entity_resolver is None:
+            self._entity_resolver = EntityResolver(
+                repository=self._repository,
+                series_id=self._series_id,
+            )
         return self._api_client, self._repository
 
     def close(self) -> None:
@@ -109,11 +121,17 @@ class OpenF1SyncService:
         existing = repo.get_series_by_slug(F1_SERIES_SLUG)
         if existing:
             self._series_id = existing.id
+            # Update entity resolver with series context
+            if self._entity_resolver:
+                self._entity_resolver.series_id = existing.id
             return existing.id
 
         series = Series(name=F1_SERIES_NAME, slug=F1_SERIES_SLUG)
         self._series_id = repo.upsert_series(series)
         logger.info("Created F1 series", series_id=str(self._series_id))
+        # Update entity resolver with series context
+        if self._entity_resolver:
+            self._entity_resolver.series_id = self._series_id
         return self._series_id
 
     def _ensure_season(self, repo: RacingRepository, year: int) -> UUID:
@@ -156,55 +174,117 @@ class OpenF1SyncService:
         return circuit_id
 
     def _get_or_create_driver(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID:
-        """Get or create driver from OpenF1 driver data."""
-        slug = slugify(openf1_driver.full_name)
-        if slug in self._driver_cache:
-            return self._driver_cache[slug]
+        """Get or create driver from OpenF1 driver data.
+        
+        Uses EntityResolver for intelligent matching and alias tracking.
+        """
+        # Check cache first (keyed by driver_number for stability)
+        if openf1_driver.driver_number in self._driver_cache:
+            return self._driver_cache[openf1_driver.driver_number]
 
-        # Parse name - OpenF1 provides full_name but not always first/last
-        name_parts = openf1_driver.full_name.split(" ", 1)
-        first_name = openf1_driver.first_name or name_parts[0]
-        last_name = openf1_driver.last_name or (name_parts[1] if len(name_parts) > 1 else "")
-
-        driver = Driver(
-            first_name=first_name,
-            last_name=last_name,
-            slug=slug,
+        # Use entity resolver for intelligent matching
+        assert self._entity_resolver is not None
+        
+        resolved = self._entity_resolver.resolve_driver(
+            full_name=openf1_driver.full_name,
+            first_name=openf1_driver.first_name,
+            last_name=openf1_driver.last_name,
+            driver_number=openf1_driver.driver_number,
             abbreviation=openf1_driver.name_acronym,
             nationality=openf1_driver.country_code,
             headshot_url=openf1_driver.headshot_url,
-            driver_number=openf1_driver.driver_number,
         )
-        # Always upsert to ensure driver number and other fields stay current
-        driver_id = repo.upsert_driver(driver)
-        self._driver_cache[slug] = driver_id
+
+        # Log resolution details
+        if resolved.is_new:
+            logger.info(
+                "Creating new driver",
+                name=f"{resolved.driver.first_name} {resolved.driver.last_name}",
+                number=resolved.driver.driver_number,
+            )
+        elif resolved.name_changed:
+            logger.info(
+                "Updating driver canonical name",
+                old_name=resolved.old_name,
+                new_name=f"{resolved.driver.first_name} {resolved.driver.last_name}",
+                number=resolved.driver.driver_number,
+            )
+
+        # Upsert the driver
+        driver_id = repo.upsert_driver(resolved.driver)
+        
+        # Update resolver cache
+        resolved.driver.id = driver_id
+        self._entity_resolver.update_cache_after_upsert(driver=resolved.driver)
+
+        # Add any new aliases
+        for alias in resolved.aliases_to_add:
+            alias.driver_id = driver_id
+            repo.upsert_driver_alias(alias)
+            self._entity_resolver.add_alias_to_cache(driver_alias=alias)
+            logger.debug(
+                "Added driver alias",
+                driver=f"{resolved.driver.first_name} {resolved.driver.last_name}",
+                alias=alias.alias_name,
+            )
+
+        # Update local cache
+        self._driver_cache[openf1_driver.driver_number] = driver_id
         return driver_id
 
     def _get_or_create_team(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID | None:
-        """Get or create team from OpenF1 driver data (team info is in driver response).
+        """Get or create team from OpenF1 driver data.
         
+        Uses EntityResolver for intelligent matching and alias tracking.
         Returns None if the driver has no team (e.g., reserve/test drivers).
         """
         if not openf1_driver.team_name:
             return None
-            
+
         slug = slugify(openf1_driver.team_name)
         if slug in self._team_cache:
             return self._team_cache[slug]
 
-        existing = repo.get_team_by_slug(slug)
-        if existing:
-            self._team_cache[slug] = existing.id
-            return existing.id
-
-        team = Team(
+        # Use entity resolver for intelligent matching
+        assert self._entity_resolver is not None
+        
+        resolved = self._entity_resolver.resolve_team(
             name=openf1_driver.team_name,
-            slug=slug,
             primary_color=openf1_driver.team_colour,
         )
-        team_id = repo.upsert_team(team)
+
+        # Log resolution details
+        if resolved.is_new:
+            logger.info("Creating new team", name=resolved.team.name)
+        elif resolved.name_changed:
+            logger.info(
+                "Updating team canonical name",
+                old_name=resolved.old_name,
+                new_name=resolved.team.name,
+            )
+
+        # Upsert the team
+        team_id = repo.upsert_team(resolved.team)
+        
+        # Update resolver cache
+        resolved.team.id = team_id
+        self._entity_resolver.update_cache_after_upsert(team=resolved.team)
+
+        # Add any new aliases
+        for alias in resolved.aliases_to_add:
+            alias.team_id = team_id
+            repo.upsert_team_alias(alias)
+            self._entity_resolver.add_alias_to_cache(team_alias=alias)
+            logger.debug(
+                "Added team alias",
+                team=resolved.team.name,
+                alias=alias.alias_name,
+            )
+
+        # Update local cache (use the resolved slug for consistency)
+        self._team_cache[resolved.team.slug] = team_id
+        # Also cache the incoming slug to avoid re-resolution
         self._team_cache[slug] = team_id
-        logger.info("Created team", name=team.name, team_id=str(team_id))
         return team_id
 
     def _map_session_type(self, openf1_session_name: str) -> SessionType:
