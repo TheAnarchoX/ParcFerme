@@ -1,43 +1,53 @@
 import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs, buildSeriesBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
+import { seriesApi } from '../../services/seriesService';
+import type { SeriesDetailDto, SeasonSummaryDto } from '../../types/series';
+import { getSeriesColor } from '../../types/series';
 
 // =========================
-// Mock Data
+// Loading Skeleton
 // =========================
 
-const SERIES_INFO: Record<string, { name: string; color: string; description: string }> = {
-  'f1': { 
-    name: 'Formula 1', 
-    color: '#E10600',
-    description: 'The pinnacle of motorsport since 1950. Open-wheel racing at its finest.'
-  },
-  'motogp': { 
-    name: 'MotoGP', 
-    color: '#FF6B00',
-    description: 'Premier class of motorcycle road racing since 1949.'
-  },
-  'wec': { 
-    name: 'World Endurance Championship', 
-    color: '#0066CC',
-    description: 'Multi-class endurance racing including the legendary 24 Hours of Le Mans.'
-  },
-  'indycar': { 
-    name: 'IndyCar Series', 
-    color: '#1E1E1E',
-    description: 'American open-wheel racing including the iconic Indianapolis 500.'
-  },
-};
+function SeasonCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="h-5 bg-neutral-800 rounded w-16 mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-20" />
+        </div>
+        <div className="w-5 h-5 bg-neutral-800 rounded" />
+      </div>
+    </div>
+  );
+}
 
-const SEASONS_DATA = [
-  { year: 2025, roundCount: 24, status: 'current' },
-  { year: 2024, roundCount: 24, status: 'completed' },
-  { year: 2023, roundCount: 23, status: 'completed' },
-  { year: 2022, roundCount: 22, status: 'completed' },
-  { year: 2021, roundCount: 22, status: 'completed' },
-  { year: 2020, roundCount: 17, status: 'completed' },
-];
+// =========================
+// Stats Card Component
+// =========================
+
+interface StatsCardProps {
+  label: string;
+  value: number | string;
+  icon: string;
+}
+
+function StatsCard({ label, value, icon }: StatsCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{icon}</span>
+        <div>
+          <p className="text-2xl font-bold text-neutral-100">{value}</p>
+          <p className="text-sm text-neutral-500">{label}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // =========================
 // Season Card Component
@@ -45,7 +55,7 @@ const SEASONS_DATA = [
 
 interface SeasonCardProps {
   seriesSlug: string;
-  season: typeof SEASONS_DATA[0];
+  season: SeasonSummaryDto;
 }
 
 function SeasonCard({ seriesSlug, season }: SeasonCardProps) {
@@ -64,7 +74,7 @@ function SeasonCard({ seriesSlug, season }: SeasonCardProps) {
           </p>
         </div>
         
-        {season.status === 'current' && (
+        {season.isCurrent && (
           <span className="px-2 py-1 bg-pf-green/20 text-accent-green text-xs font-medium rounded-full">
             Current
           </span>
@@ -92,25 +102,81 @@ function SeasonCard({ seriesSlug, season }: SeasonCardProps) {
  */
 export function SeriesDetailPage() {
   const { seriesSlug } = useParams<{ seriesSlug: string }>();
-  const series = seriesSlug ? SERIES_INFO[seriesSlug] : null;
+  const [seriesData, setSeriesData] = useState<SeriesDetailDto | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch series data
+  useEffect(() => {
+    if (!seriesSlug) return;
+    
+    let cancelled = false;
+    const slugToFetch = seriesSlug;
+    
+    async function fetchSeriesDetail() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await seriesApi.getSeriesBySlug(slugToFetch);
+        if (!cancelled) {
+          setSeriesData(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch series:', err);
+        if (!cancelled) {
+          setError('Failed to load series. Please try again later.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+    
+    fetchSeriesDetail();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesSlug]);
   
   // Set breadcrumbs
   useBreadcrumbs(
-    series && seriesSlug
-      ? buildSeriesBreadcrumbs(series.name, seriesSlug)
+    seriesData && seriesSlug
+      ? buildSeriesBreadcrumbs(seriesData.name, seriesSlug)
       : [
           { label: 'Home', path: ROUTES.HOME, icon: '🏠' },
           { label: 'Series', path: ROUTES.SERIES_LIST, icon: '🏁' },
         ]
   );
   
-  if (!series || !seriesSlug) {
+  // Loading state
+  if (isLoading) {
+    return (
+      <MainLayout showBreadcrumbs>
+        <div className="animate-pulse">
+          <div className="h-8 bg-neutral-800 rounded w-1/3 mb-2" />
+          <div className="h-5 bg-neutral-800 rounded w-2/3 mb-8" />
+        </div>
+        <Section title="Seasons">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <SeasonCardSkeleton key={i} />
+            ))}
+          </div>
+        </Section>
+      </MainLayout>
+    );
+  }
+  
+  // Error or not found state
+  if (error || !seriesData || !seriesSlug) {
     return (
       <MainLayout showBreadcrumbs>
         <EmptyState
           icon="🔍"
           title="Series not found"
-          description="The series you're looking for doesn't exist or isn't available yet."
+          description={error ?? "The series you're looking for doesn't exist or isn't available yet."}
           action={
             <Link to={ROUTES.SERIES_LIST} className="text-accent-green hover:underline">
               Browse all series
@@ -121,31 +187,58 @@ export function SeriesDetailPage() {
     );
   }
   
+  const color = getSeriesColor(seriesSlug);
+  
   return (
     <MainLayout showBreadcrumbs>
-      <PageHeader
-        icon="🏁"
-        title={series.name}
-        subtitle={series.description}
-      />
+      {/* Series header with color accent */}
+      <div className="relative mb-8">
+        <div 
+          className="absolute inset-0 h-1 rounded-full" 
+          style={{ backgroundColor: color }}
+        />
+        <div className="pt-4">
+          <PageHeader
+            icon="🏁"
+            title={seriesData.name}
+            subtitle={seriesData.description}
+          />
+        </div>
+      </div>
       
+      {/* Stats Section */}
+      {seriesData.stats && (
+        <Section>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <StatsCard icon="📅" label="Seasons" value={seriesData.stats.totalSeasons} />
+            <StatsCard icon="🏎️" label="Rounds" value={seriesData.stats.totalRounds} />
+            <StatsCard icon="📺" label="Sessions" value={seriesData.stats.totalSessions} />
+            <StatsCard icon="👤" label="Drivers" value={seriesData.stats.totalDrivers} />
+            <StatsCard icon="🏢" label="Teams" value={seriesData.stats.totalTeams} />
+            <StatsCard icon="🗺️" label="Circuits" value={seriesData.stats.totalCircuits} />
+          </div>
+        </Section>
+      )}
+      
+      {/* Seasons Section */}
       <Section title="Seasons" subtitle="Select a season to browse rounds and sessions">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {SEASONS_DATA.map((season) => (
-            <SeasonCard 
-              key={season.year} 
-              seriesSlug={seriesSlug} 
-              season={season} 
-            />
-          ))}
-        </div>
-        
-        {/* View all seasons link */}
-        <div className="mt-6 text-center">
-          <button className="text-neutral-400 hover:text-neutral-200 text-sm">
-            View all seasons (1950-2019) →
-          </button>
-        </div>
+        {seriesData.seasons.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {seriesData.seasons.map((season) => (
+              <SeasonCard 
+                key={season.id} 
+                seriesSlug={seriesSlug} 
+                season={season} 
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="📅"
+            title="No seasons available"
+            description="Season data will be available soon."
+          />
+        )}
       </Section>
     </MainLayout>
   );

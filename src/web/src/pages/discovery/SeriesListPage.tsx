@@ -1,64 +1,44 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
+import { seriesApi } from '../../services/seriesService';
+import type { SeriesSummaryDto } from '../../types/series';
+import { getSeriesColor } from '../../types/series';
 
 // =========================
-// Mock Data (until API ready)
+// Loading Skeleton
 // =========================
 
-const SERIES_DATA = [
-  {
-    id: 'f1',
-    name: 'Formula 1',
-    slug: 'f1',
-    description: 'The pinnacle of motorsport. Open-wheel racing at its finest.',
-    logoUrl: null,
-    seasonCount: 75,
-    latestSeason: 2025,
-    color: '#E10600',
-  },
-  {
-    id: 'motogp',
-    name: 'MotoGP',
-    slug: 'motogp',
-    description: 'Premier class of motorcycle road racing.',
-    logoUrl: null,
-    seasonCount: 75,
-    latestSeason: 2025,
-    color: '#FF6B00',
-  },
-  {
-    id: 'wec',
-    name: 'World Endurance Championship',
-    slug: 'wec',
-    description: 'Multi-class endurance racing including Le Mans.',
-    logoUrl: null,
-    seasonCount: 12,
-    latestSeason: 2025,
-    color: '#0066CC',
-  },
-  {
-    id: 'indycar',
-    name: 'IndyCar Series',
-    slug: 'indycar',
-    description: 'American open-wheel racing including the Indy 500.',
-    logoUrl: null,
-    seasonCount: 29,
-    latestSeason: 2025,
-    color: '#1E1E1E',
-  },
-];
+function SeriesCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden animate-pulse">
+      <div className="h-2 bg-neutral-700" />
+      <div className="p-6">
+        <div className="w-16 h-16 rounded-xl bg-neutral-800 mb-4" />
+        <div className="h-6 bg-neutral-800 rounded w-3/4 mb-2" />
+        <div className="h-4 bg-neutral-800 rounded w-full mb-4" />
+        <div className="flex gap-4">
+          <div className="h-4 bg-neutral-800 rounded w-20" />
+          <div className="h-4 bg-neutral-800 rounded w-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // =========================
 // Series Card Component
 // =========================
 
 interface SeriesCardProps {
-  series: typeof SERIES_DATA[0];
+  series: SeriesSummaryDto;
 }
 
 function SeriesCard({ series }: SeriesCardProps) {
+  const color = getSeriesColor(series.slug);
+  
   return (
     <Link
       to={ROUTES.SERIES_DETAIL(series.slug)}
@@ -67,18 +47,26 @@ function SeriesCard({ series }: SeriesCardProps) {
       {/* Header with color accent */}
       <div 
         className="h-2" 
-        style={{ backgroundColor: series.color }}
+        style={{ backgroundColor: color }}
         aria-hidden="true"
       />
       
       <div className="p-6">
         {/* Logo/Icon placeholder */}
-        <div 
-          className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl mb-4"
-          style={{ backgroundColor: `${series.color}20` }}
-        >
-          🏁
-        </div>
+        {series.logoUrl ? (
+          <img 
+            src={series.logoUrl} 
+            alt={`${series.name} logo`}
+            className="w-16 h-16 object-contain mb-4"
+          />
+        ) : (
+          <div 
+            className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl mb-4"
+            style={{ backgroundColor: `${color}20` }}
+          >
+            🏁
+          </div>
+        )}
         
         {/* Title */}
         <h3 className="text-xl font-bold text-neutral-100 group-hover:text-accent-green transition-colors mb-2">
@@ -86,18 +74,22 @@ function SeriesCard({ series }: SeriesCardProps) {
         </h3>
         
         {/* Description */}
-        <p className="text-neutral-400 text-sm mb-4 line-clamp-2">
-          {series.description}
-        </p>
+        {series.description && (
+          <p className="text-neutral-400 text-sm mb-4 line-clamp-2">
+            {series.description}
+          </p>
+        )}
         
         {/* Stats */}
         <div className="flex items-center gap-4 text-sm">
           <span className="text-neutral-500">
             <span className="text-neutral-300 font-medium">{series.seasonCount}</span> seasons
           </span>
-          <span className="text-neutral-500">
-            Latest: <span className="text-neutral-300 font-medium">{series.latestSeason}</span>
-          </span>
+          {series.latestSeasonYear && (
+            <span className="text-neutral-500">
+              Latest: <span className="text-neutral-300 font-medium">{series.latestSeasonYear}</span>
+            </span>
+          )}
         </div>
       </div>
     </Link>
@@ -112,11 +104,46 @@ function SeriesCard({ series }: SeriesCardProps) {
  * Series list page - top-level entry point for browsing racing series.
  */
 export function SeriesListPage() {
+  const [series, setSeries] = useState<SeriesSummaryDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   // Set breadcrumbs
   useBreadcrumbs([
     { label: 'Home', path: ROUTES.HOME, icon: '🏠' },
     { label: 'Series', path: ROUTES.SERIES_LIST, icon: '🏁' },
   ]);
+
+  // Fetch series data
+  useEffect(() => {
+    let cancelled = false;
+    
+    async function fetchSeries() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await seriesApi.getAllSeries();
+        if (!cancelled) {
+          setSeries(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch series:', err);
+        if (!cancelled) {
+          setError('Failed to load series. Please try again later.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+    
+    fetchSeries();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   
   return (
     <MainLayout showBreadcrumbs>
@@ -127,10 +154,30 @@ export function SeriesListPage() {
       />
       
       <Section>
-        {SERIES_DATA.length > 0 ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-            {SERIES_DATA.map((series) => (
-              <SeriesCard key={series.id} series={series} />
+            {[1, 2, 3, 4].map((i) => (
+              <SeriesCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : error ? (
+          <EmptyState
+            icon="⚠️"
+            title="Error loading series"
+            description={error}
+            action={
+              <button 
+                onClick={() => window.location.reload()}
+                className="text-accent-green hover:underline"
+              >
+                Try again
+              </button>
+            }
+          />
+        ) : series.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            {series.map((s) => (
+              <SeriesCard key={s.id} series={s} />
             ))}
           </div>
         ) : (

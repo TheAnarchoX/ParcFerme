@@ -2,3 +2,4 @@
 export * from './api';
 export * from './spoiler';
 export * from './navigation';
+export * from './series';

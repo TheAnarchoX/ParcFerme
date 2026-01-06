@@ -32,20 +32,19 @@
   - [x] known_aliases.json config with F1 canonical names and historical aliases (drivers, teams, circuits, series)
   - [x] Repository updates for ID-first upsert logic to respect entity resolver decisions
   - [x] Comprehensive tests (33 entity resolver tests, 81 total Python tests passing)
-
+- [x] Navigation header + IA refactor for multi-series + discovery (define primary nav model: Series → Season → Round → Session; add dedicated entry points for Discovery: Sessions / Drivers / Teams / Circuits; include a global search box (spoiler-safe result rendering + respects spoiler_mode), persistent user menu + spoiler mode toggle, and breadcrumbs for deep pages; ensure routes/URLs align with BLUEPRINT.md and are consistent across all discovery/detail pages; responsive + keyboard accessible)
 ### 🚧 In Progress
 
 
 ### 📋 Up Next
-- [ ] Navigation header + IA refactor for multi-series + discovery (define primary nav model: Series → Season → Round → Session; add dedicated entry points for Discovery: Sessions / Drivers / Teams / Circuits; include a global search box (spoiler-safe result rendering + respects spoiler_mode), persistent user menu + spoiler mode toggle, and breadcrumbs for deep pages; ensure routes/URLs align with BLUEPRINT.md and are consistent across all discovery/detail pages; responsive + keyboard accessible)
-- [ ] Series hub pages API endpoint(s) (top-level entry point; series overview, supported seasons, quick links into season browser; establishes URL + navigation conventions for multi-series)
-- [ ] Season browser + season detail pages API endpoint(s) (per-series; calendar/round list, filters by session type, progress indicators for "logged" vs "unlogged"; spoiler-safe aggregates only)
-- [ ] Round (weekend) detail pages API endpoint(s) (per season; sessions timeline, circuit context, spoiler-safe status/metadata; acts as the primary "choose what to log" screen)
-- [ ] Session discovery + detail pages API endpoint(s) (spoiler shield end-to-end; after this task users can browse sessions by series/season/round and view session details with results properly masked until logged)
+- [ ] Series hub pages + API endpoint(s) (top-level entry point; series overview, supported seasons, quick links into season browser; establishes URL + navigation conventions for multi-series)
+- [ ] Season browser + season detail pages + API endpoint(s) (per-series; calendar/round list, filters by session type, progress indicators for "logged" vs "unlogged"; spoiler-safe aggregates only)
+- [ ] Round (weekend) detail pages + API endpoint(s) (per season; sessions timeline, circuit context, spoiler-safe status/metadata; acts as the primary "choose what to log" screen)
+- [ ] Session discovery + detail pages + API endpoint(s) (spoiler shield end-to-end; after this task users can browse sessions by series/season/round and view session details with results properly masked until logged)
 - [ ] "Log a Race" flow (core feature, end-to-end; multi-step modal or dedicated page; select session, enter basic info (date, watched vs attended, car/team/driver driven, comments), submit log; post-log redirect to session detail with results revealed)
-- [ ] Driver discovery + detail pages API endpoint(s) (spoiler shield; profile, teams over time, seasons participated; includes tabular + statistical views)
-- [ ] Team discovery + detail pages API endpoint(s) (spoiler shield; overview, seasons participated, drivers roster over time; includes tabular + statistical views)
-- [ ] Circuit discovery + detail pages API endpoint(s) (spoiler-safe by default; circuit overview, location/map, sessions hosted by season/series, "Attended" venue aggregates when available; includes tabular + statistical views)
+- [ ] Driver discovery + detail pages + API endpoint(s) (spoiler shield; profile, teams over time, seasons participated; includes tabular + statistical views)
+- [ ] Team discovery + detail pages + API endpoint(s) (spoiler shield; overview, seasons participated, drivers roster over time; includes tabular + statistical views)
+- [ ] Circuit discovery + detail pages + API endpoint(s) (spoiler-safe by default; circuit overview, location/map, sessions hosted by season/series, "Attended" venue aggregates when available; includes tabular + statistical views)
 - [ ] Basic feed/home page with recent activity API endpoint(s) 
 - [ ] Global search UI + API endpoint(s) (spoiler-safe results; respects spoiler mode; covers sessions, drivers, teams, circuits, users, logs)
 
