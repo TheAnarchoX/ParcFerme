@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Header } from './Header';
+import { Footer } from './Footer';
 import { Breadcrumbs } from '../navigation/Breadcrumbs';
 import type { BreadcrumbItem } from '../../types/navigation';
 
@@ -39,10 +40,10 @@ export function MainLayout({
   withHeaderPadding = true,
 }: MainLayoutProps) {
   return (
-    <div className="min-h-screen app-background">
+    <div className="min-h-screen app-background flex flex-col">
       <Header />
       
-      <main className={`${withHeaderPadding ? 'pt-16' : ''}`}>
+      <main className={`flex-1 ${withHeaderPadding ? 'pt-16' : ''}`}>
         {/* Breadcrumbs bar */}
         {showBreadcrumbs && (
           <div className="border-b border-neutral-800/50 bg-neutral-950/30">
@@ -57,6 +58,8 @@ export function MainLayout({
           {children}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
