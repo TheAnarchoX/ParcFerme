@@ -6,6 +6,8 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { StatusPage } from './pages/StatusPage';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { ErrorPage, ForbiddenPage, ServerErrorPage, MaintenancePage } from './pages/ErrorPage';
 
 // Discovery pages
 import { SeriesListPage } from './pages/discovery/SeriesListPage';
@@ -67,6 +69,15 @@ function AppRoutes() {
       <Route path="/teams/:teamSlug" element={<TeamDetailPage />} />
       <Route path="/circuits" element={<CircuitsPage />} />
       <Route path="/circuits/:circuitSlug" element={<CircuitDetailPage />} />
+      
+      {/* Error pages */}
+      <Route path="/error" element={<ErrorPage />} />
+      <Route path="/forbidden" element={<ForbiddenPage />} />
+      <Route path="/server-error" element={<ServerErrorPage />} />
+      <Route path="/maintenance" element={<MaintenancePage />} />
+      
+      {/* Catch-all 404 route - must be last */}
+      <Route path="*" element={<NotFoundPage />} />
       
       {/* PaddockPass-only routes */}
       {/* <Route path="/stats/advanced" element={<ProtectedRoute requirePaddockPass><AdvancedStatsPage /></ProtectedRoute>} /> */}
