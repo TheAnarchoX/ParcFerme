@@ -14,6 +14,11 @@ namespace ParcFerme.Api.Caching;
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
 public sealed class CacheResponseAttribute : Attribute, IAsyncActionFilter
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     /// <summary>Cache duration in seconds. Default is 60 seconds.</summary>
     public int DurationSeconds { get; set; } = 60;
     
@@ -32,7 +37,7 @@ public sealed class CacheResponseAttribute : Attribute, IAsyncActionFilter
         var cachedBytes = await cache.GetAsync(cacheKey);
         if (cachedBytes != null)
         {
-            var cachedResponse = JsonSerializer.Deserialize<CachedResponse>(cachedBytes);
+            var cachedResponse = JsonSerializer.Deserialize<CachedResponse>(cachedBytes, JsonOptions);
             if (cachedResponse != null)
             {
                 context.HttpContext.Response.Headers["X-Cache"] = "HIT";
@@ -54,7 +59,7 @@ public sealed class CacheResponseAttribute : Attribute, IAsyncActionFilter
         if (executedContext.Result is ObjectResult objectResult && 
             objectResult.StatusCode is null or >= 200 and < 300)
         {
-            var content = JsonSerializer.Serialize(objectResult.Value);
+            var content = JsonSerializer.Serialize(objectResult.Value, JsonOptions);
             var cachedResponse = new CachedResponse
             {
                 Content = content,
@@ -67,7 +72,7 @@ public sealed class CacheResponseAttribute : Attribute, IAsyncActionFilter
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(DurationSeconds)
             };
 
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(cachedResponse);
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(cachedResponse, JsonOptions);
             await cache.SetAsync(cacheKey, bytes, options);
         }
     }

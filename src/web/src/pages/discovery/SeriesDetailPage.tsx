@@ -237,7 +237,6 @@ export function SeriesDetailPage() {
           <PageHeader
             icon={seriesData.logoUrl || "🏁"}
             title={seriesData.name}
-            subtitle={seriesData.description}
           />
         </div>
       </div>

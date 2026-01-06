@@ -201,13 +201,66 @@ export function SeriesListPage() {
       {/* Coming Soon Section */}
       <Section title="Coming Soon" subtitle="More series will be added over time">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {['NASCAR', 'Formula E', 'Super GT', 'DTM'].map((name) => (
+          {[
+            { name: 'WEC', color: '#01b9ff' },
+            { name: 'IndyCar', color: '#0e56a3' },
+            { name: 'MotoGP', color: '#C90909' },
+            { name: 'Many More', color: '#00FF7F' }
+          ].map((item) => (
             <div 
-              key={name}
-              className="p-4 bg-neutral-800/30 border border-neutral-800 rounded-lg text-center opacity-50"
+              key={item.name}
+              className="group bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-xl hover:border-neutral-700"
             >
-              <span className="text-2xl mb-2 block">🚧</span>
-              <span className="text-sm text-neutral-400">{name}</span>
+              {/* Header with color accent */}
+              <div 
+                className="h-2" 
+                style={{ backgroundColor: item.color }}
+                aria-hidden="true"
+              />
+              
+              {/* Card content */}
+              <div className="relative p-6 text-center">
+                {/* Random expanding blobs that fill the card - positioned to cover entire card including top bar */}
+                <div className="absolute inset-0 -top-2">
+                  {/* Top-left blob */}
+                  <div 
+                    className="absolute -top-4 -left-4 w-20 h-20 rounded-full opacity-0 scale-0 blur-xl group-hover:opacity-100 group-hover:scale-[3] transition-all duration-500 ease-out"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  {/* Bottom-right blob */}
+                  <div 
+                    className="absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-0 scale-0 blur-xl group-hover:opacity-100 group-hover:scale-[2.5] transition-all duration-600 delay-100 ease-out"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  {/* Top-right blob */}
+                  <div 
+                    className="absolute -top-2 -right-6 w-16 h-16 rounded-full opacity-0 scale-0 blur-lg group-hover:opacity-90 group-hover:scale-[3.5] transition-all duration-550 delay-75 ease-out"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  {/* Bottom-left blob */}
+                  <div 
+                    className="absolute -bottom-6 -left-2 w-18 h-18 rounded-full opacity-0 scale-0 blur-lg group-hover:opacity-90 group-hover:scale-[4] transition-all duration-650 delay-150 ease-out"
+                    style={{ backgroundColor: item.color }}
+                  />
+                </div>
+                
+                {/* Text content with subtle lift animation */}
+                <span 
+                  className="relative font-bold text-lg block group-hover:-translate-y-0.5 transition-all duration-500"
+                >
+                  <span 
+                    className="transition-all duration-500 group-hover:opacity-0"
+                    style={{ 
+                      color: item.color,
+                    }}
+                  >
+                    {item.name}
+                  </span>
+                  <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold">
+                    {item.name}
+                  </span>
+                </span>
+              </div>
             </div>
           ))}
         </div>
