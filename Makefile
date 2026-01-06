@@ -2,7 +2,7 @@
 # Parc Fermé - Development Makefile
 # =========================
 
-.PHONY: help setup up down api web python sync sync-all sync-recent db-migrate db-reset logs clean
+.PHONY: help setup up down api web python sync sync-all sync-recent db-migrate db-reset db-clean db-audit logs clean
 
 # Default target
 help:
@@ -34,6 +34,8 @@ help:
 	@echo "Database:"
 	@echo "  make db-migrate   - Apply EF Core migrations"
 	@echo "  make db-reset     - Reset database (WARNING: destroys data)"
+	@echo "  make db-clean     - Clean racing data tables (preserves users)"
+	@echo "  make db-audit     - Audit data quality (check for null values)"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean        - Remove build artifacts and node_modules"
@@ -133,6 +135,14 @@ db-reset:
 	@sleep 3
 	cd src/api && dotnet ef database update
 	@echo "✅ Database reset complete"
+
+db-clean:
+	@echo "🧹 Cleaning racing data tables (preserves users)..."
+	cd src/python && .venv/bin/python -m ingestion.db clean-racing
+
+db-audit:
+	@echo "🔍 Auditing data quality..."
+	cd src/python && .venv/bin/python -m ingestion.db audit
 
 # =========================
 # Cleanup
