@@ -21,15 +21,24 @@
 - [x] CI/CD pipeline (GitHub Actions)
 - [x] Auth UI pages (Login, Register, Profile)
 - [x] OpenF1 data sync implementation (Python ingestion pipeline)
-
+- [x] Spoiler shield implementation (core feature, both backend and frontend)
+  - [x] Backend: SpoilerShieldService, SessionDtos, SessionsController
+  - [x] Frontend: spoilerSlice, useSpoilerShield hook, SpoilerMask/SpoilerBlur components
+  
 ### 🚧 In Progress
-- [ ] Spoiler shield implementation (core feature)
+
 
 ### 📋 Up Next
-- [ ] Session listing and detail pages (with spoiler shield, after this task you should be able to view all session data available)
-- [ ] Driver listing and detail pages (with spoiler shield, with information about driver, what teams they drove for, and seasons participated in, contains both tabular and statistical (graphed) data)
-- [ ] Team listing and detail pages (with spoiler shield, with information about team, seasons participated in, and drivers, contains both tabular and statistical (graphed) data)
-- [ ] Navigation header refactor to support multi-series and user menu (think about how to best structure the navigation for multiple racing series, base it on this roadmap and the BLUEPRINT.md)
+- [ ] Bug: Fix Antonelli driver duplicate (OpenF1 data issue, we have both Kimi and Andrea Kimi showing up as first names for Antonelli)
+- [ ] Ingestion: normalize and reconcile entity identities (Teams + Drivers) by maintaining an alias/history map and always updating canonical `Name`/`Slug` to the most recent official value; merge/attach incoming records to existing entities via stable unique identifiers (OpenF1 IDs/keys) and fall back to deterministic matching to prevent duplicates (e.g. Antonelli/Kimi/Andrea Kimi, Red Bull Racing vs Red Bull RBPT)
+- [ ] Session discovery + detail pages (spoiler shield end-to-end; after this task users can browse sessions by series/season/round and view session details with results properly masked until logged)
+- [ ] Driver discovery + detail pages (spoiler shield; profile, teams over time, seasons participated; includes tabular + statistical views)
+- [ ] Team discovery + detail pages (spoiler shield; overview, seasons participated, drivers roster over time; includes tabular + statistical views)
+- [ ] Circuit discovery + detail pages (spoiler-safe by default; circuit overview, location/map, sessions hosted by season/series, “Attended” venue aggregates when available; includes tabular + statistical views)
+- [ ] Series hub pages (top-level entry point; series overview, supported seasons, quick links into season browser; establishes URL + navigation conventions for multi-series)
+- [ ] Season browser + season detail pages (per-series; calendar/round list, filters by session type, progress indicators for “logged” vs “unlogged”; spoiler-safe aggregates only)
+- [ ] Round (weekend) detail pages (per season; sessions timeline, circuit context, spoiler-safe status/metadata; acts as the primary “choose what to log” screen)
+- [ ] Navigation header + IA refactor for multi-series (define primary nav: Series → Season → Round → Session; add persistent user menu + spoiler mode toggle; align structure with BLUEPRINT.md)
 - [ ] "Log a Race" flow (core feature)
 - [ ] Basic feed/home page with recent activity
 

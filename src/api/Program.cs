@@ -3,6 +3,7 @@ using ParcFerme.Api.Authorization;
 using ParcFerme.Api.Caching;
 using ParcFerme.Api.Data;
 using ParcFerme.Api.Models;
+using ParcFerme.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -94,6 +95,11 @@ builder.Services.AddParcFermeAuth(builder.Configuration);
 // Caching (Redis + Response)
 // =========================
 builder.Services.AddParcFermeCaching(builder.Configuration);
+
+// =========================
+// Application Services
+// =========================
+builder.Services.AddScoped<ISpoilerShieldService, SpoilerShieldService>();
 
 // =========================
 // HTTP Client Factory (for external API health checks)
