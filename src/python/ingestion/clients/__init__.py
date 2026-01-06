@@ -8,6 +8,7 @@ from ingestion.clients.openf1 import (
     OpenF1Meeting,
     OpenF1Position,
     OpenF1Session,
+    OpenF1SessionResult,
     OpenF1Stint,
 )
 
@@ -19,5 +20,6 @@ __all__ = [
     "OpenF1Meeting",
     "OpenF1Position",
     "OpenF1Session",
+    "OpenF1SessionResult",
     "OpenF1Stint",
 ]

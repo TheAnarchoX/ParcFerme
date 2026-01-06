@@ -16,6 +16,7 @@ from ingestion.clients.openf1 import (
     OpenF1Driver,
     OpenF1Meeting,
     OpenF1Session,
+    OpenF1SessionResult,
 )
 from ingestion.models import (
     OPENF1_SESSION_TYPE_MAP,
@@ -205,9 +206,9 @@ class OpenF1SyncService:
         logger.info("Created team", name=team.name, team_id=str(team_id))
         return team_id
 
-    def _map_session_type(self, openf1_type: str) -> SessionType:
-        """Map OpenF1 session type string to our enum."""
-        return OPENF1_SESSION_TYPE_MAP.get(openf1_type, SessionType.RACE)
+    def _map_session_type(self, openf1_session_name: str) -> SessionType:
+        """Map OpenF1 session_name string to our enum."""
+        return OPENF1_SESSION_TYPE_MAP.get(openf1_session_name, SessionType.RACE)
 
     def _determine_session_status(self, session: OpenF1Session) -> SessionStatus:
         """Determine session status based on dates."""
@@ -354,7 +355,7 @@ class OpenF1SyncService:
         for openf1_session in sessions:
             session = Session(
                 round_id=round_id,
-                type=self._map_session_type(openf1_session.session_type),
+                type=self._map_session_type(openf1_session.session_name),
                 start_time_utc=openf1_session.date_start,
                 status=self._determine_session_status(openf1_session),
                 openf1_session_key=openf1_session.session_key,
@@ -381,35 +382,23 @@ class OpenF1SyncService:
         """Sync results for a completed session.
 
         ⚠️ SPOILER DATA - This fetches and stores race results.
+        
+        Uses the session_result endpoint (beta) for comprehensive data,
+        falls back to position endpoint if unavailable.
         """
         try:
-            final_positions = api.get_final_positions(openf1_session.session_key)
-            fastest_lap_driver = api.get_fastest_lap_driver(openf1_session.session_key)
-
-            results: list[Result] = []
-            for driver_number, position in final_positions.items():
-                entrant_id = entrant_map.get(driver_number)
-                if not entrant_id:
-                    # Try to look up by driver number
-                    entrant = repo.get_entrant_by_driver_number(round_id, driver_number)
-                    if entrant:
-                        entrant_id = entrant.id
-                    else:
-                        logger.warning(
-                            "No entrant found for driver",
-                            driver_number=driver_number,
-                            session_key=openf1_session.session_key,
-                        )
-                        continue
-
-                result = Result(
-                    session_id=session_id,
-                    entrant_id=entrant_id,
-                    position=position,
-                    status=ResultStatus.FINISHED,
-                    fastest_lap=(driver_number == fastest_lap_driver),
+            # Try the session_result endpoint first (has DNF/DNS/DSQ data)
+            session_results = api.get_session_results(openf1_session.session_key)
+            
+            if session_results:
+                results = self._process_session_results(
+                    session_results, session_id, round_id, entrant_map, repo, openf1_session
                 )
-                results.append(result)
+            else:
+                # Fallback to position endpoint
+                results = self._process_position_results(
+                    api, session_id, round_id, entrant_map, repo, openf1_session
+                )
 
             if results:
                 repo.bulk_upsert_results(results)
@@ -426,6 +415,112 @@ class OpenF1SyncService:
                 session=openf1_session.session_name,
                 error=str(e),
             )
+
+    def _process_session_results(
+        self,
+        session_results: list[OpenF1SessionResult],
+        session_id: UUID,
+        round_id: UUID,
+        entrant_map: dict[int, UUID],
+        repo: RacingRepository,
+        openf1_session: OpenF1Session,
+    ) -> list[Result]:
+        """Process results from the session_result endpoint (beta).
+        
+        This endpoint provides comprehensive data including DNF/DNS/DSQ status.
+        """
+        results: list[Result] = []
+        
+        for sr in session_results:
+            entrant_id = entrant_map.get(sr.driver_number)
+            if not entrant_id:
+                entrant = repo.get_entrant_by_driver_number(round_id, sr.driver_number)
+                if entrant:
+                    entrant_id = entrant.id
+                else:
+                    logger.warning(
+                        "No entrant found for driver",
+                        driver_number=sr.driver_number,
+                        session_key=openf1_session.session_key,
+                    )
+                    continue
+            
+            # Determine result status from flags
+            if sr.dsq:
+                status = ResultStatus.DSQ
+            elif sr.dns:
+                status = ResultStatus.DNS
+            elif sr.dnf:
+                status = ResultStatus.DNF
+            else:
+                status = ResultStatus.FINISHED
+            
+            # Handle duration - can be a single value or array for qualifying
+            time_ms = None
+            if sr.duration is not None:
+                if isinstance(sr.duration, list):
+                    # For qualifying, take the best time (last non-None Q time)
+                    for t in reversed(sr.duration):
+                        if t is not None:
+                            time_ms = int(t * 1000)
+                            break
+                else:
+                    time_ms = int(sr.duration * 1000)
+            
+            result = Result(
+                session_id=session_id,
+                entrant_id=entrant_id,
+                position=sr.position,
+                status=status,
+                time_milliseconds=time_ms,
+                laps=sr.number_of_laps,
+                fastest_lap=False,  # Will be updated below if applicable
+            )
+            results.append(result)
+        
+        return results
+
+    def _process_position_results(
+        self,
+        api: OpenF1Client,
+        session_id: UUID,
+        round_id: UUID,
+        entrant_map: dict[int, UUID],
+        repo: RacingRepository,
+        openf1_session: OpenF1Session,
+    ) -> list[Result]:
+        """Process results from the position endpoint (fallback).
+        
+        Used when session_result endpoint is not available.
+        """
+        final_positions = api.get_final_positions(openf1_session.session_key)
+        fastest_lap_driver = api.get_fastest_lap_driver(openf1_session.session_key)
+
+        results: list[Result] = []
+        for driver_number, position in final_positions.items():
+            entrant_id = entrant_map.get(driver_number)
+            if not entrant_id:
+                entrant = repo.get_entrant_by_driver_number(round_id, driver_number)
+                if entrant:
+                    entrant_id = entrant.id
+                else:
+                    logger.warning(
+                        "No entrant found for driver",
+                        driver_number=driver_number,
+                        session_key=openf1_session.session_key,
+                    )
+                    continue
+
+            result = Result(
+                session_id=session_id,
+                entrant_id=entrant_id,
+                position=position,
+                status=ResultStatus.FINISHED,
+                fastest_lap=(driver_number == fastest_lap_driver),
+            )
+            results.append(result)
+        
+        return results
 
     def _extract_round_number(self, meeting: OpenF1Meeting) -> int:
         """Extract round number from meeting data.

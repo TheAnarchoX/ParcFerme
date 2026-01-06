@@ -24,9 +24,12 @@
 
 ### 🚧 In Progress
 - [ ] Spoiler shield implementation (core feature)
-- [ ] Session listing and detail pages (with spoiler shield, after this task you should be able to view all session data available)
 
 ### 📋 Up Next
+- [ ] Session listing and detail pages (with spoiler shield, after this task you should be able to view all session data available)
+- [ ] Driver listing and detail pages (with spoiler shield, with information about driver, what teams they drove for, and seasons participated in, contains both tabular and statistical (graphed) data)
+- [ ] Team listing and detail pages (with spoiler shield, with information about team, seasons participated in, and drivers, contains both tabular and statistical (graphed) data)
+- [ ] Navigation header refactor to support multi-series and user menu (think about how to best structure the navigation for multiple racing series, base it on this roadmap and the BLUEPRINT.md)
 - [ ] "Log a Race" flow (core feature)
 - [ ] Basic feed/home page with recent activity
 

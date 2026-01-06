@@ -116,10 +116,13 @@ class TestSessionModel:
 
     def test_session_types(self) -> None:
         """Test all session types."""
-        assert SessionType.FP1.value == "FP1"
-        assert SessionType.QUALIFYING.value == "Qualifying"
-        assert SessionType.SPRINT.value == "Sprint"
-        assert SessionType.RACE.value == "Race"
+        assert SessionType.FP1.value == 0
+        assert SessionType.FP2.value == 1
+        assert SessionType.FP3.value == 2
+        assert SessionType.QUALIFYING.value == 3
+        assert SessionType.SPRINT_QUALIFYING.value == 4
+        assert SessionType.SPRINT.value == 5
+        assert SessionType.RACE.value == 6
 
 
 class TestDriverModel:
@@ -189,11 +192,11 @@ class TestResultModel:
 
     def test_result_statuses(self) -> None:
         """Test all result statuses."""
-        assert ResultStatus.FINISHED.value == "Finished"
-        assert ResultStatus.DNF.value == "DNF"
-        assert ResultStatus.DNS.value == "DNS"
-        assert ResultStatus.DSQ.value == "DSQ"
-        assert ResultStatus.NC.value == "NC"
+        assert ResultStatus.FINISHED.value == 0
+        assert ResultStatus.DNF.value == 1
+        assert ResultStatus.DNS.value == 2
+        assert ResultStatus.DSQ.value == 3
+        assert ResultStatus.NC.value == 4
 
 
 class TestSlugify:

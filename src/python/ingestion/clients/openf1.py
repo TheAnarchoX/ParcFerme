@@ -106,6 +106,24 @@ class OpenF1Stint(BaseModel):
     tyre_age_at_start: int | None = None
 
 
+class OpenF1SessionResult(BaseModel):
+    """Session result data from OpenF1 API (beta endpoint).
+    
+    Provides comprehensive result data including DNF/DNS/DSQ status.
+    """
+
+    session_key: int
+    meeting_key: int
+    driver_number: int
+    position: int
+    dnf: bool = False
+    dns: bool = False
+    dsq: bool = False
+    duration: float | list[float | None] | None = None  # Best lap time or total race time (can be array for quali Q1/Q2/Q3)
+    gap_to_leader: float | str | list[float | str | None] | None = None  # Seconds or "+N LAP(S)" (can be array for quali)
+    number_of_laps: int | None = None
+
+
 class OpenF1Client:
     """Client for the OpenF1 API.
 
@@ -361,6 +379,28 @@ class OpenF1Client:
             params["driver_number"] = driver_number
         data = self._get("/stints", params=params)
         return [OpenF1Stint(**item) for item in data]
+
+    def get_session_results(self, session_key: int) -> list[OpenF1SessionResult]:
+        """Get session results (beta endpoint).
+        
+        ⚠️ SPOILER DATA - Contains race results.
+        
+        This endpoint provides comprehensive result data including:
+        - Final position
+        - DNF/DNS/DSQ status
+        - Duration (lap time or race time)
+        - Gap to leader
+        - Number of laps
+        
+        Note: This is a beta endpoint and may not be available for all sessions.
+        """
+        try:
+            data = self._get("/session_result", params={"session_key": session_key})
+            return [OpenF1SessionResult(**item) for item in data]
+        except OpenF1ApiError as e:
+            # Beta endpoint may not be available for all sessions
+            logger.debug("Session results not available", session_key=session_key, error=e.message)
+            return []
 
 
 # Example usage
