@@ -44,7 +44,7 @@
 - [ ] Series hub pages (top-level entry point; series overview, supported seasons, quick links into season browser; establishes URL + navigation conventions for multi-series)
 - [ ] Season browser + season detail pages (per-series; calendar/round list, filters by session type, progress indicators for “logged” vs “unlogged”; spoiler-safe aggregates only)
 - [ ] Round (weekend) detail pages (per season; sessions timeline, circuit context, spoiler-safe status/metadata; acts as the primary “choose what to log” screen)
-- [ ] Navigation header + IA refactor for multi-series (define primary nav: Series → Season → Round → Session; add persistent user menu + spoiler mode toggle; align structure with BLUEPRINT.md)
+- [ ] Navigation header + IA refactor for multi-series + discovery (define primary nav model: Series → Season → Round → Session; add dedicated entry points for Discovery: Sessions / Drivers / Teams / Circuits; include a global search box (spoiler-safe result rendering + respects spoiler_mode), persistent user menu + spoiler mode toggle, and breadcrumbs for deep pages; ensure routes/URLs align with BLUEPRINT.md and are consistent across all discovery/detail pages; responsive + keyboard accessible)
 - [ ] "Log a Race" flow (core feature)
 - [ ] Basic feed/home page with recent activity
 
