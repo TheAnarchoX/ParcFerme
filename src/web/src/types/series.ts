@@ -109,6 +109,7 @@ export const SERIES_COLORS: Record<string, string> = {
   'nascar': '#FEBD30',
 };
 
-export function getSeriesColor(slug: string): string {
+export function getSeriesColor(slug: string | undefined): string {
+  if (!slug) return '#666666';
   return SERIES_COLORS[slug.toLowerCase()] ?? '#666666';
 }
