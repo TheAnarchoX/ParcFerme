@@ -9,3 +9,4 @@ export {
   SpoilerBadge,
   ExcitementMeter,
 } from './SpoilerShield';
+export { SpoilerModeToggle } from './SpoilerModeToggle';

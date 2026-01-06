@@ -7,6 +7,23 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { StatusPage } from './pages/StatusPage';
 
+// Discovery pages
+import { SeriesListPage } from './pages/discovery/SeriesListPage';
+import { SeriesDetailPage } from './pages/discovery/SeriesDetailPage';
+import { SeasonDetailPage } from './pages/discovery/SeasonDetailPage';
+import { RoundDetailPage } from './pages/discovery/RoundDetailPage';
+import { SessionDetailPage } from './pages/discovery/SessionDetailPage';
+import { SessionsPage } from './pages/discovery/SessionsPage';
+import { DriversPage } from './pages/discovery/DriversPage';
+import { DriverDetailPage } from './pages/discovery/DriverDetailPage';
+import { TeamsPage } from './pages/discovery/TeamsPage';
+import { TeamDetailPage } from './pages/discovery/TeamDetailPage';
+import { CircuitsPage } from './pages/discovery/CircuitsPage';
+import { CircuitDetailPage } from './pages/discovery/CircuitDetailPage';
+
+// Settings page
+import { SettingsPage } from './pages/SettingsPage';
+
 function AppRoutes() {
   const isInitialized = useAuthInitializer();
 
@@ -33,7 +50,23 @@ function AppRoutes() {
       
       {/* Protected routes (require authentication) */}
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      {/* <Route path="/log" element={<ProtectedRoute><LogRacePage /></ProtectedRoute>} /> */}
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      
+      {/* Discovery routes - Series hierarchy */}
+      <Route path="/series" element={<SeriesListPage />} />
+      <Route path="/series/:seriesSlug" element={<SeriesDetailPage />} />
+      <Route path="/series/:seriesSlug/:year" element={<SeasonDetailPage />} />
+      <Route path="/series/:seriesSlug/:year/:roundSlug" element={<RoundDetailPage />} />
+      <Route path="/series/:seriesSlug/:year/:roundSlug/:sessionType" element={<SessionDetailPage />} />
+      
+      {/* Discovery routes - Direct entity access */}
+      <Route path="/sessions" element={<SessionsPage />} />
+      <Route path="/drivers" element={<DriversPage />} />
+      <Route path="/drivers/:driverSlug" element={<DriverDetailPage />} />
+      <Route path="/teams" element={<TeamsPage />} />
+      <Route path="/teams/:teamSlug" element={<TeamDetailPage />} />
+      <Route path="/circuits" element={<CircuitsPage />} />
+      <Route path="/circuits/:circuitSlug" element={<CircuitDetailPage />} />
       
       {/* PaddockPass-only routes */}
       {/* <Route path="/stats/advanced" element={<ProtectedRoute requirePaddockPass><AdvancedStatsPage /></ProtectedRoute>} /> */}
