@@ -21,6 +21,7 @@ help:
 	@echo "  make api          - Run the .NET API (hot reload)"
 	@echo "  make web          - Run the React frontend (hot reload)"
 	@echo "  make web-host     - Run the React frontend (hot reload) with the --host flag for LAN access"
+	@echo "  make web-tunnel   - Run the React frontend with Pinggy tunnel"
 	@echo "  make python       - Run Python ingestion healthcheck"
 	@echo ""
 	@echo "Data Sync:"
@@ -84,6 +85,10 @@ web:
 web-host:
 	@echo "🚀 Starting React frontend on http://localhost:3000 with LAN access"
 	cd src/web && npm run dev -- --host
+
+web-tunnel:
+	@echo "🚀 Starting Pinggy tunnel to localhost:3000"
+	ssh -p 80 -R0:localhost:3000 free.pinggy.io
 
 python:
 	@echo "🐍 Running Python healthcheck..."
