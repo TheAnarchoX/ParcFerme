@@ -161,11 +161,6 @@ class OpenF1SyncService:
         if slug in self._driver_cache:
             return self._driver_cache[slug]
 
-        existing = repo.get_driver_by_slug(slug)
-        if existing:
-            self._driver_cache[slug] = existing.id
-            return existing.id
-
         # Parse name - OpenF1 provides full_name but not always first/last
         name_parts = openf1_driver.full_name.split(" ", 1)
         first_name = openf1_driver.first_name or name_parts[0]
@@ -180,9 +175,9 @@ class OpenF1SyncService:
             headshot_url=openf1_driver.headshot_url,
             driver_number=openf1_driver.driver_number,
         )
+        # Always upsert to ensure driver number and other fields stay current
         driver_id = repo.upsert_driver(driver)
         self._driver_cache[slug] = driver_id
-        logger.info("Created driver", name=openf1_driver.full_name, driver_id=str(driver_id))
         return driver_id
 
     def _get_or_create_team(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID | None:

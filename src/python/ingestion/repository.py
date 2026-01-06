@@ -347,34 +347,84 @@ class RacingRepository:
     # =========================
 
     def upsert_driver(self, driver: Driver) -> UUID:
-        """Upsert a driver and return its ID."""
+        """Upsert a driver and return its ID.
+        
+        Uses DriverNumber as primary conflict resolution (stable identifier),
+        falling back to Slug for drivers without numbers.
+        """
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-            cur.execute(
-                """
-                INSERT INTO "Drivers" ("Id", "FirstName", "LastName", "Slug",
-                                      "Abbreviation", "Nationality", "HeadshotUrl")
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT ("Slug") DO UPDATE SET
-                        "FirstName" = EXCLUDED."FirstName",
-                        "LastName" = EXCLUDED."LastName",
-                        "Abbreviation" = EXCLUDED."Abbreviation",
-                        "Nationality" = EXCLUDED."Nationality",
-                        "HeadshotUrl" = EXCLUDED."HeadshotUrl"
+            # First try to find by driver number if available
+            existing_id = None
+            if driver.driver_number is not None:
+                cur.execute(
+                    'SELECT "Id" FROM "Drivers" WHERE "DriverNumber" = %s',
+                    (driver.driver_number,),
+                )
+                row = cur.fetchone()
+                if row:
+                    existing_id = _to_uuid(row["Id"])
+            
+            # If not found by number, try slug
+            if existing_id is None:
+                cur.execute(
+                    'SELECT "Id" FROM "Drivers" WHERE "Slug" = %s',
+                    (driver.slug,),
+                )
+                row = cur.fetchone()
+                if row:
+                    existing_id = _to_uuid(row["Id"])
+            
+            # Now do the upsert
+            if existing_id:
+                # Update existing driver
+                cur.execute(
+                    """
+                    UPDATE "Drivers" SET
+                        "FirstName" = %s,
+                        "LastName" = %s,
+                        "Slug" = %s,
+                        "Abbreviation" = %s,
+                        "Nationality" = %s,
+                        "HeadshotUrl" = %s,
+                        "DriverNumber" = %s
+                    WHERE "Id" = %s
                     RETURNING "Id"
                     """,
-                (
-                    str(driver.id),
-                    driver.first_name,
-                    driver.last_name,
-                    driver.slug,
-                    driver.abbreviation,
-                    driver.nationality,
-                    driver.headshot_url,
-                ),
-            )
+                    (
+                        driver.first_name,
+                        driver.last_name,
+                        driver.slug,
+                        driver.abbreviation,
+                        driver.nationality,
+                        driver.headshot_url,
+                        driver.driver_number,
+                        str(existing_id),
+                    ),
+                )
+            else:
+                # Insert new driver
+                cur.execute(
+                    """
+                    INSERT INTO "Drivers" ("Id", "FirstName", "LastName", "Slug",
+                                          "Abbreviation", "Nationality", "HeadshotUrl", "DriverNumber")
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING "Id"
+                    """,
+                    (
+                        str(driver.id),
+                        driver.first_name,
+                        driver.last_name,
+                        driver.slug,
+                        driver.abbreviation,
+                        driver.nationality,
+                        driver.headshot_url,
+                        driver.driver_number,
+                    ),
+                )
+            
             row = cur.fetchone()
             conn.commit()
-            return _to_uuid(row["Id"]) if row else driver.id
+            return _to_uuid(row["Id"]) if row else (existing_id or driver.id)
 
     def get_driver_by_slug(self, slug: str) -> Driver | None:
         """Get a driver by slug."""

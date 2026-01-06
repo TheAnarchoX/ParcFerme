@@ -156,6 +156,11 @@ public sealed class Driver
     public string? Nationality { get; set; }
     public string? HeadshotUrl { get; set; }
     
+    /// <summary>
+    /// Permanent racing number (e.g., 44 for Hamilton). Used as stable identifier.
+    /// </summary>
+    public int? DriverNumber { get; set; }
+    
     public ICollection<Entrant> Entrants { get; set; } = [];
 }
 
