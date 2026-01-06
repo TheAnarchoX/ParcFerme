@@ -33,11 +33,17 @@
   - [x] Repository updates for ID-first upsert logic to respect entity resolver decisions
   - [x] Comprehensive tests (33 entity resolver tests, 81 total Python tests passing)
 - [x] Navigation header + IA refactor for multi-series + discovery (define primary nav model: Series → Season → Round → Session; add dedicated entry points for Discovery: Sessions / Drivers / Teams / Circuits; include a global search box (spoiler-safe result rendering + respects spoiler_mode), persistent user menu + spoiler mode toggle, and breadcrumbs for deep pages; ensure routes/URLs align with BLUEPRINT.md and are consistent across all discovery/detail pages; responsive + keyboard accessible)
+- [x] Series hub pages + API endpoint(s) (top-level entry point; series overview, supported seasons, quick links into season browser; establishes URL + navigation conventions for multi-series)
+  - [x] SeriesController with GET /series, GET /series/{slug}, GET /series/{slug}/seasons, GET /series/{slug}/seasons/{year}
+  - [x] SeriesDtos with summary and detail types for series, seasons, rounds
+  - [x] Frontend SeriesListPage and SeriesDetailPage wired to real API
+  - [x] Frontend types and seriesService for API calls
+  - [x] 19 integration tests for SeriesController
+
 ### 🚧 In Progress
 
 
 ### 📋 Up Next
-- [ ] Series hub pages + API endpoint(s) (top-level entry point; series overview, supported seasons, quick links into season browser; establishes URL + navigation conventions for multi-series)
 - [ ] Season browser + season detail pages + API endpoint(s) (per-series; calendar/round list, filters by session type, progress indicators for "logged" vs "unlogged"; spoiler-safe aggregates only)
 - [ ] Round (weekend) detail pages + API endpoint(s) (per season; sessions timeline, circuit context, spoiler-safe status/metadata; acts as the primary "choose what to log" screen)
 - [ ] Session discovery + detail pages + API endpoint(s) (spoiler shield end-to-end; after this task users can browse sessions by series/season/round and view session details with results properly masked until logged)
