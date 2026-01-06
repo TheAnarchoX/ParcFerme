@@ -73,12 +73,12 @@ export function HomePage() {
 
           {/* Status Check */}
           <div className="mt-8">
-            <a 
-              href="/api/v1/status" 
+            <Link 
+              to="/status" 
               className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
             >
-              Check API Status →
-            </a>
+              Check System Status →
+            </Link>
           </div>
         </div>
       </main>

@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.9.0",         # Data validation
     "pydantic-settings>=2.5.0", # Settings management
     "psycopg[binary]>=3.2.0",  # PostgreSQL driver
+    "psycopg-pool>=3.2.0",     # PostgreSQL connection pooling
     "redis>=5.0.0",            # Redis client
     "tenacity>=9.0.0",         # Retry logic
     "structlog>=24.4.0",       # Structured logging

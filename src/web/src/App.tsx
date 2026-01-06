@@ -5,6 +5,7 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { StatusPage } from './pages/StatusPage';
 
 function AppRoutes() {
   const isInitialized = useAuthInitializer();
@@ -24,6 +25,7 @@ function AppRoutes() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<HomePage />} />
+      <Route path="/status" element={<StatusPage />} />
       
       {/* Guest-only routes (redirect if logged in) */}
       <Route path="/login" element={<GuestOnlyRoute><LoginPage /></GuestOnlyRoute>} />

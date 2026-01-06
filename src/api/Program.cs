@@ -96,6 +96,11 @@ builder.Services.AddParcFermeAuth(builder.Configuration);
 builder.Services.AddParcFermeCaching(builder.Configuration);
 
 // =========================
+// HTTP Client Factory (for external API health checks)
+// =========================
+builder.Services.AddHttpClient();
+
+// =========================
 // API Configuration
 // =========================
 builder.Services.AddControllers()

@@ -11,6 +11,7 @@ from uuid import UUID
 import structlog  # type: ignore
 
 from ingestion.clients.openf1 import (
+    OpenF1ApiError,
     OpenF1Client,
     OpenF1Driver,
     OpenF1Meeting,
@@ -261,6 +262,15 @@ class OpenF1SyncService:
         # Fetch all meetings for the year
         try:
             meetings = api.get_meetings(year)
+        except OpenF1ApiError as e:
+            logger.error(
+                "OpenF1 API unavailable",
+                year=year,
+                status_code=e.status_code,
+                error=e.message,
+            )
+            stats["errors"].append(f"OpenF1 API error: {e.message}")
+            return stats
         except Exception as e:
             logger.error("Failed to fetch meetings", year=year, error=str(e))
             stats["errors"].append(f"Failed to fetch meetings: {e}")

@@ -12,6 +12,7 @@ from uuid import UUID
 
 import psycopg  # type: ignore
 from psycopg.rows import dict_row  # type: ignore
+from psycopg_pool import ConnectionPool  # type: ignore
 import structlog  # type: ignore
 
 from ingestion.config import settings
@@ -33,6 +34,13 @@ from ingestion.models import (
 logger = structlog.get_logger()
 
 
+def _to_uuid(value: Any) -> UUID:
+    """Convert a value to UUID, handling both string and UUID inputs."""
+    if isinstance(value, UUID):
+        return value
+    return UUID(str(value))
+
+
 class RacingRepository:
     """Repository for racing data operations.
 
@@ -42,11 +50,11 @@ class RacingRepository:
 
     def __init__(self, connection_string: str | None = None) -> None:
         self.connection_string = connection_string or settings.database_url
-        self._pool: psycopg.ConnectionPool | None = None
+        self._pool: ConnectionPool | None = None
 
     def connect(self) -> None:
         """Initialize the connection pool."""
-        self._pool = psycopg.ConnectionPool(
+        self._pool = ConnectionPool(
             self.connection_string,
             min_size=1,
             max_size=10,
@@ -96,7 +104,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else series.id
+                return _to_uuid(row["Id"]) if row else series.id
 
     def get_series_by_slug(self, slug: str) -> Series | None:
         """Get a series by its slug."""
@@ -109,7 +117,7 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Series(
-                        id=UUID(row["Id"]),
+                        id=_to_uuid(row["Id"]),
                         name=row["Name"],
                         slug=row["Slug"],
                         logo_url=row["LogoUrl"],
@@ -136,7 +144,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else season.id
+                return _to_uuid(row["Id"]) if row else season.id
 
     def get_season(self, series_id: UUID, year: int) -> Season | None:
         """Get a season by series and year."""
@@ -149,8 +157,8 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Season(
-                        id=UUID(row["Id"]),
-                        series_id=UUID(row["SeriesId"]),
+                        id=_to_uuid(row["Id"]),
+                        series_id=_to_uuid(row["SeriesId"]),
                         year=row["Year"],
                     )
                 return None
@@ -194,7 +202,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else circuit.id
+                return _to_uuid(row["Id"]) if row else circuit.id
 
     def get_circuit_by_slug(self, slug: str) -> Circuit | None:
         """Get a circuit by its slug."""
@@ -209,7 +217,7 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Circuit(
-                        id=UUID(row["Id"]),
+                        id=_to_uuid(row["Id"]),
                         name=row["Name"],
                         slug=row["Slug"],
                         location=row["Location"],
@@ -259,7 +267,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else round_.id
+                return _to_uuid(row["Id"]) if row else round_.id
 
     def get_round_by_meeting_key(self, meeting_key: int) -> Round | None:
         """Get a round by its OpenF1 meeting key."""
@@ -274,9 +282,9 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Round(
-                        id=UUID(row["Id"]),
-                        season_id=UUID(row["SeasonId"]),
-                        circuit_id=UUID(row["CircuitId"]),
+                        id=_to_uuid(row["Id"]),
+                        season_id=_to_uuid(row["SeasonId"]),
+                        circuit_id=_to_uuid(row["CircuitId"]),
                         name=row["Name"],
                         slug=row["Slug"],
                         round_number=row["RoundNumber"],
@@ -316,7 +324,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else session.id
+                return _to_uuid(row["Id"]) if row else session.id
 
     def get_session_by_key(self, session_key: int) -> Session | None:
         """Get a session by its OpenF1 session key."""
@@ -330,8 +338,8 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Session(
-                        id=UUID(row["Id"]),
-                        round_id=UUID(row["RoundId"]),
+                        id=_to_uuid(row["Id"]),
+                        round_id=_to_uuid(row["RoundId"]),
                         type=SessionType(row["Type"]),
                         start_time_utc=row["StartTimeUtc"],
                         status=SessionStatus(row["Status"]),
@@ -372,7 +380,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else driver.id
+                return _to_uuid(row["Id"]) if row else driver.id
 
     def get_driver_by_slug(self, slug: str) -> Driver | None:
         """Get a driver by slug."""
@@ -387,7 +395,7 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Driver(
-                        id=UUID(row["Id"]),
+                        id=_to_uuid(row["Id"]),
                         first_name=row["FirstName"],
                         last_name=row["LastName"],
                         slug=row["Slug"],
@@ -427,7 +435,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else team.id
+                return _to_uuid(row["Id"]) if row else team.id
 
     def get_team_by_slug(self, slug: str) -> Team | None:
         """Get a team by slug."""
@@ -441,7 +449,7 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Team(
-                        id=UUID(row["Id"]),
+                        id=_to_uuid(row["Id"]),
                         name=row["Name"],
                         slug=row["Slug"],
                         short_name=row["ShortName"],
@@ -477,7 +485,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else entrant.id
+                return _to_uuid(row["Id"]) if row else entrant.id
 
     def get_entrant(self, round_id: UUID, driver_id: UUID) -> Entrant | None:
         """Get an entrant by round and driver."""
@@ -491,10 +499,10 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Entrant(
-                        id=UUID(row["Id"]),
-                        round_id=UUID(row["RoundId"]),
-                        driver_id=UUID(row["DriverId"]),
-                        team_id=UUID(row["TeamId"]),
+                        id=_to_uuid(row["Id"]),
+                        round_id=_to_uuid(row["RoundId"]),
+                        driver_id=_to_uuid(row["DriverId"]),
+                        team_id=_to_uuid(row["TeamId"]),
                         car_number=row["CarNumber"],
                     )
                 return None
@@ -511,10 +519,10 @@ class RacingRepository:
                 row = cur.fetchone()
                 if row:
                     return Entrant(
-                        id=UUID(row["Id"]),
-                        round_id=UUID(row["RoundId"]),
-                        driver_id=UUID(row["DriverId"]),
-                        team_id=UUID(row["TeamId"]),
+                        id=_to_uuid(row["Id"]),
+                        round_id=_to_uuid(row["RoundId"]),
+                        driver_id=_to_uuid(row["DriverId"]),
+                        team_id=_to_uuid(row["TeamId"]),
                         car_number=row["CarNumber"],
                     )
                 return None
@@ -561,7 +569,7 @@ class RacingRepository:
                 )
                 row = cur.fetchone()
                 conn.commit()
-                return UUID(row["Id"]) if row else result.id
+                return _to_uuid(row["Id"]) if row else result.id
 
     # =========================
     # Bulk Operations
@@ -594,7 +602,7 @@ class RacingRepository:
                         ),
                     )
                     row = cur.fetchone()
-                    ids.append(UUID(row["Id"]) if row else session.id)
+                    ids.append(_to_uuid(row["Id"]) if row else session.id)
                 conn.commit()
         return ids
 
@@ -636,6 +644,6 @@ class RacingRepository:
                         ),
                     )
                     row = cur.fetchone()
-                    ids.append(UUID(row["Id"]) if row else result.id)
+                    ids.append(_to_uuid(row["Id"]) if row else result.id)
                 conn.commit()
         return ids

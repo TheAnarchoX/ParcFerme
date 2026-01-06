@@ -1,6 +1,7 @@
 """API clients for external data sources."""
 
 from ingestion.clients.openf1 import (
+    OpenF1ApiError,
     OpenF1Client,
     OpenF1Driver,
     OpenF1Lap,
@@ -11,6 +12,7 @@ from ingestion.clients.openf1 import (
 )
 
 __all__ = [
+    "OpenF1ApiError",
     "OpenF1Client",
     "OpenF1Driver",
     "OpenF1Lap",

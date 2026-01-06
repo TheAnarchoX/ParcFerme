@@ -9,6 +9,19 @@ from tenacity import retry, stop_after_attempt, wait_exponential  # type: ignore
 
 from ingestion.config import settings
 
+import structlog  # type: ignore
+
+logger = structlog.get_logger()
+
+
+class OpenF1ApiError(Exception):
+    """Raised when the OpenF1 API returns an error or is unavailable."""
+
+    def __init__(self, message: str, status_code: int | None = None):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
 
 class OpenF1Session(BaseModel):
     """Session data from OpenF1 API."""
@@ -132,9 +145,93 @@ class OpenF1Client:
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """Make a GET request with retry logic."""
-        response = self._client.get(endpoint, params=params)
-        response.raise_for_status()
-        return response.json()  # type: ignore[no-any-return]
+        try:
+            response = self._client.get(endpoint, params=params)
+            response.raise_for_status()
+            return response.json()  # type: ignore[no-any-return]
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            if status == 502:
+                logger.error("OpenF1 API is down (502 Bad Gateway)", endpoint=endpoint)
+                raise OpenF1ApiError(
+                    "OpenF1 API is currently unavailable (502 Bad Gateway). "
+                    "The service may be experiencing issues. Please try again later.",
+                    status_code=502,
+                ) from e
+            elif status == 429:
+                logger.warning("OpenF1 API rate limited (429)", endpoint=endpoint)
+                raise OpenF1ApiError(
+                    "OpenF1 API rate limit exceeded. Please wait before retrying.",
+                    status_code=429,
+                ) from e
+            elif status >= 500:
+                logger.error("OpenF1 API server error", status=status, endpoint=endpoint)
+                raise OpenF1ApiError(
+                    f"OpenF1 API server error ({status}). The service may be unavailable.",
+                    status_code=status,
+                ) from e
+            else:
+                logger.error("OpenF1 API error", status=status, endpoint=endpoint)
+                raise OpenF1ApiError(
+                    f"OpenF1 API request failed with status {status}",
+                    status_code=status,
+                ) from e
+        except httpx.ConnectError as e:
+            logger.error("Cannot connect to OpenF1 API", endpoint=endpoint, error=str(e))
+            raise OpenF1ApiError(
+                "Cannot connect to OpenF1 API. Check your internet connection.",
+            ) from e
+        except httpx.TimeoutException as e:
+            logger.error("OpenF1 API request timed out", endpoint=endpoint)
+            raise OpenF1ApiError(
+                "OpenF1 API request timed out. The service may be slow or unavailable.",
+            ) from e
+
+    def health_check(self) -> dict[str, Any]:
+        """Check if the OpenF1 API is available and responsive.
+
+        Returns:
+            Dict with status info including:
+            - healthy: bool
+            - status_code: int | None
+            - response_time_ms: float | None
+            - error: str | None
+        """
+        import time
+        start = time.monotonic()
+        try:
+            # Try a minimal request - latest session
+            response = self._client.get("/sessions", params={"session_key": "latest"})
+            elapsed = (time.monotonic() - start) * 1000
+            response.raise_for_status()
+            return {
+                "healthy": True,
+                "status_code": response.status_code,
+                "response_time_ms": round(elapsed, 2),
+                "error": None,
+            }
+        except httpx.HTTPStatusError as e:
+            elapsed = (time.monotonic() - start) * 1000
+            return {
+                "healthy": False,
+                "status_code": e.response.status_code,
+                "response_time_ms": round(elapsed, 2),
+                "error": f"HTTP {e.response.status_code}: {e.response.reason_phrase}",
+            }
+        except httpx.ConnectError as e:
+            return {
+                "healthy": False,
+                "status_code": None,
+                "response_time_ms": None,
+                "error": f"Connection failed: {e}",
+            }
+        except httpx.TimeoutException:
+            return {
+                "healthy": False,
+                "status_code": None,
+                "response_time_ms": None,
+                "error": "Request timed out",
+            }
 
     def get_sessions(self, year: int, session_type: str | None = None) -> list[OpenF1Session]:
         """Get all sessions for a year, optionally filtered by type.
