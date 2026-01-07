@@ -83,7 +83,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [x] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
 
 **Lower Priority — Future Prep**
-- [ ] Frontend e2e tests for critical flows (Playwright or Cypress setup)
+- [x] Frontend e2e tests for critical flows (Playwright setup with homepage, auth, discovery, spoiler-shield tests)
 - [ ] Design system documentation (colors, typography, component patterns)
 
 ##### Manual (Priority Order)
