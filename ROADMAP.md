@@ -61,10 +61,20 @@
 - [x] Update README with architecture overview and development workflow
 - [x] Add unit tests for SpoilerShieldService edge cases (16 tests)
 
+#### Discovery & Session Pages
+- [x] Session detail pages + API (spoiler shield end-to-end) (Completed: Jan 7, 2026)
+  - Built SessionDetailPage with real API integration via `spoilerApi.getSession()`
+  - Spoiler-protected results display using SpoilerMask/SpoilerRevealButton components
+  - Session info card, stats grid, results table with driver/team/time columns
+  - Other sessions navigation for switching between sessions in a round
+  - Updated breadcrumbs builder to use session ID pattern (`/session/{id}`)
+  - Added driverNumber to DriverSummaryDto in backend and frontend
+  - Loading skeletons and error states with retry functionality
+  - Full integration with spoiler reveal flow (temp reveal + permanent via log)
+
 ### 🚧 In Progress
-- [ ] Session detail pages + API (spoiler shield end-to-end)
-  - Results properly masked until logged
-  - Full integration with spoiler shield
+
+_No active tasks_
 
 ### 📋 Up Next (Priority Order)
 
