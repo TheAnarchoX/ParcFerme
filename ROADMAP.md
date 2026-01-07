@@ -54,6 +54,11 @@
 
 #### Chores
 - [x] Add privacy policy and terms of service pages + links in footer
+- [x] Add integration tests for SessionsController (31 tests covering spoiler logic)
+- [x] Fix cyclic include bug in SpoilerShieldService
+- [x] Fix session ordering bug in GetSessionsWithSpoilerShieldAsync
+- [x] Enhance Swagger documentation (API info, JWT auth scheme, XML docs)
+- [x] Update README with architecture overview and development workflow
 
 ### 🚧 In Progress
 _(None currently)_
@@ -68,13 +73,8 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 ##### Agentic (Priority Order)
 
 **High Priority — Code Quality & Testing**
-- [ ] Add integration tests for SessionsController (spoiler logic coverage)
 - [ ] Add unit tests for SpoilerShieldService edge cases
 - [ ] Frontend component tests for SpoilerMask/SpoilerBlur behavior
-
-**High Priority — Documentation & DX**
-- [ ] Enhance Swagger documentation (summaries, examples, response types for all endpoints)
-- [ ] Update README with architecture overview and development workflow
 
 **Medium Priority — User-Facing Polish**
 - [ ] About page content creation (mission, team, FAQs)
