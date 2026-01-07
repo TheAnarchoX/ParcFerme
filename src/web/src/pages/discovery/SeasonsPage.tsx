@@ -114,10 +114,10 @@ function SeriesFilter({ allSeries, selectedSeries, onSelectSeries }: SeriesFilte
     <div className="flex flex-wrap gap-2 mb-6">
       <button
         onClick={() => onSelectSeries(null)}
-        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all border ${
           selectedSeries === null
-            ? 'bg-accent-green text-black'
-            : 'bg-neutral-900/50 text-neutral-400 hover:text-neutral-200 border border-neutral-800'
+            ? 'bg-accent-green text-black border-accent-green'
+            : 'bg-neutral-900/50 text-neutral-400 hover:text-neutral-200 border-neutral-800'
         }`}
       >
         All Series
@@ -134,16 +134,26 @@ function SeriesFilter({ allSeries, selectedSeries, onSelectSeries }: SeriesFilte
           <button
             key={series.id}
             onClick={() => onSelectSeries(series.slug)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all border ${
-              isSelected
-                ? ''
-                : 'bg-neutral-900/50 text-neutral-400 hover:text-neutral-200 border-neutral-800'
-            }`}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-all border"
             style={isSelected ? { 
               backgroundColor: primaryColor,
               borderColor: primaryColor,
               color: textColor
-            } : undefined}
+            } : {
+              backgroundColor: 'rgba(23, 23, 23, 0.5)',
+              borderColor: 'rgb(38, 38, 38)',
+              color: 'rgb(163, 163, 163)'
+            }}
+            onMouseEnter={(e) => {
+              if (!isSelected) {
+                e.currentTarget.style.color = 'rgb(229, 229, 229)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSelected) {
+                e.currentTarget.style.color = 'rgb(163, 163, 163)';
+              }
+            }}
           >
             {series.name}
           </button>
