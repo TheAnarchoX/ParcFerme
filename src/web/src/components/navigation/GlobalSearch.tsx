@@ -390,9 +390,15 @@ export function SearchTrigger() {
         />
       </svg>
       <span className="text-sm text-neutral-400 hidden sm:inline">Search...</span>
-      <kbd className="hidden md:flex items-center gap-0.5 text-xs text-neutral-500 bg-neutral-700/50 px-1.5 py-0.5 rounded">
-        <span className="text-xs">⌘</span>K
-      </kbd>
+      {typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
+        <kbd className="hidden md:flex items-center gap-0.5 text-xs text-neutral-500 bg-neutral-700/50 px-1.5 py-0.5 rounded">
+          <span className="text-xs">⌘</span>K
+        </kbd>
+      ) : (
+        <kbd className="hidden md:flex items-center gap-0.5 text-xs text-neutral-500 bg-neutral-700/50 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] leading-none">Ctrl +&nbsp;</span> K
+        </kbd>
+      )}
     </button>
   );
 }

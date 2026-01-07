@@ -20,7 +20,7 @@ import structlog  # type: ignore
 
 from ingestion.clients.openf1 import OpenF1ApiError, OpenF1Client
 from ingestion.config import settings
-from ingestion.sync import OpenF1SyncService
+from ingestion.sync import OpenF1SyncService, SyncOptions
 
 # Configure structured logging
 structlog.configure(
@@ -62,6 +62,7 @@ class BulkSyncRunner:
         max_retries: int = 3,
         include_results: bool = True,
         results_only: bool = False,
+        sync_options: SyncOptions | None = None,
     ):
         """
         Initialize bulk sync runner.
@@ -71,11 +72,13 @@ class BulkSyncRunner:
             max_retries: Max retry attempts per year on failure
             include_results: Whether to sync results (spoiler data) - ignored if results_only=True
             results_only: If True, only sync results for existing sessions (no entity updates)
+            sync_options: SyncOptions controlling entity update behavior
         """
         self.pause_between_years = pause_between_years
         self.max_retries = max_retries
         self.include_results = include_results
         self.results_only = results_only
+        self.sync_options = sync_options or SyncOptions()
         self.total_stats = {
             "years_attempted": 0,
             "years_succeeded": 0,
@@ -130,7 +133,11 @@ class BulkSyncRunner:
                     # For results-only mode, check sessions_synced instead of meetings_synced
                     success_key = "sessions_synced"
                 else:
-                    stats = sync_service.sync_year(year=year, include_results=self.include_results)
+                    stats = sync_service.sync_year(
+                        year=year, 
+                        include_results=self.include_results,
+                        options=self.sync_options,
+                    )
                     success_key = "meetings_synced"
 
                 # Check if there were critical errors
@@ -313,6 +320,18 @@ Examples:
 
   # Sync without results (faster, no spoilers)
   python -m ingestion.bulk_sync --all --no-results
+  
+  # Safe historical sync: only create new entities, don't update existing
+  python -m ingestion.bulk_sync --start-year 2020 --end-year 2022 --create-only
+
+  # Sync but preserve canonical driver/team names (only create aliases)
+  python -m ingestion.bulk_sync --all --preserve-names
+
+  # Sync but preserve canonical driver numbers (track #1 changes as aliases)
+  python -m ingestion.bulk_sync --all --preserve-numbers
+
+  # Combine flags for maximum safety
+  python -m ingestion.bulk_sync --start-year 2020 --end-year 2022 --create-only --preserve-numbers
 
   # Custom pause between years (default 2s)
   python -m ingestion.bulk_sync --all --pause 5
@@ -355,6 +374,35 @@ Examples:
         action="store_true",
         help="Only sync results for existing sessions (no driver/team/session updates)",
     )
+    
+    # Safety flags for entity updates
+    parser.add_argument(
+        "--create-only",
+        action="store_true",
+        help="""Only create new entities (drivers, teams, circuits), never update existing ones.
+                Any incoming name/number changes will be recorded as aliases.
+                Use for historical syncs where you want to preserve current canonical data.""",
+    )
+    parser.add_argument(
+        "--preserve-names",
+        action="store_true",
+        help="""Preserve existing canonical names for drivers and teams.
+                Incoming name variations will be recorded as aliases.
+                Useful when OpenF1 has different naming conventions.""",
+    )
+    parser.add_argument(
+        "--preserve-numbers",
+        action="store_true",
+        help="""Preserve existing canonical driver numbers.
+                Historical numbers (like Verstappen's #1) will be recorded as aliases.
+                Essential for syncing world champion seasons where #1 was used.""",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Log what would be done without making database changes (not yet implemented)",
+    )
+    
     parser.add_argument(
         "--pause",
         type=float,
@@ -375,6 +423,10 @@ Examples:
     # Validate arguments
     if args.results_only and args.no_results:
         parser.error("--results-only and --no-results are mutually exclusive")
+    
+    # results-only mode doesn't need entity safety flags
+    if args.results_only and (args.create_only or args.preserve_names or args.preserve_numbers):
+        parser.error("--results-only cannot be combined with --create-only, --preserve-names, or --preserve-numbers")
 
     # Validate year range arguments
     if args.start_year and not args.end_year:
@@ -401,12 +453,40 @@ Examples:
     if start_year > end_year:
         parser.error(f"Invalid year range: {start_year} > {end_year}")
 
+    # Build SyncOptions from CLI flags
+    if args.create_only:
+        # Use the safe historical preset as a base
+        sync_options = SyncOptions(
+            driver_mode="create_only",
+            team_mode="create_only",
+            circuit_mode="create_only",
+            session_mode="full",  # Sessions can still be updated
+            preserve_canonical_names=args.preserve_names,
+            preserve_canonical_numbers=args.preserve_numbers,
+        )
+    else:
+        sync_options = SyncOptions(
+            preserve_canonical_names=args.preserve_names,
+            preserve_canonical_numbers=args.preserve_numbers,
+        )
+    
+    # Log safety settings
+    if args.create_only:
+        print("🛡️  Safety: --create-only enabled (new entities only, existing unchanged)")
+    if args.preserve_names:
+        print("🛡️  Safety: --preserve-names enabled (canonical names preserved)")
+    if args.preserve_numbers:
+        print("🛡️  Safety: --preserve-numbers enabled (canonical driver numbers preserved)")
+    if args.dry_run:
+        print("🧪 DRY RUN: Not yet implemented - changes WILL be made")
+
     # Create and run bulk sync
     runner = BulkSyncRunner(
         pause_between_years=args.pause,
         max_retries=args.max_retries,
         include_results=not args.no_results,
         results_only=args.results_only,
+        sync_options=sync_options,
     )
 
     try:

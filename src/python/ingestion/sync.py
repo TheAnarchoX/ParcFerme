@@ -5,6 +5,7 @@ Orchestrates fetching data from OpenF1 API and storing it in the database.
 This is the core of the data ingestion pipeline.
 """
 
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -24,6 +25,7 @@ from ingestion.models import (
     OPENF1_SESSION_TYPE_MAP,
     Circuit,
     Driver,
+    DriverAlias,
     Entrant,
     Result,
     ResultStatus,
@@ -34,6 +36,7 @@ from ingestion.models import (
     SessionStatus,
     SessionType,
     Team,
+    TeamAlias,
     slugify,
 )
 from ingestion.repository import RacingRepository
@@ -43,6 +46,115 @@ logger = structlog.get_logger()
 # F1 Series constant - created once on first sync
 F1_SERIES_SLUG = "formula-1"
 F1_SERIES_NAME = "Formula 1"
+
+
+@dataclass
+class SyncOptions:
+    """Configuration options for controlling sync behavior.
+    
+    These options allow fine-grained control over what gets created vs updated,
+    making historical data syncing safer by preventing overwrites of curated data.
+    
+    Entity Update Modes:
+    - "full": Create new entities AND update existing ones (default for new DBs)
+    - "create_only": Only create new entities, never update existing ones
+    - "skip": Don't touch this entity type at all (use existing data only)
+    
+    Alias Handling:
+    - auto_create_driver_aliases: When a driver number differs from existing, create alias
+    - auto_create_team_aliases: When a team name differs from existing, create alias
+    - preserve_canonical_numbers: Keep existing driver.driver_number, only add as alias
+    
+    Example safe historical sync:
+        SyncOptions(
+            driver_mode="create_only",      # Don't update existing drivers
+            team_mode="create_only",        # Don't update existing teams
+            auto_create_driver_aliases=True, # But DO create aliases for number changes
+            preserve_canonical_numbers=True, # Keep current numbers (e.g., VER stays #3)
+        )
+    """
+    
+    # Entity update modes
+    driver_mode: str = "full"  # "full", "create_only", "skip"
+    team_mode: str = "full"    # "full", "create_only", "skip"
+    circuit_mode: str = "full" # "full", "create_only", "skip"
+    session_mode: str = "full" # "full", "create_only", "skip"
+    
+    # Alias handling
+    auto_create_driver_aliases: bool = True   # Create alias when driver number differs
+    auto_create_team_aliases: bool = True     # Create alias when team name differs
+    preserve_canonical_numbers: bool = False  # Don't update driver.driver_number
+    preserve_canonical_names: bool = False    # Don't update first_name/last_name
+    
+    # What to sync
+    include_results: bool = True
+    
+    # Logging verbosity
+    log_skipped_updates: bool = True  # Log when updates are skipped
+    
+    def __post_init__(self):
+        """Validate options."""
+        valid_modes = ("full", "create_only", "skip")
+        for mode_name in ["driver_mode", "team_mode", "circuit_mode", "session_mode"]:
+            mode = getattr(self, mode_name)
+            if mode not in valid_modes:
+                raise ValueError(f"{mode_name} must be one of {valid_modes}, got '{mode}'")
+    
+    @classmethod
+    def safe_historical(cls) -> "SyncOptions":
+        """Preset for safe historical data syncing.
+        
+        - Creates new drivers/teams but doesn't update existing ones
+        - Automatically creates aliases for driver number variations
+        - Preserves canonical driver numbers (world champions keep their numbers)
+        - Includes results
+        """
+        return cls(
+            driver_mode="create_only",
+            team_mode="create_only",
+            circuit_mode="create_only",
+            session_mode="full",  # Sessions can be updated (status changes)
+            auto_create_driver_aliases=True,
+            auto_create_team_aliases=True,
+            preserve_canonical_numbers=True,
+            preserve_canonical_names=True,
+            include_results=True,
+            log_skipped_updates=True,
+        )
+    
+    @classmethod
+    def results_only(cls) -> "SyncOptions":
+        """Preset for results-only syncing.
+        
+        - Skips all entity updates entirely
+        - Only syncs results for existing sessions
+        """
+        return cls(
+            driver_mode="skip",
+            team_mode="skip",
+            circuit_mode="skip",
+            session_mode="skip",
+            include_results=True,
+        )
+    
+    @classmethod  
+    def full_sync(cls) -> "SyncOptions":
+        """Preset for full sync (default behavior).
+        
+        - Creates and updates all entities
+        - Use for initial data population or when you want latest names
+        """
+        return cls(
+            driver_mode="full",
+            team_mode="full",
+            circuit_mode="full",
+            session_mode="full",
+            auto_create_driver_aliases=True,
+            auto_create_team_aliases=True,
+            preserve_canonical_numbers=False,
+            preserve_canonical_names=False,
+            include_results=True,
+        )
 
 
 class OpenF1SyncService:
@@ -152,16 +264,24 @@ class OpenF1SyncService:
         logger.info("Created season", year=year, season_id=str(season_id))
         return season_id
 
-    def _get_or_create_circuit(self, repo: RacingRepository, meeting: OpenF1Meeting) -> UUID:
+    def _get_or_create_circuit(self, repo: RacingRepository, meeting: OpenF1Meeting, options: SyncOptions | None = None) -> UUID:
         """Get or create circuit from meeting data."""
+        options = options or SyncOptions()
         slug = slugify(meeting.circuit_short_name)
+        
         if slug in self._circuit_cache:
             return self._circuit_cache[slug]
 
         existing = repo.get_circuit_by_slug(slug)
         if existing:
             self._circuit_cache[slug] = existing.id
+            if options.circuit_mode == "create_only" and options.log_skipped_updates:
+                logger.debug("Circuit exists, skipping update (create_only mode)", slug=slug)
             return existing.id
+
+        if options.circuit_mode == "skip":
+            logger.warning("Circuit not found but skip mode enabled", slug=slug)
+            return None  # type: ignore
 
         circuit = Circuit(
             name=meeting.circuit_short_name,
@@ -174,11 +294,19 @@ class OpenF1SyncService:
         logger.info("Created circuit", name=circuit.name, circuit_id=str(circuit_id))
         return circuit_id
 
-    def _get_or_create_driver(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID:
+    def _get_or_create_driver(
+        self, 
+        repo: RacingRepository, 
+        openf1_driver: OpenF1Driver,
+        options: SyncOptions | None = None,
+    ) -> UUID:
         """Get or create driver from OpenF1 driver data.
         
         Uses EntityResolver for intelligent matching and alias tracking.
+        Respects SyncOptions for controlling update behavior.
         """
+        options = options or SyncOptions()
+        
         # Check cache first (keyed by driver_number for stability)
         if openf1_driver.driver_number in self._driver_cache:
             return self._driver_cache[openf1_driver.driver_number]
@@ -196,23 +324,87 @@ class OpenF1SyncService:
             headshot_url=openf1_driver.headshot_url,
         )
 
-        # Log resolution details
+        # Handle based on mode and whether driver exists
         if resolved.is_new:
+            if options.driver_mode == "skip":
+                logger.warning(
+                    "New driver found but skip mode enabled",
+                    name=openf1_driver.full_name,
+                    number=openf1_driver.driver_number,
+                )
+                return None  # type: ignore
+            
             logger.info(
                 "Creating new driver",
                 name=f"{resolved.driver.first_name} {resolved.driver.last_name}",
                 number=resolved.driver.driver_number,
             )
-        elif resolved.name_changed:
-            logger.info(
-                "Updating driver canonical name",
-                old_name=resolved.old_name,
-                new_name=f"{resolved.driver.first_name} {resolved.driver.last_name}",
-                number=resolved.driver.driver_number,
-            )
-
-        # Upsert the driver
-        driver_id = repo.upsert_driver(resolved.driver)
+            # Upsert the new driver
+            driver_id = repo.upsert_driver(resolved.driver)
+            
+        else:  # Driver exists
+            existing = resolved.driver
+            driver_id = resolved.existing_id
+            
+            if options.driver_mode == "skip":
+                # Use existing driver as-is
+                self._driver_cache[openf1_driver.driver_number] = driver_id
+                return driver_id
+            
+            if options.driver_mode == "create_only":
+                # Don't update the driver, but DO create aliases for variations
+                if options.log_skipped_updates and (resolved.name_changed or 
+                    openf1_driver.driver_number != existing.driver_number):
+                    logger.info(
+                        "Driver exists, skipping update (create_only mode)",
+                        existing_name=f"{existing.first_name} {existing.last_name}",
+                        incoming_name=openf1_driver.full_name,
+                        existing_number=existing.driver_number,
+                        incoming_number=openf1_driver.driver_number,
+                    )
+                
+                # Create aliases for the incoming data variations
+                if options.auto_create_driver_aliases:
+                    self._create_driver_aliases_only(
+                        repo, existing, openf1_driver, resolved.aliases_to_add
+                    )
+                
+                self._driver_cache[openf1_driver.driver_number] = driver_id
+                return driver_id
+            
+            # Full mode - apply updates with optional preservation
+            if options.preserve_canonical_names:
+                # Keep existing names, only update other fields
+                resolved.driver.first_name = existing.first_name
+                resolved.driver.last_name = existing.last_name
+                resolved.driver.slug = existing.slug
+            
+            if options.preserve_canonical_numbers:
+                # Keep existing driver number, incoming number becomes alias
+                resolved.driver.driver_number = existing.driver_number
+                # Add incoming number as alias if different
+                if openf1_driver.driver_number != existing.driver_number:
+                    incoming_alias = DriverAlias(
+                        driver_id=driver_id,
+                        alias_name=openf1_driver.full_name,
+                        alias_slug=slugify(openf1_driver.full_name),
+                        series_id=self._series_id,
+                        driver_number=openf1_driver.driver_number,
+                        source="OpenF1-number-variation",
+                    )
+                    if incoming_alias not in resolved.aliases_to_add:
+                        resolved.aliases_to_add.append(incoming_alias)
+            
+            if resolved.name_changed:
+                logger.info(
+                    "Updating driver canonical name",
+                    old_name=resolved.old_name,
+                    new_name=f"{resolved.driver.first_name} {resolved.driver.last_name}",
+                    number=resolved.driver.driver_number,
+                )
+            
+            # Upsert the driver (updates existing)
+            driver_id = repo.upsert_driver(resolved.driver)
         
         # Update resolver cache
         resolved.driver.id = driver_id
@@ -227,20 +419,84 @@ class OpenF1SyncService:
                 "Added driver alias",
                 driver=f"{resolved.driver.first_name} {resolved.driver.last_name}",
                 alias=alias.alias_name,
+                alias_number=alias.driver_number,
             )
 
         # Update local cache
         self._driver_cache[openf1_driver.driver_number] = driver_id
         return driver_id
 
-    def _get_or_create_team(self, repo: RacingRepository, openf1_driver: OpenF1Driver) -> UUID | None:
+    def _create_driver_aliases_only(
+        self,
+        repo: RacingRepository,
+        existing_driver: Driver,
+        openf1_driver: OpenF1Driver,
+        additional_aliases: list[DriverAlias],
+    ) -> None:
+        """Create aliases for a driver without updating the driver itself.
+        
+        Used in create_only mode to track name/number variations as aliases.
+        """
+        aliases_to_add = list(additional_aliases)
+        
+        # If incoming driver number differs, create alias
+        if openf1_driver.driver_number != existing_driver.driver_number:
+            number_alias = DriverAlias(
+                driver_id=existing_driver.id,
+                alias_name=openf1_driver.full_name,
+                alias_slug=slugify(openf1_driver.full_name),
+                series_id=self._series_id,
+                driver_number=openf1_driver.driver_number,
+                source="OpenF1-number-variation",
+            )
+            aliases_to_add.append(number_alias)
+            logger.info(
+                "Creating driver number alias (create_only mode)",
+                driver=f"{existing_driver.first_name} {existing_driver.last_name}",
+                canonical_number=existing_driver.driver_number,
+                alias_number=openf1_driver.driver_number,
+            )
+        
+        # If incoming name differs, create alias  
+        existing_name = f"{existing_driver.first_name} {existing_driver.last_name}"
+        if openf1_driver.full_name != existing_name:
+            incoming_slug = slugify(openf1_driver.full_name)
+            if incoming_slug != existing_driver.slug:
+                name_alias = DriverAlias(
+                    driver_id=existing_driver.id,
+                    alias_name=openf1_driver.full_name,
+                    alias_slug=incoming_slug,
+                    series_id=self._series_id,
+                    driver_number=openf1_driver.driver_number,
+                    source="OpenF1-name-variation",
+                )
+                aliases_to_add.append(name_alias)
+        
+        # Upsert all aliases
+        for alias in aliases_to_add:
+            alias.driver_id = existing_driver.id
+            repo.upsert_driver_alias(alias)
+            self._entity_resolver.add_alias_to_cache(driver_alias=alias)
+
+    def _get_or_create_team(
+        self, 
+        repo: RacingRepository, 
+        openf1_driver: OpenF1Driver,
+        options: SyncOptions | None = None,
+    ) -> UUID | None:
         """Get or create team from OpenF1 driver data.
         
         Uses EntityResolver for intelligent matching and alias tracking.
+        Respects SyncOptions for controlling update behavior:
+        - create_only: Only create new teams, never update existing ones
+        - preserve_canonical_names: Keep existing team names, only add aliases
+        
         Returns None if the driver has no team (e.g., reserve/test drivers).
         """
         if not openf1_driver.team_name:
             return None
+        
+        options = options or SyncOptions()
 
         slug = slugify(openf1_driver.team_name)
         if slug in self._team_cache:
@@ -254,18 +510,53 @@ class OpenF1SyncService:
             primary_color=openf1_driver.team_colour,
         )
 
-        # Log resolution details
-        if resolved.is_new:
+        # Handle existing team resolution based on options
+        if not resolved.is_new:
+            existing = resolved.team
+            team_id = resolved.existing_id
+            assert team_id is not None
+            
+            if options.team_mode == "skip":
+                # Skip mode: use existing team as-is
+                self._team_cache[slug] = team_id
+                self._team_cache[resolved.team.slug] = team_id
+                return team_id
+            
+            if options.team_mode == "create_only":
+                # Create-only mode: don't update, just add aliases
+                if options.auto_create_team_aliases:
+                    self._create_team_aliases_only(
+                        repo, existing, openf1_driver, resolved.aliases_to_add
+                    )
+                if options.log_skipped_updates and resolved.name_changed:
+                    logger.info(
+                        "Team exists, skipping update (create_only mode)",
+                        existing_name=existing.name,
+                        incoming_name=openf1_driver.team_name,
+                    )
+                self._team_cache[slug] = team_id
+                self._team_cache[resolved.team.slug] = team_id
+                return team_id
+            
+            # Full mode - apply updates with optional preservation
+            if options.preserve_canonical_names:
+                # Keep existing name, only update other fields  
+                resolved.team.name = existing.name
+                resolved.team.slug = existing.slug
+            
+            if resolved.name_changed and not options.preserve_canonical_names:
+                logger.info(
+                    "Updating team canonical name",
+                    old_name=resolved.old_name,
+                    new_name=resolved.team.name,
+                )
+            
+            # Upsert the team (updates existing)
+            team_id = repo.upsert_team(resolved.team)
+        else:
+            # New team - always create
             logger.info("Creating new team", name=resolved.team.name)
-        elif resolved.name_changed:
-            logger.info(
-                "Updating team canonical name",
-                old_name=resolved.old_name,
-                new_name=resolved.team.name,
-            )
-
-        # Upsert the team
-        team_id = repo.upsert_team(resolved.team)
+            team_id = repo.upsert_team(resolved.team)
         
         # Update resolver cache
         resolved.team.id = team_id
@@ -288,6 +579,47 @@ class OpenF1SyncService:
         self._team_cache[slug] = team_id
         return team_id
 
+    def _create_team_aliases_only(
+        self,
+        repo: RacingRepository,
+        existing_team: Team,
+        openf1_driver: OpenF1Driver,
+        additional_aliases: list[TeamAlias],
+    ) -> None:
+        """Create aliases for a team without updating the team itself.
+        
+        Used in create_only mode to track name variations as aliases.
+        """
+        aliases_to_add = list(additional_aliases)
+        
+        # If incoming name differs, ensure it becomes an alias
+        incoming_slug = slugify(openf1_driver.team_name)
+        if incoming_slug != existing_team.slug:
+            # Check if this alias already exists
+            already_exists = any(
+                a.alias_slug == incoming_slug for a in aliases_to_add
+            )
+            if not already_exists:
+                name_alias = TeamAlias(
+                    team_id=existing_team.id,
+                    alias_name=openf1_driver.team_name,
+                    alias_slug=incoming_slug,
+                    series_id=self._series_id,
+                    source="OpenF1-name-variation",
+                )
+                aliases_to_add.append(name_alias)
+                logger.info(
+                    "Creating team name alias (create_only mode)",
+                    team=existing_team.name,
+                    alias=openf1_driver.team_name,
+                )
+        
+        # Upsert all aliases
+        for alias in aliases_to_add:
+            alias.team_id = existing_team.id
+            repo.upsert_team_alias(alias)
+            self._entity_resolver.add_alias_to_cache(team_alias=alias)
+
     def _map_session_type(self, openf1_session_name: str) -> SessionType:
         """Map OpenF1 session_name string to our enum."""
         return OPENF1_SESSION_TYPE_MAP.get(openf1_session_name, SessionType.RACE)
@@ -309,17 +641,24 @@ class OpenF1SyncService:
             return SessionStatus.IN_PROGRESS
         return SessionStatus.SCHEDULED
 
-    def sync_year(self, year: int, include_results: bool = True) -> dict:
+    def sync_year(
+        self, 
+        year: int, 
+        include_results: bool = True,
+        options: SyncOptions | None = None,
+    ) -> dict:
         """Sync all F1 data for a given year.
 
         Args:
             year: The season year (e.g., 2024)
             include_results: Whether to fetch and store results (⚠️ spoiler data)
+            options: SyncOptions controlling entity update behavior
 
         Returns:
             Dict with sync statistics
         """
         api, repo = self._ensure_clients()
+        options = options or SyncOptions()
 
         stats = {
             "year": year,
@@ -364,7 +703,9 @@ class OpenF1SyncService:
         for i, meeting in enumerate(sorted_meetings, 1):
             try:
                 round_number = round_number_map.get(meeting.meeting_key, i)
-                self._sync_meeting(api, repo, meeting, season_id, include_results, stats, round_number)
+                self._sync_meeting(
+                    api, repo, meeting, season_id, include_results, stats, round_number, options
+                )
                 stats["meetings_synced"] += 1
                 logger.info(
                     "Synced meeting",
@@ -392,10 +733,24 @@ class OpenF1SyncService:
         include_results: bool,
         stats: dict,
         round_number: int,
+        options: SyncOptions | None = None,
     ) -> None:
-        """Sync a single meeting (race weekend)."""
+        """Sync a single meeting (race weekend).
+        
+        Args:
+            api: OpenF1 client
+            repo: Database repository
+            meeting: Meeting data from OpenF1
+            season_id: UUID of the season
+            include_results: Whether to sync results
+            stats: Statistics dictionary to update
+            round_number: Round number in the season
+            options: SyncOptions controlling entity update behavior
+        """
+        options = options or SyncOptions()
+        
         # Create circuit
-        circuit_id = self._get_or_create_circuit(repo, meeting)
+        circuit_id = self._get_or_create_circuit(repo, meeting, options)
 
         # Calculate round dates (meeting date_start is usually the first session)
         date_start = meeting.date_start.date()
@@ -435,8 +790,8 @@ class OpenF1SyncService:
                     )
                     continue
                     
-                driver_id = self._get_or_create_driver(repo, driver_data)
-                team_id = self._get_or_create_team(repo, driver_data)
+                driver_id = self._get_or_create_driver(repo, driver_data, options)
+                team_id = self._get_or_create_team(repo, driver_data, options)
                 
                 # team_id should never be None here since we checked team_name above
                 assert team_id is not None

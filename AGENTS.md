@@ -128,6 +128,13 @@ This ensures:
 
 **Keep ROADMAP.md in sync with actual work.** When working on tasks:
 
+### When Getting A Task That is Not on the Roadmap
+1. **Add it to the Roadmap first**: Before starting work on any new task or feature not already listed:
+   - Create a new entry in the appropriate section of ROADMAP.md
+   - Provide a clear description, acceptance criteria, and any relevant context
+   - Assign priority level (e.g., Critical, High, Medium, Low)
+   - Commit the updated roadmap before beginning implementation
+
 ### When Picking Up a Task
 
 1. **Evaluate the task description first**: Before starting any work, critically review the task as written:
