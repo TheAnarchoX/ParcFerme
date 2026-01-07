@@ -66,6 +66,11 @@ public sealed class SeriesController : BaseApiController
     /// <summary>
     /// Get a specific series by slug with full details.
     /// </summary>
+    /// <param name="slug">The URL slug for the series (e.g., "f1", "wec", "motogp").</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Full series details including seasons, stats, and drivers/teams.</returns>
+    /// <response code="200">Returns the series detail.</response>
+    /// <response code="404">Series not found.</response>
     [HttpGet("{slug}")]
     [CacheResponse(DurationSeconds = 300)]
     [ProducesResponseType(typeof(SeriesDetailDto), StatusCodes.Status200OK)]

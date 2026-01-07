@@ -65,6 +65,10 @@ public sealed class AuthController : ControllerBase
     /// <summary>
     /// Register a new user account.
     /// </summary>
+    /// <param name="request">Registration details including email, password, and display name.</param>
+    /// <returns>Authentication tokens and user info on success.</returns>
+    /// <response code="201">Account created successfully.</response>
+    /// <response code="400">Validation error (email already exists, password too weak, etc.).</response>
     [HttpPost("register")]
     [ProducesResponseType<AuthResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
