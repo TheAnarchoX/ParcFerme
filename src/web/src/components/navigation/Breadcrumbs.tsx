@@ -192,14 +192,15 @@ export function buildSessionBreadcrumbs(
   year: number,
   roundName: string,
   roundSlug: string,
-  sessionType: string
+  sessionName: string,
+  sessionId: string
 ): BreadcrumbItem[] {
   return [
     { label: 'Home', path: ROUTES.HOME, icon: '🏠' },
     { label: seriesName, path: ROUTES.SERIES_DETAIL(seriesSlug), icon: '🏁' },
     { label: `${year}`, path: ROUTES.SEASON_DETAIL(seriesSlug, year) },
     { label: roundName, path: ROUTES.ROUND_DETAIL(seriesSlug, year, roundSlug) },
-    { label: sessionType, path: ROUTES.SESSION_DETAIL(seriesSlug, year, roundSlug, sessionType) },
+    { label: sessionName, path: ROUTES.SESSION_DETAIL(seriesSlug, year, roundSlug, sessionId) },
   ];
 }
 

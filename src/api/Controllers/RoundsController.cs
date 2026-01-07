@@ -182,6 +182,7 @@ public sealed class RoundsController : BaseApiController
                 // Parse driver name from alias if applicable
                 string driverFirstName = e.Driver.FirstName;
                 string driverLastName = e.Driver.LastName;
+                int? driverNumber = e.Driver.DriverNumber;
                 if (driverAlias != null)
                 {
                     var nameParts = driverAlias.AliasName.Split(' ', 2);
@@ -194,6 +195,12 @@ public sealed class RoundsController : BaseApiController
                     {
                         driverLastName = driverAlias.AliasName;
                     }
+                    
+                    // Use alias-specific driver number if available
+                    if (driverAlias.DriverNumber.HasValue)
+                    {
+                        driverNumber = driverAlias.DriverNumber.Value;
+                    }
                 }
 
                 return new EntrantDto(
@@ -205,7 +212,8 @@ public sealed class RoundsController : BaseApiController
                         Slug: e.Driver.Slug,
                         Abbreviation: e.Driver.Abbreviation,
                         Nationality: e.Driver.Nationality,
-                        HeadshotUrl: e.Driver.HeadshotUrl
+                        HeadshotUrl: e.Driver.HeadshotUrl,
+                        DriverNumber: driverNumber
                     ),
                     Team: new TeamSummaryDto(
                         Id: e.Team.Id,

@@ -143,6 +143,7 @@ export interface DriverSummaryDto {
   abbreviation?: string;
   nationality?: string;
   headshotUrl?: string;
+  driverNumber?: number;
 }
 
 export interface TeamSummaryDto {

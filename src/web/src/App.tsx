@@ -70,7 +70,7 @@ function AppRoutes() {
       <Route path="/series/:seriesSlug" element={<SeriesDetailPage />} />
       <Route path="/series/:seriesSlug/:year" element={<SeasonDetailPage />} />
       <Route path="/series/:seriesSlug/:year/:roundSlug" element={<RoundDetailPage />} />
-      <Route path="/series/:seriesSlug/:year/:roundSlug/:sessionType" element={<SessionDetailPage />} />
+      <Route path="/series/:seriesSlug/:year/:roundSlug/session/:sessionId" element={<SessionDetailPage />} />
       
       {/* Discovery routes - Direct entity access */}
       <Route path="/seasons" element={<SeasonsPage />} />

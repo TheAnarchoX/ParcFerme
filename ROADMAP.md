@@ -62,7 +62,9 @@
 - [x] Add unit tests for SpoilerShieldService edge cases (16 tests)
 
 ### 🚧 In Progress
-_(None currently)_
+- [ ] Session detail pages + API (spoiler shield end-to-end)
+  - Results properly masked until logged
+  - Full integration with spoiler shield
 
 ### 📋 Up Next (Priority Order)
 
@@ -98,6 +100,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [x] About page content creation (mission, team, FAQs)
 - [x] SEO optimization for public pages (meta tags, Open Graph, structured data)
 - [x] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
+- [ ] Ensure Series Logo's are always readable (take the transparent motogp logo as an example, mainly black with red text. Not readable at all) by adding a white background or border around them where necessary.
 
 **Lower Priority — Future Prep**
 - [x] Frontend e2e tests for critical flows (Playwright setup with homepage, auth, discovery, spoiler-shield tests)
@@ -133,9 +136,6 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - GET /{seriesSlug}/{year}/{roundSlug} for round detail
   - GET /{seriesSlug}/{year} for rounds listing
   - 24 integration tests covering all scenarios
-- [ ] Session detail pages + API (spoiler shield end-to-end)
-  - Results properly masked until logged
-  - Full integration with spoiler shield
 - [ ] Navigation flow between Series → Season → Round → Session
   - Check that all links/buttons work correctly
   - Ensure "Statistics" like for the Series detail page the "Teams" and "Drivers" sections link to the correct pre-filtered pages. E.g. For Formula 1 if you click on "Teams" it should take you to the Teams page filtered to only show teams that have participated in Formula 1.
@@ -174,6 +174,11 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Navigation flow between Entities (Driver, Team, Circuit) → Seasons → Rounds → Sessions
   - Check that all links/buttons work correctly and that all things that are a reference is a link to the correct page.
   - Ensure breadcrumb navigation works correctly across all new pages.
+
+##### 5. Miscellaneous
+- [ ] Develop "Standings" module in the backend to calculate championship points based on the official points system for each series taking historical changes into account.
+- [ ] Add "Current/Final Championship Standings" section to Series detail pages
+- [ ] Add "Championship Standings" tab to Season detail pages
 
 
 ---
@@ -218,7 +223,8 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Advanced search UI with filters
 
 ### Moderation (Moved from Phase 1)
-- [ ] Admin/Mod tools (user management, content moderation queue)
+- [ ] Admin/Mod tools (user management, content moderation queue, missing datapoint reports and work queue)
+- [ ] Community reporting tools (flag logs/reviews, report data issues)
 - [ ] Distinguished mod/admin roles with elevated permissions and badges
 
 ### Mobile & Responsive

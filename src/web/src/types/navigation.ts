@@ -108,8 +108,8 @@ export const ROUTES = {
   SEASON_DETAIL: (seriesSlug: string, year: number) => `/series/${seriesSlug}/${year}`,
   ROUND_DETAIL: (seriesSlug: string, year: number, roundSlug: string) => 
     `/series/${seriesSlug}/${year}/${roundSlug}`,
-  SESSION_DETAIL: (seriesSlug: string, year: number, roundSlug: string, sessionType: string) => 
-    `/series/${seriesSlug}/${year}/${roundSlug}/${sessionType.toLowerCase()}`,
+  SESSION_DETAIL: (seriesSlug: string, year: number, roundSlug: string, sessionId: string) => 
+    `/series/${seriesSlug}/${year}/${roundSlug}/session/${sessionId}`,
   
   // Discovery - Direct entity access
   SEASONS: '/seasons',

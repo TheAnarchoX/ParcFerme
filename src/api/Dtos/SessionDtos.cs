@@ -150,7 +150,8 @@ public sealed record DriverSummaryDto(
     string Slug,
     string? Abbreviation,
     string? Nationality,
-    string? HeadshotUrl
+    string? HeadshotUrl,
+    int? DriverNumber
 );
 
 public sealed record TeamSummaryDto(

@@ -346,7 +346,8 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
                 driver.Slug,
                 driver.Abbreviation,
                 driver.Nationality,
-                driver.HeadshotUrl
+                driver.HeadshotUrl,
+                driver.DriverNumber
             ),
             Team: new TeamSummaryDto(
                 team.Id,

@@ -150,7 +150,7 @@ function SessionCard({ seriesSlug, year, roundSlug, session, primaryColor }: Ses
   
   return (
     <Link
-      to={ROUTES.SESSION_DETAIL(seriesSlug, year, roundSlug, session.type)}
+      to={ROUTES.SESSION_DETAIL(seriesSlug, year, roundSlug, session.id)}
       className={`
         group block border rounded-lg overflow-hidden transition-all
         ${!isMainEvent ? 'bg-neutral-900/50 border-neutral-800 hover:border-neutral-700' : ''}
@@ -504,6 +504,15 @@ export function RoundDetailPage() {
                 key={entrant.id}
                 className="flex items-center gap-3 p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg hover:border-neutral-700 transition-colors"
               >
+                {/* Driver Number */}
+                {entrant.driver.driverNumber && (
+                  <div className="shrink-0 w-10 h-10 flex items-center justify-center bg-neutral-800/50 rounded-lg">
+                    <span className="text-lg font-bold text-neutral-300">
+                      {entrant.driver.driverNumber}
+                    </span>
+                  </div>
+                )}
+                
                 {/* Driver & Team Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
