@@ -62,7 +62,7 @@ function MarketingPage() {
         <div className="relative max-w-4xl mx-auto text-center">
           {/* Hero Logo */}
           <img 
-            src="/logo.png" 
+            src="/logo-nobg.png" 
             alt="" 
             className="h-24 w-24 md:h-32 md:w-32 mx-auto mb-6"
             aria-hidden="true"

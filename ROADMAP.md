@@ -84,6 +84,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - Added Round: "FORMULA 1 ARAMCO PRE-SEASON TESTING 2026" (Feb 11-13, 2026)
   - 3 testing sessions at Bahrain International Circuit, 08:00 UTC each day
   - Used SQL insert mirroring 2025 pre-season testing structure (Type=6/Race, RoundNumber=0)
+- [ ] Fix RoundNumbers not being Season specific (across series, e.g. F1 2024 vs F1 2025 both have RoundNumber=1 for Bahrain, preserve 0 for Pre-Season Testing) 
 - [ ] FIx Circuits data not being unique/complete, merge any duplicates (e.g. "Circuit de Monaco" vs "Monaco"), always favor the more complete entry. 
 
 **Medium Priority — User-Facing Polish**

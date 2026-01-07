@@ -394,3 +394,119 @@ class TestSyncServiceIntegration:
         # Verify API was called correctly
         api.get_meetings.assert_called_once_with(2024)
         api.get_sessions_for_meeting.assert_called_once_with(mock_meeting.meeting_key)
+
+
+class TestCalculateRoundNumbers:
+    """Tests for the _calculate_round_numbers method."""
+
+    def test_race_weekends_numbered_sequentially(self) -> None:
+        """Test that race weekends get sequential round numbers."""
+        meetings = [
+            OpenF1Meeting(
+                meeting_key=1001,
+                meeting_name="Bahrain Grand Prix",
+                meeting_official_name="FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2024",
+                country_name="Bahrain",
+                circuit_short_name="Bahrain",
+                date_start=datetime(2024, 3, 1, tzinfo=UTC),
+                year=2024,
+                location="Sakhir",
+            ),
+            OpenF1Meeting(
+                meeting_key=1002,
+                meeting_name="Saudi Arabian Grand Prix",
+                meeting_official_name="FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2024",
+                country_name="Saudi Arabia",
+                circuit_short_name="Jeddah",
+                date_start=datetime(2024, 3, 8, tzinfo=UTC),
+                year=2024,
+                location="Jeddah",
+            ),
+            OpenF1Meeting(
+                meeting_key=1003,
+                meeting_name="Australian Grand Prix",
+                meeting_official_name="FORMULA 1 ROLEX AUSTRALIAN GRAND PRIX 2024",
+                country_name="Australia",
+                circuit_short_name="Melbourne",
+                date_start=datetime(2024, 3, 22, tzinfo=UTC),
+                year=2024,
+                location="Melbourne",
+            ),
+        ]
+
+        service = OpenF1SyncService()
+        result = service._calculate_round_numbers(meetings)
+
+        assert result[1001] == 1  # First race
+        assert result[1002] == 2  # Second race
+        assert result[1003] == 3  # Third race
+
+    def test_preseason_testing_gets_zero(self) -> None:
+        """Test that pre-season testing gets round number 0."""
+        meetings = [
+            OpenF1Meeting(
+                meeting_key=1000,
+                meeting_name="Pre-Season Testing",
+                meeting_official_name="FORMULA 1 ARAMCO PRE-SEASON TESTING 2024",
+                country_name="Bahrain",
+                circuit_short_name="Bahrain",
+                date_start=datetime(2024, 2, 21, tzinfo=UTC),
+                year=2024,
+                location="Sakhir",
+            ),
+            OpenF1Meeting(
+                meeting_key=1001,
+                meeting_name="Bahrain Grand Prix",
+                meeting_official_name="FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2024",
+                country_name="Bahrain",
+                circuit_short_name="Bahrain",
+                date_start=datetime(2024, 3, 1, tzinfo=UTC),
+                year=2024,
+                location="Sakhir",
+            ),
+        ]
+
+        service = OpenF1SyncService()
+        result = service._calculate_round_numbers(meetings)
+
+        assert result[1000] == 0  # Pre-season testing
+        assert result[1001] == 1  # First race
+
+    def test_testing_in_name_gets_zero(self) -> None:
+        """Test that meetings with 'testing' in name get round number 0."""
+        meetings = [
+            OpenF1Meeting(
+                meeting_key=1000,
+                meeting_name="Testing",
+                meeting_official_name="Bahrain Testing",
+                country_name="Bahrain",
+                circuit_short_name="Bahrain",
+                date_start=datetime(2024, 2, 15, tzinfo=UTC),
+                year=2024,
+                location="Sakhir",
+            ),
+            OpenF1Meeting(
+                meeting_key=1001,
+                meeting_name="Race 1",
+                meeting_official_name="First Grand Prix",
+                country_name="Country",
+                circuit_short_name="Circuit",
+                date_start=datetime(2024, 3, 1, tzinfo=UTC),
+                year=2024,
+                location="Location",
+            ),
+        ]
+
+        service = OpenF1SyncService()
+        result = service._calculate_round_numbers(meetings)
+
+        assert result[1000] == 0
+        assert result[1001] == 1
+
+    def test_empty_meetings_list(self) -> None:
+        """Test handling of empty meetings list."""
+        service = OpenF1SyncService()
+        result = service._calculate_round_numbers([])
+
+        assert result == {}
+

@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Transparent background: removed the full-size background rect -->
+
+    <!-- Centered group (adjusted translate) -->
+    <g transform="translate(160 124) skewX(-12)">
+        <rect x="0" y="0" width="115" height="75" rx="8" fill="#00FF7F"/>
+        <rect x="135" y="0" width="115" height="75" rx="8" fill="#00FF7F"/>
+
+        <rect x="0" y="95" width="250" height="75" rx="8" fill="#00FF7F"/>
+
+        <rect x="0" y="190" width="180" height="75" rx="8" fill="#00FF7F"/>
+    </g>
+</svg>

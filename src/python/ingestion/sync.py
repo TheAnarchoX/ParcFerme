@@ -354,14 +354,22 @@ class OpenF1SyncService:
 
         logger.info("Found meetings", count=len(meetings), year=year)
 
-        for i, meeting in enumerate(meetings, 1):
+        # Sort meetings by date to calculate proper round numbers
+        sorted_meetings = sorted(meetings, key=lambda m: m.date_start)
+        
+        # Calculate round numbers: 0 for pre-season testing, 1-N for races
+        round_number_map = self._calculate_round_numbers(sorted_meetings)
+
+        for i, meeting in enumerate(sorted_meetings, 1):
             try:
-                self._sync_meeting(api, repo, meeting, season_id, include_results, stats)
+                round_number = round_number_map.get(meeting.meeting_key, i)
+                self._sync_meeting(api, repo, meeting, season_id, include_results, stats, round_number)
                 stats["meetings_synced"] += 1
                 logger.info(
                     "Synced meeting",
                     meeting=meeting.meeting_name,
-                    progress=f"{i}/{len(meetings)}",
+                    round_number=round_number,
+                    progress=f"{i}/{len(sorted_meetings)}",
                 )
             except Exception as e:
                 logger.error(
@@ -382,6 +390,7 @@ class OpenF1SyncService:
         season_id: UUID,
         include_results: bool,
         stats: dict,
+        round_number: int,
     ) -> None:
         """Sync a single meeting (race weekend)."""
         # Create circuit
@@ -399,7 +408,7 @@ class OpenF1SyncService:
             circuit_id=circuit_id,
             name=meeting.meeting_official_name or meeting.meeting_name,
             slug=round_slug,
-            round_number=self._extract_round_number(meeting),
+            round_number=round_number,
             date_start=date_start,
             date_end=date_end,
             openf1_meeting_key=meeting.meeting_key,
@@ -615,16 +624,32 @@ class OpenF1SyncService:
         
         return results
 
-    def _extract_round_number(self, meeting: OpenF1Meeting) -> int:
-        """Extract round number from meeting data.
-
-        OpenF1 doesn't provide a direct round number, so we calculate
-        based on the order of meetings in the season.
+    def _calculate_round_numbers(self, meetings: list[OpenF1Meeting]) -> dict[int, int]:
+        """Calculate round numbers for a list of meetings.
+        
+        Pre-season testing events get round number 0.
+        Race weekends are numbered 1-N based on date order.
+        
+        Args:
+            meetings: List of meetings sorted by date
+            
+        Returns:
+            Dict mapping meeting_key to round_number
         """
-        # This is a simplification - in production, you'd want to
-        # fetch all meetings and sort by date to determine order
-        # For now, we'll use meeting_key as a proxy (they're roughly sequential)
-        return meeting.meeting_key % 100  # Rough approximation
+        round_number_map: dict[int, int] = {}
+        race_number = 0
+        
+        for meeting in meetings:
+            meeting_name = (meeting.meeting_official_name or meeting.meeting_name).lower()
+            
+            # Check if this is pre-season testing
+            if "pre-season" in meeting_name or "testing" in meeting_name:
+                round_number_map[meeting.meeting_key] = 0
+            else:
+                race_number += 1
+                round_number_map[meeting.meeting_key] = race_number
+                
+        return round_number_map
 
     def sync_recent(self, days: int = 7, include_results: bool = True) -> dict:
         """Sync data for meetings in the last N days.
@@ -642,10 +667,14 @@ class OpenF1SyncService:
 
         # Get current year's meetings
         current_year = datetime.now(UTC).year
-        meetings = api.get_meetings(current_year)
+        all_meetings = api.get_meetings(current_year)
+
+        # Sort all meetings by date to calculate proper round numbers for the whole season
+        sorted_all_meetings = sorted(all_meetings, key=lambda m: m.date_start)
+        round_number_map = self._calculate_round_numbers(sorted_all_meetings)
 
         cutoff = datetime.now(UTC) - timedelta(days=days)
-        recent_meetings = [m for m in meetings if m.date_start >= cutoff]
+        recent_meetings = [m for m in sorted_all_meetings if m.date_start >= cutoff]
 
         logger.info("Found recent meetings", count=len(recent_meetings), days=days)
 
@@ -653,7 +682,8 @@ class OpenF1SyncService:
 
         for meeting in recent_meetings:
             try:
-                self._sync_meeting(api, repo, meeting, season_id, include_results, stats)
+                round_number = round_number_map.get(meeting.meeting_key, 0)
+                self._sync_meeting(api, repo, meeting, season_id, include_results, stats, round_number)
                 stats["meetings_synced"] += 1
             except Exception as e:
                 logger.error(
