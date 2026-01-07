@@ -76,6 +76,10 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 **High Priority — Code Quality & Testing**
 - [x] Frontend component tests for SpoilerMask/SpoilerBlur behavior (54 tests)
 - [x] Add logo (/assets/logo.png) to the frontend public folder and add it to the frontend in the hero/header area.
+- [x] Pre-fill 2026 data for F1 (Completed: Jan 7, 2026)
+  - Parsed ICS calendar from RacingNews365, translated Dutch to English
+  - Removed branding, created 24 rounds with 120 sessions
+  - Added seed script: `python -m ingestion.seed_f1_2026`
 
 **Medium Priority — User-Facing Polish**
 - [x] About page content creation (mission, team, FAQs)
@@ -135,6 +139,8 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] User settings page (spoiler mode, preferences, themeing based on favorite series (store seperatly from the favorites on the profile page))
 - [ ] Gravatar integration
 - [ ] Basic feed/home page with recent activity
+- [ ] Password reset flow (email + token) + Remember Me option
+- [ ] Email verification flow
 - [ ] Google OAuth integration (login/register)
 
 #### 4. Supporting Discovery Pages
