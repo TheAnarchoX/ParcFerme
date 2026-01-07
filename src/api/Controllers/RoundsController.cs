@@ -64,14 +64,16 @@ public sealed class RoundsController : BaseApiController
             return NotFoundResult("Season", $"{seriesSlug}/{year}");
         }
 
-        // Find round with all needed data
+        // Find round with all needed data (including aliases for context-aware display)
         var round = await _db.Rounds
             .Include(r => r.Circuit)
             .Include(r => r.Sessions)
             .Include(r => r.Entrants)
                 .ThenInclude(e => e.Driver)
+                    .ThenInclude(d => d.Aliases)
             .Include(r => r.Entrants)
                 .ThenInclude(e => e.Team)
+                    .ThenInclude(t => t.Aliases)
             .FirstOrDefaultAsync(r => r.SeasonId == season.Id && r.Slug == roundSlug.ToLowerInvariant(), ct);
 
         if (round is null)
@@ -159,31 +161,63 @@ public sealed class RoundsController : BaseApiController
             ? series.BrandColors 
             : GetDefaultBrandColors(series.Slug);
 
-        // Build entrants list
+        // Build entrants list with context-aware aliases
         var entrants = round.Entrants
             .OrderBy(e => e.CarNumber ?? int.MaxValue)
             .ThenBy(e => e.Driver.LastName)
-            .Select(e => new EntrantDto(
-                Id: e.Id,
-                CarNumber: e.CarNumber,
-                Driver: new DriverSummaryDto(
-                    Id: e.Driver.Id,
-                    FirstName: e.Driver.FirstName,
-                    LastName: e.Driver.LastName,
-                    Slug: e.Driver.Slug,
-                    Abbreviation: e.Driver.Abbreviation,
-                    Nationality: e.Driver.Nationality,
-                    HeadshotUrl: e.Driver.HeadshotUrl
-                ),
-                Team: new TeamSummaryDto(
-                    Id: e.Team.Id,
-                    Name: e.Team.Name,
-                    Slug: e.Team.Slug,
-                    ShortName: e.Team.ShortName,
-                    LogoUrl: e.Team.LogoUrl,
-                    PrimaryColor: e.Team.PrimaryColor
-                )
-            ))
+            .Select(e =>
+            {
+                // Find applicable driver alias for this event
+                var driverAlias = GetApplicableAlias(
+                    e.Driver.Aliases,
+                    round.DateStart,
+                    series.Id);
+
+                // Find applicable team alias for this event
+                var teamAlias = GetApplicableAlias(
+                    e.Team.Aliases,
+                    round.DateStart,
+                    series.Id);
+
+                // Parse driver name from alias if applicable
+                string driverFirstName = e.Driver.FirstName;
+                string driverLastName = e.Driver.LastName;
+                if (driverAlias != null)
+                {
+                    var nameParts = driverAlias.AliasName.Split(' ', 2);
+                    if (nameParts.Length == 2)
+                    {
+                        driverFirstName = nameParts[0];
+                        driverLastName = nameParts[1];
+                    }
+                    else
+                    {
+                        driverLastName = driverAlias.AliasName;
+                    }
+                }
+
+                return new EntrantDto(
+                    Id: e.Id,
+                    CarNumber: e.CarNumber,
+                    Driver: new DriverSummaryDto(
+                        Id: e.Driver.Id,
+                        FirstName: driverFirstName,
+                        LastName: driverLastName,
+                        Slug: e.Driver.Slug,
+                        Abbreviation: e.Driver.Abbreviation,
+                        Nationality: e.Driver.Nationality,
+                        HeadshotUrl: e.Driver.HeadshotUrl
+                    ),
+                    Team: new TeamSummaryDto(
+                        Id: e.Team.Id,
+                        Name: teamAlias?.AliasName ?? e.Team.Name,
+                        Slug: e.Team.Slug,
+                        ShortName: e.Team.ShortName,
+                        LogoUrl: e.Team.LogoUrl,
+                        PrimaryColor: e.Team.PrimaryColor
+                    )
+                );
+            })
             .ToList();
 
         var roundDetail = new RoundPageDetailDto(
@@ -296,6 +330,58 @@ public sealed class RoundsController : BaseApiController
     {
         var lowerName = roundName.ToLowerInvariant();
         return lowerName.Contains("pre-season") || lowerName.Contains("testing") || lowerName.Contains("test");
+    }
+
+    /// <summary>
+    /// Find the most applicable alias for an entity based on the event date and series.
+    /// Prefers series-specific aliases over universal ones.
+    /// </summary>
+    private static T? GetApplicableAlias<T>(
+        ICollection<T> aliases,
+        DateOnly eventDate,
+        Guid seriesId) where T : class
+    {
+        if (aliases == null || !aliases.Any())
+            return null;
+
+        // Try to find a series-specific alias that's valid for this date
+        foreach (var alias in aliases)
+        {
+            var aliasSeriesId = alias.GetType().GetProperty("SeriesId")?.GetValue(alias) as Guid?;
+            var validFrom = alias.GetType().GetProperty("ValidFrom")?.GetValue(alias) as DateOnly?;
+            var validUntil = alias.GetType().GetProperty("ValidUntil")?.GetValue(alias) as DateOnly?;
+
+            // Check if this is a series-specific alias for our series
+            if (aliasSeriesId.HasValue && aliasSeriesId.Value == seriesId)
+            {
+                // Check date validity
+                bool isValidFrom = !validFrom.HasValue || eventDate >= validFrom.Value;
+                bool isValidUntil = !validUntil.HasValue || eventDate <= validUntil.Value;
+
+                if (isValidFrom && isValidUntil)
+                    return alias;
+            }
+        }
+
+        // Fall back to universal aliases (SeriesId is null)
+        foreach (var alias in aliases)
+        {
+            var aliasSeriesId = alias.GetType().GetProperty("SeriesId")?.GetValue(alias) as Guid?;
+            var validFrom = alias.GetType().GetProperty("ValidFrom")?.GetValue(alias) as DateOnly?;
+            var validUntil = alias.GetType().GetProperty("ValidUntil")?.GetValue(alias) as DateOnly?;
+
+            if (!aliasSeriesId.HasValue)
+            {
+                // Check date validity
+                bool isValidFrom = !validFrom.HasValue || eventDate >= validFrom.Value;
+                bool isValidUntil = !validUntil.HasValue || eventDate <= validUntil.Value;
+
+                if (isValidFrom && isValidUntil)
+                    return alias;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
