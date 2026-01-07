@@ -167,6 +167,10 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - "Attended" venue aggregates when available
 - [ ] Global search UI + API
   - Covers sessions, drivers, teams, circuits, users, logs
+- [ ] Navigation flow between Entities (Driver, Team, Circuit) → Seasons → Rounds → Sessions
+  - Check that all links/buttons work correctly and that all things that are a reference is a link to the correct page.
+  - Ensure breadcrumb navigation works correctly across all new pages.
+
 
 ---
 
