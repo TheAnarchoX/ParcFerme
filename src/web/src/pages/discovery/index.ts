@@ -2,6 +2,7 @@
 
 export { SeriesListPage } from './SeriesListPage';
 export { SeriesDetailPage } from './SeriesDetailPage';
+export { SeasonsPage } from './SeasonsPage';
 export { SeasonDetailPage } from './SeasonDetailPage';
 export { RoundDetailPage } from './RoundDetailPage';
 export { SessionDetailPage } from './SessionDetailPage';

@@ -112,6 +112,7 @@ export const ROUTES = {
     `/series/${seriesSlug}/${year}/${roundSlug}/${sessionType.toLowerCase()}`,
   
   // Discovery - Direct entity access
+  SEASONS: '/seasons',
   SESSIONS: '/sessions',
   DRIVERS: '/drivers',
   DRIVER_DETAIL: (slug: string) => `/drivers/${slug}`,
@@ -153,6 +154,7 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
     icon: '🔍',
     children: [
       { id: 'series', label: 'Series', path: ROUTES.SERIES_LIST, icon: '🏁' },
+      { id: 'seasons', label: 'Seasons', path: ROUTES.SEASONS, icon: '📅' },
       { id: 'sessions', label: 'Sessions', path: ROUTES.SESSIONS, icon: '📺' },
       { id: 'drivers', label: 'Drivers', path: ROUTES.DRIVERS, icon: '👤' },
       { id: 'teams', label: 'Teams', path: ROUTES.TEAMS, icon: '🏎️' },

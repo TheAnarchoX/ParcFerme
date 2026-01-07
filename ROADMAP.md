@@ -100,11 +100,13 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 
 #### 1. Complete Discovery Flow (Browse → Find → View)
-- [ ] Season browser + detail pages + API
-  - Per-series calendar/round list
-  - Filters by session type
-  - Progress indicators (logged vs unlogged)
+- [x] Season browser + detail pages + API (Completed: Jan 7, 2026)
+  - Per-series calendar/round list with filtering
+  - Progress indicators (completed/upcoming/current)
   - Spoiler-safe aggregates only
+  - SeasonsPage for browsing all seasons across series
+  - SeasonDetailPage with real API integration
+  - Navigation links added to header dropdown
 - [ ] Round (weekend) detail pages + API
   - Sessions timeline
   - Circuit context
@@ -133,6 +135,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] User settings page (spoiler mode, preferences, themeing based on favorite series (store seperatly from the favorites on the profile page))
 - [ ] Gravatar integration
 - [ ] Basic feed/home page with recent activity
+- [ ] Google OAuth integration (login/register)
 
 #### 4. Supporting Discovery Pages
 - [ ] Driver discovery + detail pages + API

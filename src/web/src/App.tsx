@@ -17,6 +17,7 @@ import { AboutPage } from './pages/AboutPage';
 // Discovery pages
 import { SeriesListPage } from './pages/discovery/SeriesListPage';
 import { SeriesDetailPage } from './pages/discovery/SeriesDetailPage';
+import { SeasonsPage } from './pages/discovery/SeasonsPage';
 import { SeasonDetailPage } from './pages/discovery/SeasonDetailPage';
 import { RoundDetailPage } from './pages/discovery/RoundDetailPage';
 import { SessionDetailPage } from './pages/discovery/SessionDetailPage';
@@ -72,6 +73,7 @@ function AppRoutes() {
       <Route path="/series/:seriesSlug/:year/:roundSlug/:sessionType" element={<SessionDetailPage />} />
       
       {/* Discovery routes - Direct entity access */}
+      <Route path="/seasons" element={<SeasonsPage />} />
       <Route path="/sessions" element={<SessionsPage />} />
       <Route path="/drivers" element={<DriversPage />} />
       <Route path="/drivers/:driverSlug" element={<DriverDetailPage />} />
