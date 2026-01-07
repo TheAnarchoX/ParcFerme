@@ -80,7 +80,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 **Medium Priority — User-Facing Polish**
 - [x] About page content creation (mission, team, FAQs)
 - [x] SEO optimization for public pages (meta tags, Open Graph, structured data)
-- [ ] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
+- [x] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
 
 **Lower Priority — Future Prep**
 - [ ] Frontend e2e tests for critical flows (Playwright or Cypress setup)
@@ -129,7 +129,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Reviews API (create, read, like)
 
 #### 3. User Experience Polish
-- [ ] User profiles API + page
+- [ ] User profiles API + page (favorites [whatever entities they want basically, series (max 1: ), teams, drivers, circuits], stats, logs, reviews),
 - [ ] User settings page (spoiler mode, preferences)
 - [ ] Gravatar integration
 - [ ] Basic feed/home page with recent activity
