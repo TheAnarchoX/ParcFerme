@@ -69,6 +69,9 @@ public sealed class RoundsController : BaseApiController
             .Include(r => r.Circuit)
             .Include(r => r.Sessions)
             .Include(r => r.Entrants)
+                .ThenInclude(e => e.Driver)
+            .Include(r => r.Entrants)
+                .ThenInclude(e => e.Team)
             .FirstOrDefaultAsync(r => r.SeasonId == season.Id && r.Slug == roundSlug.ToLowerInvariant(), ct);
 
         if (round is null)
@@ -120,12 +123,13 @@ public sealed class RoundsController : BaseApiController
         var now = DateTime.UtcNow;
         var nowDate = DateOnly.FromDateTime(now);
 
+        var isTestingRound = IsTestingRound(round.Name);
         var sessionsTimeline = round.Sessions
             .OrderBy(s => s.StartTimeUtc)
-            .Select(s => new SessionTimelineDto(
+            .Select((s, index) => new SessionTimelineDto(
                 Id: s.Id,
                 Type: s.Type.ToString(),
-                DisplayName: GetSessionDisplayName(s.Type),
+                DisplayName: GetSessionDisplayName(s.Type, isTestingRound, s.StartTimeUtc, round.DateStart, index),
                 StartTimeUtc: s.StartTimeUtc,
                 Status: s.Status.ToString(),
                 IsLogged: loggedSessionIds.Contains(s.Id),
@@ -154,6 +158,33 @@ public sealed class RoundsController : BaseApiController
         var brandColors = series.BrandColors.Count > 0 
             ? series.BrandColors 
             : GetDefaultBrandColors(series.Slug);
+
+        // Build entrants list
+        var entrants = round.Entrants
+            .OrderBy(e => e.CarNumber ?? int.MaxValue)
+            .ThenBy(e => e.Driver.LastName)
+            .Select(e => new EntrantDto(
+                Id: e.Id,
+                CarNumber: e.CarNumber,
+                Driver: new DriverSummaryDto(
+                    Id: e.Driver.Id,
+                    FirstName: e.Driver.FirstName,
+                    LastName: e.Driver.LastName,
+                    Slug: e.Driver.Slug,
+                    Abbreviation: e.Driver.Abbreviation,
+                    Nationality: e.Driver.Nationality,
+                    HeadshotUrl: e.Driver.HeadshotUrl
+                ),
+                Team: new TeamSummaryDto(
+                    Id: e.Team.Id,
+                    Name: e.Team.Name,
+                    Slug: e.Team.Slug,
+                    ShortName: e.Team.ShortName,
+                    LogoUrl: e.Team.LogoUrl,
+                    PrimaryColor: e.Team.PrimaryColor
+                )
+            ))
+            .ToList();
 
         var roundDetail = new RoundPageDetailDto(
             Id: round.Id,
@@ -184,6 +215,7 @@ public sealed class RoundsController : BaseApiController
                 LengthMeters: round.Circuit.LengthMeters
             ),
             Sessions: sessionsTimeline,
+            Entrants: entrants,
             Stats: stats,
             IsCompleted: round.DateEnd < nowDate,
             IsCurrent: round.DateStart <= nowDate && round.DateEnd >= nowDate,
@@ -258,23 +290,71 @@ public sealed class RoundsController : BaseApiController
     // =========================
 
     /// <summary>
-    /// Get human-friendly display name for session type.
+    /// Determine if a round is a testing event.
     /// </summary>
-    private static string GetSessionDisplayName(SessionType type) => type switch
+    private static bool IsTestingRound(string roundName)
     {
-        SessionType.FP1 => "Free Practice 1",
-        SessionType.FP2 => "Free Practice 2",
-        SessionType.FP3 => "Free Practice 3",
-        SessionType.Qualifying => "Qualifying",
-        SessionType.SprintQualifying => "Sprint Qualifying",
-        SessionType.Sprint => "Sprint Race",
-        SessionType.Race => "Race",
-        SessionType.Warmup => "Warm Up",
-        SessionType.Moto3Race => "Moto3 Race",
-        SessionType.Moto2Race => "Moto2 Race",
-        SessionType.MotoGPRace => "MotoGP Race",
-        _ => type.ToString()
-    };
+        var lowerName = roundName.ToLowerInvariant();
+        return lowerName.Contains("pre-season") || lowerName.Contains("testing") || lowerName.Contains("test");
+    }
+
+    /// <summary>
+    /// Get human-friendly display name for session type.
+    /// For testing sessions, returns "Day 1", "Day 2", etc.
+    /// </summary>
+    private static string GetSessionDisplayName(
+        SessionType type, 
+        bool isTestingRound = false, 
+        DateTime? sessionStart = null, 
+        DateOnly? roundStart = null,
+        int sessionIndex = 0)
+    {
+        // Handle testing sessions
+        if (isTestingRound && sessionStart.HasValue && roundStart.HasValue)
+        {
+            var sessionDate = DateOnly.FromDateTime(sessionStart.Value);
+            var dayNumber = sessionDate.DayNumber - roundStart.Value.DayNumber + 1;
+            return $"Day {dayNumber}";
+        }
+
+        // Regular session types
+        return type switch
+    {
+            SessionType.FP1 => "Free Practice 1",
+            SessionType.FP2 => "Free Practice 2",
+            SessionType.FP3 => "Free Practice 3",
+            SessionType.Qualifying => "Qualifying",
+            SessionType.SprintQualifying => "Sprint Qualifying",
+            SessionType.Sprint => "Sprint Race",
+            SessionType.Race => "Race",
+            SessionType.Warmup => "Warm Up",
+            SessionType.Moto3Race => "Moto3 Race",
+            SessionType.Moto2Race => "Moto2 Race",
+            SessionType.MotoGPRace => "MotoGP Race",
+            _ => AddSpacesToPascalCase(type.ToString())
+        };
+    }
+
+    /// <summary>
+    /// Add spaces to PascalCase strings for better readability.
+    /// </summary>
+    private static string AddSpacesToPascalCase(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+        
+        var result = new System.Text.StringBuilder(text.Length * 2);
+        result.Append(text[0]);
+        
+        for (int i = 1; i < text.Length; i++)
+        {
+            if (char.IsUpper(text[i]) && !char.IsUpper(text[i - 1]))
+                result.Append(' ');
+            result.Append(text[i]);
+        }
+        
+        return result.ToString();
+    }
 
     /// <summary>
     /// Get default brand colors for a series when not stored in database.
@@ -282,8 +362,8 @@ public sealed class RoundsController : BaseApiController
     private static List<string> GetDefaultBrandColors(string slug) => slug.ToLowerInvariant() switch
     {
         "f1" or "formula-1" => ["#E10600", "#FFFFFF", "#000000"],
-        "motogp" => ["#FF6B00"],
-        "wec" => ["#01b9ff"],
+        "motogp" => ["#FF6B00", "#000000"],
+        "wec" => ["#00B9FF",  "#FFFFFF"],
         "indycar" => ["#e51937", "#000000"],
         "formula-e" or "fe" => ["#00BCD4"],
         "nascar" => ["#FFD659", "#E4002B", "#007AC2", "#000000"],

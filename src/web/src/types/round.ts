@@ -3,7 +3,7 @@
  * Keep in sync with backend RoundDtos.cs
  */
 
-import type { CircuitDetailDto } from './spoiler';
+import type { CircuitDetailDto, EntrantDto } from './spoiler';
 
 // =========================
 // Round Page Types
@@ -21,6 +21,7 @@ export interface RoundPageDetailDto {
   year: number;
   circuit: CircuitDetailDto;
   sessions: SessionTimelineDto[];
+  entrants: EntrantDto[];
   stats: RoundStatsDto;
   isCompleted: boolean;
   isCurrent: boolean;

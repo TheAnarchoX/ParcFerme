@@ -31,49 +31,67 @@ public sealed class CacheResponseAttribute : Attribute, IAsyncActionFilter
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<CacheResponseAttribute>>();
         var cacheKey = GenerateCacheKey(context);
 
-        // Try to get cached response
-        var cachedBytes = await cache.GetAsync(cacheKey);
-        if (cachedBytes != null)
+        // Try to get cached response (fail gracefully on Redis errors)
+        try
         {
-            var cachedResponse = JsonSerializer.Deserialize<CachedResponse>(cachedBytes, JsonOptions);
-            if (cachedResponse != null)
+            var cachedBytes = await cache.GetAsync(cacheKey);
+            if (cachedBytes != null)
             {
-                context.HttpContext.Response.Headers["X-Cache"] = "HIT";
-                context.Result = new ContentResult
+                var cachedResponse = JsonSerializer.Deserialize<CachedResponse>(cachedBytes, JsonOptions);
+                if (cachedResponse != null)
                 {
-                    Content = cachedResponse.Content,
-                    ContentType = cachedResponse.ContentType,
-                    StatusCode = cachedResponse.StatusCode
-                };
-                return;
+                    context.HttpContext.Response.Headers["X-Cache"] = "HIT";
+                    context.Result = new ContentResult
+                    {
+                        Content = cachedResponse.Content,
+                        ContentType = cachedResponse.ContentType,
+                        StatusCode = cachedResponse.StatusCode
+                    };
+                    return;
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            // Log cache failure but continue with request
+            logger.LogWarning(ex, "Cache get failed for key {CacheKey}. Continuing without cache.", cacheKey);
+            context.HttpContext.Response.Headers["X-Cache"] = "ERROR";
         }
 
         // Execute the action
         var executedContext = await next();
-        context.HttpContext.Response.Headers["X-Cache"] = "MISS";
+        context.HttpContext.Response.Headers.TryAdd("X-Cache", "MISS");
 
-        // Cache successful responses only
+        // Cache successful responses only (fail gracefully on Redis errors)
         if (executedContext.Result is ObjectResult objectResult && 
             objectResult.StatusCode is null or >= 200 and < 300)
         {
-            var content = JsonSerializer.Serialize(objectResult.Value, JsonOptions);
-            var cachedResponse = new CachedResponse
+            try
             {
-                Content = content,
-                ContentType = "application/json",
-                StatusCode = objectResult.StatusCode ?? 200
-            };
+                var content = JsonSerializer.Serialize(objectResult.Value, JsonOptions);
+                var cachedResponse = new CachedResponse
+                {
+                    Content = content,
+                    ContentType = "application/json",
+                    StatusCode = objectResult.StatusCode ?? 200
+                };
 
-            var options = new DistributedCacheEntryOptions
+                var options = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(DurationSeconds)
+                };
+
+                var bytes = JsonSerializer.SerializeToUtf8Bytes(cachedResponse, JsonOptions);
+                await cache.SetAsync(cacheKey, bytes, options);
+            }
+            catch (Exception ex)
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(DurationSeconds)
-            };
-
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(cachedResponse, JsonOptions);
-            await cache.SetAsync(cacheKey, bytes, options);
+                // Log cache failure but response is already complete
+                logger.LogWarning(ex, "Cache set failed for key {CacheKey}. Response returned successfully.", cacheKey);
+            }
         }
     }
 

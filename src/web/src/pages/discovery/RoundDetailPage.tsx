@@ -92,9 +92,15 @@ interface SessionCardProps {
 }
 
 function SessionCard({ seriesSlug, year, roundSlug, session, primaryColor }: SessionCardProps) {
-  const isMainEvent = session.type === 'Race' || session.type === 'Sprint' || 
-                       session.type === 'MotoGPRace' || session.type === 'Moto2Race' || 
-                       session.type === 'Moto3Race';
+  // Check if this is a testing session (display name starts with "Day")
+  const isTestingSession = session.displayName.startsWith('Day ');
+  
+  // Main events get special styling (but not testing sessions even if type is "Race")
+  const isMainEvent = !isTestingSession && (
+    session.type === 'Race' || session.type === 'Sprint' || 
+    session.type === 'MotoGPRace' || session.type === 'Moto2Race' || 
+    session.type === 'Moto3Race'
+  );
   
   const formatSessionTime = (utcTime: string): string => {
     const date = new Date(utcTime);
@@ -134,31 +140,63 @@ function SessionCard({ seriesSlug, year, roundSlug, session, primaryColor }: Ses
       </span>
     );
   };
+
+  // Use series branding for main events
+  const cardBgColor = isMainEvent && primaryColor ? `${primaryColor}10` : undefined;
+  const cardBorderColor = isMainEvent && primaryColor ? `${primaryColor}40` : undefined;
+  const cardHoverBorderColor = isMainEvent && primaryColor ? `${primaryColor}60` : undefined;
+  const labelColor = isMainEvent && primaryColor ? primaryColor : undefined;
+  const titleHoverColor = isMainEvent && primaryColor ? primaryColor : undefined;
   
   return (
     <Link
       to={ROUTES.SESSION_DETAIL(seriesSlug, year, roundSlug, session.type)}
       className={`
         group block border rounded-lg overflow-hidden transition-all
-        ${isMainEvent 
-          ? 'bg-pf-green/5 border-pf-green/20 hover:border-pf-green/40' 
-          : 'bg-neutral-900/50 border-neutral-800 hover:border-neutral-700'
-        }
+        ${!isMainEvent ? 'bg-neutral-900/50 border-neutral-800 hover:border-neutral-700' : ''}
       `}
+      style={isMainEvent ? {
+        backgroundColor: cardBgColor,
+        borderColor: cardBorderColor,
+      } : undefined}
+      onMouseEnter={(e) => {
+        if (isMainEvent && cardHoverBorderColor) {
+          e.currentTarget.style.borderColor = cardHoverBorderColor;
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (isMainEvent && cardBorderColor) {
+          e.currentTarget.style.borderColor = cardBorderColor;
+        }
+      }}
     >
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className={`text-xs font-medium ${isMainEvent ? 'text-accent-green' : 'text-neutral-500'}`}>
+          <span 
+            className="text-xs font-medium"
+            style={labelColor ? { color: labelColor } : undefined}
+          >
             {session.type}
           </span>
           {getStatusBadge()}
         </div>
         
         <h3 className={`text-lg font-bold mb-1 transition-colors ${
-          isMainEvent 
-            ? 'text-neutral-100 group-hover:text-accent-green' 
-            : 'text-neutral-200 group-hover:text-neutral-100'
-        }`}>
+          !isMainEvent ? 'text-neutral-200 group-hover:text-neutral-100' : 'text-neutral-100'
+        }`}
+        style={isMainEvent ? {
+          '--hover-color': titleHoverColor || '#4ade80'
+        } as React.CSSProperties : undefined}
+        onMouseEnter={(e) => {
+          if (isMainEvent && titleHoverColor) {
+            e.currentTarget.style.color = titleHoverColor;
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (isMainEvent) {
+            e.currentTarget.style.color = '#e5e5e5';
+          }
+        }}>
           {session.displayName}
         </h3>
         
@@ -456,6 +494,62 @@ export function RoundDetailPage() {
           />
         )}
       </Section>
+      
+      {/* Entrants List */}
+      {round.entrants.length > 0 && (
+        <Section title="Entrants" subtitle={`${round.entrants.length} drivers competing this weekend`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {round.entrants.map((entrant) => (
+              <div 
+                key={entrant.id}
+                className="flex items-center gap-3 p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg hover:border-neutral-700 transition-colors"
+              >
+                {/* Car Number */}
+                {entrant.carNumber !== null && entrant.carNumber !== undefined && (
+                  <div 
+                    className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg"
+                    style={{
+                      backgroundColor: entrant.team.primaryColor ? `${entrant.team.primaryColor}30` : '#262626',
+                      color: entrant.team.primaryColor || '#ffffff',
+                      border: `2px solid ${entrant.team.primaryColor || '#404040'}`
+                    }}
+                  >
+                    {entrant.carNumber}
+                  </div>
+                )}
+                
+                {/* Driver & Team Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-semibold text-neutral-100 truncate">
+                      {entrant.driver.firstName} {entrant.driver.lastName}
+                    </p>
+                    {entrant.driver.abbreviation && (
+                      <span className="text-xs text-neutral-500 font-mono">
+                        {entrant.driver.abbreviation}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-neutral-400 truncate" title={entrant.team.name}>
+                    {entrant.team.shortName || entrant.team.name}
+                  </p>
+                </div>
+                
+                {/* Team Logo */}
+                {entrant.team.logoUrl && (
+                  <div className="shrink-0 w-8 h-8">
+                    <img 
+                      src={entrant.team.logoUrl} 
+                      alt={entrant.team.name}
+                      className="w-full h-full object-contain opacity-70"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
       
       {/* Navigation */}
       <Section>

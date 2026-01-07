@@ -214,7 +214,7 @@ export function SeriesListPage() {
       </Section>
       
       {/* Coming Soon Section */}
-      <Section title="Coming Soon" subtitle="More series will be added over time">
+      {/* <Section title="Coming Soon" subtitle="More series will be added over time">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { name: 'WEC', colors: ['#01b9ff'], split: 'none' as const },
@@ -227,7 +227,7 @@ export function SeriesListPage() {
             <ComingSoonCard key={item.name} {...item} />
           ))}
         </div>
-      </Section>
+      </Section> */}
     </MainLayout>
   );
 }

@@ -27,6 +27,9 @@ public sealed record RoundPageDetailDto(
     // Sessions timeline (ordered by start time)
     IReadOnlyList<SessionTimelineDto> Sessions,
     
+    // Entrants (drivers and teams participating)
+    IReadOnlyList<EntrantDto> Entrants,
+    
     // Stats
     RoundStatsDto Stats,
     

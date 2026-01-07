@@ -282,12 +282,12 @@ public sealed class SeriesController : BaseApiController
     /// </summary>
     private static List<string> GetDefaultBrandColors(string slug) => slug.ToLowerInvariant() switch
     {
-        "f1" or "formula-1" => ["#E10600", "#FFFFFF", "#000000"],  // F1 red, white, black
-        "motogp" => ["#FF6B00"],
-        "wec" => ["#01b9ff"],
-        "indycar" => ["#e51937", "#000000"],  // Red and black
+        "f1" or "formula-1" => ["#E10600", "#FFFFFF", "#000000"],
+        "motogp" => ["#FF6B00", "#000000"],
+        "wec" => ["#00B9FF",  "#FFFFFF"],
+        "indycar" => ["#e51937", "#000000"],
         "formula-e" or "fe" => ["#00BCD4"],
-        "nascar" => ["#FFD659", "#E4002B", "#007AC2", "#000000"],  // Yellow, red, blue, black
+        "nascar" => ["#FFD659", "#E4002B", "#007AC2", "#000000"],
         _ => ["#666666"]
     };
 

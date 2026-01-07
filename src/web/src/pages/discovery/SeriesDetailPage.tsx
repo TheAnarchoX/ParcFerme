@@ -82,38 +82,50 @@ function InfoCard({ title, children, icon }: InfoCardProps) {
 interface SeasonCardProps {
   seriesSlug: string;
   season: SeasonSummaryDto;
+  seriesColor: string;
 }
 
-function SeasonCard({ seriesSlug, season }: SeasonCardProps) {
+function SeasonCard({ seriesSlug, season, seriesColor }: SeasonCardProps) {
   return (
     <Link
       to={ROUTES.SEASON_DETAIL(seriesSlug, season.year)}
-      className="group block bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 hover:border-neutral-700 transition-all"
+      className="group block bg-neutral-900/50 border border-neutral-800 rounded-lg overflow-hidden hover:border-neutral-700 transition-all"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-bold text-neutral-100 group-hover:text-accent-green transition-colors">
+      {/* Color accent bar */}
+      <div className="h-1" style={{ backgroundColor: seriesColor }} />
+      
+      <div className="p-4">
+        {/* Year and badges */}
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xl font-bold text-neutral-100 group-hover:text-accent-green transition-colors">
             {season.year}
           </h3>
-          <p className="text-sm text-neutral-500">
-            {season.roundCount} rounds
-          </p>
+          <div className="flex gap-1">
+            {season.isCurrent && (
+              <span 
+                className="px-2 py-0.5 text-xs rounded font-medium"
+                style={{ 
+                  backgroundColor: `${seriesColor}20`,
+                  color: seriesColor
+                }}
+              >
+                Current
+              </span>
+            )}
+            {season.isCompleted && (
+              <span className="px-2 py-0.5 bg-neutral-800 text-neutral-400 text-xs rounded">
+                ✓
+              </span>
+            )}
+          </div>
         </div>
         
-        {season.isCurrent && (
-          <span className="px-2 py-1 bg-pf-green/20 text-accent-green text-xs font-medium rounded-full">
-            Current
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-xs text-neutral-500">
+          <span>
+            <span className="font-bold" style={{ color: seriesColor }}>{season.roundCount}</span> rounds
           </span>
-        )}
-        
-        <svg 
-          className="w-5 h-5 text-neutral-600 group-hover:text-neutral-400 transition-colors" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
+        </div>
       </div>
     </Link>
   );
@@ -131,6 +143,9 @@ export function SeriesDetailPage() {
   const [seriesData, setSeriesData] = useState<SeriesDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get series brand color
+  const seriesColor = getSeriesColors(seriesSlug)[0];
   
   // Fetch series data
   useEffect(() => {
@@ -333,7 +348,8 @@ export function SeriesDetailPage() {
                       <span className="text-neutral-400">Current Season:</span>
                       <Link 
                         to={ROUTES.SEASON_DETAIL(seriesSlug, currentSeason.year)}
-                        className="text-accent-green hover:underline font-medium flex items-center gap-1"
+                        className="hover:underline font-medium flex items-center gap-1"
+                        style={{ color: seriesColor }}
                       >
                         {currentSeason.year}
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -419,7 +435,8 @@ export function SeriesDetailPage() {
               <SeasonCard 
                 key={season.id} 
                 seriesSlug={seriesSlug} 
-                season={season} 
+                season={season}
+                seriesColor={seriesColor}
               />
             ))}
           </div>
