@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
+import { MainLayout } from '../components/layout/MainLayout';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 
@@ -228,88 +229,82 @@ function DashboardPage() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      
-      <main className="pt-24 pb-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Welcome Section */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">
-              Welcome back, <span className="text-accent-green">{user?.displayName}</span>
-            </h1>
-            <p className="text-neutral-400">
-              Ready to log some races?
-            </p>
-          </div>
+    <MainLayout>
+      {/* Welcome Section */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">
+          Welcome back, <span className="text-accent-green">{user?.displayName}</span>
+        </h1>
+        <p className="text-neutral-400">
+          Ready to log some races?
+        </p>
+      </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Link 
-              to="/sessions"
-              className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 hover:border-pf-green/30 transition-colors group"
-            >
-              <div className="text-2xl mb-3">🏎️</div>
-              <h3 className="font-semibold text-neutral-100 mb-1 group-hover:text-pf-green transition-colors">
-                Browse Sessions
-              </h3>
-              <p className="text-neutral-500 text-sm">Find races to log</p>
-            </Link>
-            
-            <Link 
-              to="/profile"
-              className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 hover:border-pf-green/30 transition-colors group"
-            >
-              <div className="text-2xl mb-3">📊</div>
-              <h3 className="font-semibold text-neutral-100 mb-1 group-hover:text-pf-green transition-colors">
-                Your Stats
-              </h3>
-              <p className="text-neutral-500 text-sm">View your logging history</p>
-            </Link>
-            
-            <Link 
-              to="/feed"
-              className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 hover:border-pf-green/30 transition-colors group"
-            >
-              <div className="text-2xl mb-3">👥</div>
-              <h3 className="font-semibold text-neutral-100 mb-1 group-hover:text-pf-green transition-colors">
-                Activity Feed
-              </h3>
-              <p className="text-neutral-500 text-sm">See what friends are watching</p>
-            </Link>
-          </div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Link 
+          to="/sessions"
+          className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 hover:border-pf-green/30 transition-colors group"
+        >
+          <div className="text-2xl mb-3">🏎️</div>
+          <h3 className="font-semibold text-neutral-100 mb-1 group-hover:text-pf-green transition-colors">
+            Browse Sessions
+          </h3>
+          <p className="text-neutral-500 text-sm">Find races to log</p>
+        </Link>
+        
+        <Link 
+          to="/profile"
+          className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 hover:border-pf-green/30 transition-colors group"
+        >
+          <div className="text-2xl mb-3">📊</div>
+          <h3 className="font-semibold text-neutral-100 mb-1 group-hover:text-pf-green transition-colors">
+            Your Stats
+          </h3>
+          <p className="text-neutral-500 text-sm">View your logging history</p>
+        </Link>
+        
+        <Link 
+          to="/feed"
+          className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 hover:border-pf-green/30 transition-colors group"
+        >
+          <div className="text-2xl mb-3">👥</div>
+          <h3 className="font-semibold text-neutral-100 mb-1 group-hover:text-pf-green transition-colors">
+            Activity Feed
+          </h3>
+          <p className="text-neutral-500 text-sm">See what friends are watching</p>
+        </Link>
+      </div>
 
-          {/* Recent Activity Placeholder */}
-          <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 mb-8">
-            <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
-            <div className="text-neutral-500 text-center py-8">
-              <p className="mb-2">No recent activity yet</p>
-              <Link to="/sessions" className="text-pf-green hover:underline text-sm">
-                Start logging races →
-              </Link>
-            </div>
-          </div>
-
-          {/* Development Status */}
-          <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="inline-block w-2 h-2 bg-pf-yellow rounded-full animate-pulse" />
-              <span className="text-pf-yellow font-medium text-sm">In Development</span>
-            </div>
-            <p className="text-neutral-400 text-sm">
-              Phase 1: Shakedown — F1 2024-2025, basic logging + profiles. 
-              More features coming soon!
-            </p>
-            <Link 
-              to="/status" 
-              className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors mt-2 inline-block"
-            >
-              Check System Status →
-            </Link>
-          </div>
+      {/* Recent Activity Placeholder */}
+      <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 mb-8">
+        <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+        <div className="text-neutral-500 text-center py-8">
+          <p className="mb-2">No recent activity yet</p>
+          <Link to="/sessions" className="text-pf-green hover:underline text-sm">
+            Start logging races →
+          </Link>
         </div>
-      </main>
-    </div>
+      </div>
+
+      {/* Development Status */}
+      <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-block w-2 h-2 bg-pf-yellow rounded-full animate-pulse" />
+          <span className="text-pf-yellow font-medium text-sm">In Development</span>
+        </div>
+        <p className="text-neutral-400 text-sm">
+          Phase 1: Shakedown — F1 2024-2025, basic logging + profiles. 
+          More features coming soon!
+        </p>
+        <Link 
+          to="/status" 
+          className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors mt-2 inline-block"
+        >
+          Check System Status →
+        </Link>
+      </div>
+    </MainLayout>
   );
 }
 
