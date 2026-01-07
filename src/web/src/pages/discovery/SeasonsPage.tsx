@@ -110,15 +110,32 @@ interface SeriesFilterProps {
 }
 
 function SeriesFilter({ allSeries, selectedSeries, onSelectSeries }: SeriesFilterProps) {
+  const isAllSelected = selectedSeries === null;
+  
   return (
     <div className="flex flex-wrap gap-2 mb-6">
       <button
         onClick={() => onSelectSeries(null)}
-        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all border ${
-          selectedSeries === null
-            ? 'bg-accent-green text-black border-accent-green'
-            : 'bg-neutral-900/50 text-neutral-400 hover:text-neutral-200 border-neutral-800'
-        }`}
+        className="px-4 py-2 text-sm font-medium rounded-lg transition-all border"
+        style={isAllSelected ? {
+          backgroundColor: 'rgb(0, 255, 135)',
+          borderColor: 'rgb(0, 255, 135)',
+          color: '#000000'
+        } : {
+          backgroundColor: 'rgba(23, 23, 23, 0.5)',
+          borderColor: 'rgb(38, 38, 38)',
+          color: 'rgb(163, 163, 163)'
+        }}
+        onMouseEnter={(e) => {
+          if (!isAllSelected) {
+            e.currentTarget.style.color = 'rgb(229, 229, 229)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isAllSelected) {
+            e.currentTarget.style.color = 'rgb(163, 163, 163)';
+          }
+        }}
       >
         All Series
       </button>
