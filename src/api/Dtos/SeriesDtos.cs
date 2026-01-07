@@ -15,7 +15,8 @@ public sealed record SeriesSummaryDto(
     string? Description,
     int SeasonCount,
     int? LatestSeasonYear,
-    int? CurrentSeasonRoundCount
+    int? CurrentSeasonRoundCount,
+    IReadOnlyList<string> BrandColors
 );
 
 /// <summary>
@@ -27,6 +28,7 @@ public sealed record SeriesDetailDto(
     string Slug,
     string? LogoUrl,
     string? Description,
+    IReadOnlyList<string> BrandColors,
     IReadOnlyList<SeasonSummaryDto> Seasons,
     SeriesStatsDto Stats
 );

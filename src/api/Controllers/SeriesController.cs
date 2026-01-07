@@ -55,7 +55,8 @@ public sealed class SeriesController : BaseApiController
                 Description: GetSeriesDescription(s.Slug),
                 SeasonCount: s.Seasons.Count,
                 LatestSeasonYear: latestSeason?.Year,
-                CurrentSeasonRoundCount: currentSeason?.Rounds.Count
+                CurrentSeasonRoundCount: currentSeason?.Rounds.Count,
+                BrandColors: s.BrandColors.Count > 0 ? s.BrandColors : GetDefaultBrandColors(s.Slug)
             );
         }).ToList();
 
@@ -104,6 +105,7 @@ public sealed class SeriesController : BaseApiController
             Slug: series.Slug,
             LogoUrl: series.LogoUrl,
             Description: GetSeriesDescription(series.Slug),
+            BrandColors: series.BrandColors.Count > 0 ? series.BrandColors : GetDefaultBrandColors(series.Slug),
             Seasons: seasons,
             Stats: stats
         );
@@ -235,7 +237,8 @@ public sealed class SeriesController : BaseApiController
             Description: GetSeriesDescription(series.Slug),
             SeasonCount: await _db.Seasons.CountAsync(s => s.SeriesId == series.Id, ct),
             LatestSeasonYear: year,
-            CurrentSeasonRoundCount: year == DateTime.UtcNow.Year ? season.Rounds.Count : null
+            CurrentSeasonRoundCount: year == DateTime.UtcNow.Year ? season.Rounds.Count : null,
+            BrandColors: series.BrandColors.Count > 0 ? series.BrandColors : GetDefaultBrandColors(series.Slug)
         );
 
         var result = new SeasonDetailDto(
@@ -266,6 +269,21 @@ public sealed class SeriesController : BaseApiController
         "formula-e" or "fe" => "All-electric street racing championship.",
         "nascar" => "Stock car racing at its best.",
         _ => null
+    };
+
+    /// <summary>
+    /// Get default brand colors for a series when not stored in database.
+    /// First color is primary (used for text), additional colors for gradients/accents.
+    /// </summary>
+    private static List<string> GetDefaultBrandColors(string slug) => slug.ToLowerInvariant() switch
+    {
+        "f1" or "formula-1" => ["#E10600", "#FFFFFF", "#000000"],  // F1 red, white, black
+        "motogp" => ["#FF6B00"],
+        "wec" => ["#01b9ff"],
+        "indycar" => ["#e51937", "#000000"],  // Red and black
+        "formula-e" or "fe" => ["#00BCD4"],
+        "nascar" => ["#FFD659", "#E4002B", "#007AC2", "#000000"],  // Yellow, red, blue, black
+        _ => ["#666666"]
     };
 
     /// <summary>
