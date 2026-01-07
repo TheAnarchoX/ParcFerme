@@ -37,6 +37,9 @@ help:
 	@echo "  make db-clean     - Clean racing data tables (preserves users)"
 	@echo "  make db-audit     - Audit data quality (check for null values)"
 	@echo ""
+	@echo "Cache:"
+	@echo "  make cache-clear  - Clear application cache"
+	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean        - Remove build artifacts and node_modules"
 
@@ -143,6 +146,15 @@ db-clean:
 db-audit:
 	@echo "🔍 Auditing data quality..."
 	cd src/python && .venv/bin/python -m ingestion.db audit
+
+
+# =========================
+# Cache
+# =========================
+cache-clear:
+	@echo "🧹 Clearing application cache..."
+	cd src/python && .venv/bin/python -m ingestion.cache clear
+	@echo "✅ Cache cleared"
 
 # =========================
 # Cleanup

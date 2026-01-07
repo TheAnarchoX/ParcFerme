@@ -114,8 +114,6 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
                     .ThenInclude(se => se.Series)
             .Include(s => s.Round)
                 .ThenInclude(r => r.Circuit)
-            .Include(s => s.Round)
-                .ThenInclude(r => r.Sessions)
             .Include(s => s.Results)
                 .ThenInclude(r => r.Entrant)
                     .ThenInclude(e => e.Driver)
@@ -130,10 +128,40 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
             return null;
         }
 
+        // Fetch sibling sessions separately to avoid cyclic include
+        var siblingSessionIds = await _db.Sessions
+            .Where(s => s.RoundId == session.RoundId)
+            .OrderBy(s => s.StartTimeUtc)
+            .Select(s => s.Id)
+            .ToListAsync(ct);
+
         var shouldReveal = await ShouldRevealSpoilersAsync(userId, sessionId, ct);
         var isLogged = userId.HasValue && session.Logs.Any(l => l.UserId == userId);
 
-        return MapToSessionDetailDto(session, shouldReveal, isLogged);
+        // Get logged sessions for sibling session status
+        HashSet<Guid> loggedSessionIds = [];
+        if (userId.HasValue)
+        {
+            loggedSessionIds = (await _db.Logs
+                .Where(l => l.UserId == userId && siblingSessionIds.Contains(l.SessionId))
+                .Select(l => l.SessionId)
+                .ToListAsync(ct))
+                .ToHashSet();
+        }
+
+        // Fetch sibling sessions for the round detail
+        var siblingSessions = await _db.Sessions
+            .AsNoTracking()
+            .Include(s => s.Round)
+                .ThenInclude(r => r.Season)
+                    .ThenInclude(se => se.Series)
+            .Include(s => s.Round)
+                .ThenInclude(r => r.Circuit)
+            .Where(s => siblingSessionIds.Contains(s.Id))
+            .OrderBy(s => s.StartTimeUtc)
+            .ToListAsync(ct);
+
+        return MapToSessionDetailDto(session, siblingSessions, loggedSessionIds, shouldReveal, isLogged);
     }
 
     public async Task<IReadOnlyList<SessionSummaryDto>> GetSessionsWithSpoilerShieldAsync(
@@ -164,7 +192,13 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
                 .ToHashSet();
         }
 
-        return sessions.Select(s => MapToSessionSummaryDto(s, loggedSessionIds.Contains(s.Id))).ToList();
+        // Create a dictionary for O(1) lookup and preserve original order
+        var sessionDict = sessions.ToDictionary(s => s.Id);
+        
+        return sessionIdList
+            .Where(id => sessionDict.ContainsKey(id))
+            .Select(id => MapToSessionSummaryDto(sessionDict[id], loggedSessionIds.Contains(id)))
+            .ToList();
     }
 
     public async Task<RevealSpoilersResponse> RevealSpoilersAsync(
@@ -218,7 +252,12 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
     // Private Mapping Methods
     // =========================
 
-    private SessionDetailDto MapToSessionDetailDto(Session session, bool spoilersRevealed, bool isLogged)
+    private SessionDetailDto MapToSessionDetailDto(
+        Session session, 
+        IReadOnlyList<Session> siblingSessions, 
+        HashSet<Guid> loggedSessionIds,
+        bool spoilersRevealed, 
+        bool isLogged)
     {
         var round = session.Round;
         var season = round.Season;
@@ -252,7 +291,7 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
             StartTimeUtc: session.StartTimeUtc,
             Status: session.Status.ToString(),
             OpenF1SessionKey: session.OpenF1SessionKey,
-            Round: MapToRoundDetailDto(round, series, isLogged),
+            Round: MapToRoundDetailDto(round, series, siblingSessions, loggedSessionIds),
             IsLogged: isLogged,
             SpoilersRevealed: spoilersRevealed,
             Results: results,
@@ -320,12 +359,16 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
         );
     }
 
-    private RoundDetailDto MapToRoundDetailDto(Round round, Series series, bool isLogged)
+    private RoundDetailDto MapToRoundDetailDto(
+        Round round, 
+        Series series, 
+        IReadOnlyList<Session> siblingSessions,
+        HashSet<Guid> loggedSessionIds)
     {
         var circuit = round.Circuit;
-        var sessionSummaries = round.Sessions
+        var sessionSummaries = siblingSessions
             .OrderBy(s => s.StartTimeUtc)
-            .Select(s => MapToSessionSummaryDto(s, isLogged))
+            .Select(s => MapToSessionSummaryDto(s, loggedSessionIds.Contains(s.Id)))
             .ToList();
 
         return new RoundDetailDto(

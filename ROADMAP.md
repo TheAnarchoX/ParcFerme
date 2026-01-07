@@ -84,6 +84,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 **Lower Priority — Future Prep**
 - [ ] Frontend e2e tests for critical flows (Playwright or Cypress setup)
 - [ ] Design system documentation (colors, typography, component patterns)
+= [ ] Fix `make cache-clear` command in Makefile to ensure it works correctly
 
 ##### Manual (Priority Order)
 
