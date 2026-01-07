@@ -84,8 +84,15 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - Added Round: "FORMULA 1 ARAMCO PRE-SEASON TESTING 2026" (Feb 11-13, 2026)
   - 3 testing sessions at Bahrain International Circuit, 08:00 UTC each day
   - Used SQL insert mirroring 2025 pre-season testing structure (Type=6/Race, RoundNumber=0)
-- [ ] Fix RoundNumbers not being Season specific (across series, e.g. F1 2024 vs F1 2025 both have RoundNumber=1 for Bahrain, preserve 0 for Pre-Season Testing) 
-- [ ] FIx Circuits data not being unique/complete, merge any duplicates (e.g. "Circuit de Monaco" vs "Monaco"), always favor the more complete entry. 
+- [x] Fix RoundNumbers not being Season specific (Completed: Jan 7, 2026)
+  - Created EF Core migration `20260107164012_FixRoundNumbersAndMergeCircuits`
+  - Recalculated RoundNumbers: 0 for pre-season testing, 1-N for races based on date order
+  - Fixed `sync.py` to calculate round numbers correctly via `_calculate_round_numbers` method
+  - Added 4 tests for round number calculation logic
+- [x] Fix Circuits data not being unique/complete (Completed: Jan 7, 2026)
+  - Merged 21 duplicate circuits into canonical entries (46→25 circuits)
+  - Added short names as aliases (e.g., "Austin" → "Circuit of the Americas")
+  - Preserved all historical round associations
 
 **Medium Priority — User-Facing Polish**
 - [x] About page content creation (mission, team, FAQs)
