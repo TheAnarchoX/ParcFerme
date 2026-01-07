@@ -128,14 +128,49 @@ This ensures:
 
 **Keep ROADMAP.md in sync with actual work.** When working on tasks:
 
-1. **Before starting work**: Move the relevant item from its current section to the "In Progress" section at the top of the roadmap
-2. **Upon completion**: Move the item to the "Completed" section with a completion date
-3. **During work**: Update status markers as appropriate:
-   - `[IN PROGRESS]` - actively being worked on
-   - `[COMPLETED]` - fully implemented and tested
-   - `[DEFERRED]` - postponed to later phase
-   - `[OBSOLETE]` - no longer relevant or superseded
-   - `[RESTRUCTURED]` - reorganized into other items
+### When Picking Up a Task
+
+1. **Evaluate the task description first**: Before starting any work, critically review the task as written:
+   - Is the scope clear and well-defined?
+   - Are the acceptance criteria obvious?
+   - Does the description match current codebase state?
+   - Are there outdated assumptions or references?
+   - Would a new developer understand what needs to be done?
+
+2. **Rewrite if needed**: If the task description is unclear, outdated, or incomplete:
+   - Update the description to reflect current understanding
+   - Add specific deliverables or acceptance criteria
+   - Remove outdated context or references
+   - Break down vague tasks into concrete sub-tasks
+   - Commit the roadmap update before starting implementation
+
+3. **Move to In Progress**: Move the item to the "🚧 In Progress" section
+
+### During Work
+
+Update status markers as appropriate:
+- `[IN PROGRESS]` - actively being worked on
+- `[COMPLETED]` - fully implemented and tested
+- `[DEFERRED]` - postponed to later phase
+- `[OBSOLETE]` - no longer relevant or superseded
+- `[RESTRUCTURED]` - reorganized into other items
+
+### Upon Completion
+
+1. **Move to Completed section** with completion date
+2. **Update the task with implementation summary**:
+   - What was actually built/changed
+   - Key files or commands added
+   - Any deviations from original plan
+   - Gotchas or lessons learned for future reference
+   
+   Example:
+   ```markdown
+   - [x] Pre-fill 2026 data for F1 (Completed: Jan 7, 2026)
+     - Parsed ICS calendar from RacingNews365, translated Dutch to English
+     - Removed branding, created 24 rounds with 120 sessions
+     - Added seed script: `python -m ingestion.seed_f1_2026`
+   ```
 
 ### General Maintenance
 - Keep completed items organized by date (most recent first)
