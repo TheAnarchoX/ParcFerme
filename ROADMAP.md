@@ -80,6 +80,11 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - Parsed ICS calendar from RacingNews365, translated Dutch to English
   - Removed branding, created 24 rounds with 120 sessions
   - Added seed script: `python -m ingestion.seed_f1_2026`
+- [x] Add 2026 Pre-Season Testing Data (Completed: Jan 7, 2026)
+  - Added Round: "FORMULA 1 ARAMCO PRE-SEASON TESTING 2026" (Feb 11-13, 2026)
+  - 3 testing sessions at Bahrain International Circuit, 08:00 UTC each day
+  - Used SQL insert mirroring 2025 pre-season testing structure (Type=6/Race, RoundNumber=0)
+- [ ] FIx Circuits data not being unique/complete, merge any duplicates (e.g. "Circuit de Monaco" vs "Monaco"), always favor the more complete entry. 
 
 **Medium Priority — User-Facing Polish**
 - [x] About page content creation (mission, team, FAQs)
