@@ -60,22 +60,42 @@ _(None currently)_
 
 ### 📋 Up Next (Priority Order)
 
-#### 0. Chore Tasks
-There are 2 types of chores: "Agentic" and "Manual". "Manual" chores are tasks are only to be done by humans, while "Agentic" chores can be completed by AI agents following the [AI Coding Guidelines](./AGENTS.md).
+#### 0. Chores
+There are 2 types of chores: "Agentic" and "Manual". "Manual" tasks are only to be done by humans, while "Agentic" chores can be completed by AI agents following the [AI Coding Guidelines](./AGENTS.md).
 
-##### Agents
-- [ ] Write unit and integration tests for newly added APIs and features
-- [ ] About/Help/FAQ pages content creation
-- [ ] API Documentation (Swagger) enhancements for all endpoints
-- [ ] Finalize branding assets (logo, colors, fonts) + documentation for design consistency
-- [ ] Write onboarding email series for new users
-- [ ] Finalize marketing materials for launch (press kit, screenshots, feature list)
+The Chores list lives next to the sprints so that they can be prioritized and completed alongside feature work, rather than being deferred indefinitely—a clean way of staying ahead of tech debt with agents.
 
-##### Manual
-- [ ] Setup social media accounts (Twitter, Instagram) + initial posts
-- [ ] Find and onboard community members for data contributions (MotoGP, IndyCar, WEC) and feeback
+##### Agentic (Priority Order)
+
+**High Priority — Code Quality & Testing**
+- [ ] Add integration tests for SessionsController (spoiler logic coverage)
+- [ ] Add unit tests for SpoilerShieldService edge cases
+- [ ] Frontend component tests for SpoilerMask/SpoilerBlur behavior
+
+**High Priority — Documentation & DX**
+- [ ] Enhance Swagger documentation (summaries, examples, response types for all endpoints)
+- [ ] Update README with architecture overview and development workflow
+
+**Medium Priority — User-Facing Polish**
+- [ ] About page content creation (mission, team, FAQs)
+- [ ] SEO optimization for public pages (meta tags, Open Graph, structured data)
+- [ ] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
+
+**Lower Priority — Future Prep**
+- [ ] Frontend e2e tests for critical flows (Playwright or Cypress setup)
+- [ ] Design system documentation (colors, typography, component patterns)
+
+##### Manual (Priority Order)
+
+**Pre-Launch Critical**
 - [ ] Legal review of historical data usage and user-generated content policies
-- [ ] FInalize marketing materials for launch (press kit, screenshots, feature list)
+
+**Launch Prep**
+- [ ] Finalize marketing materials (press kit, screenshots, feature list)
+- [ ] Setup social media accounts (Twitter/X, Bluesky, Instagram) + initial posts
+
+**Growth Phase**
+- [ ] Find and onboard community members for data contributions (MotoGP, IndyCar, WEC) and feedback
 
 
 #### 1. Complete Discovery Flow (Browse → Find → View)
