@@ -110,12 +110,13 @@ class OpenF1SessionResult(BaseModel):
     """Session result data from OpenF1 API (beta endpoint).
     
     Provides comprehensive result data including DNF/DNS/DSQ status.
+    Note: position can be null for drivers who didn't set a time (e.g., DNS in qualifying).
     """
 
     session_key: int
     meeting_key: int
     driver_number: int
-    position: int
+    position: int | None = None  # Can be null for DNS/no time set
     dnf: bool = False
     dns: bool = False
     dsq: bool = False

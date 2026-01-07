@@ -889,6 +889,15 @@ class OpenF1SyncService:
         results: list[Result] = []
         
         for sr in session_results:
+            # Skip results without a position (e.g., DNS in qualifying with no time set)
+            if sr.position is None:
+                logger.debug(
+                    "Skipping result with no position",
+                    driver_number=sr.driver_number,
+                    session_key=openf1_session.session_key,
+                )
+                continue
+            
             entrant_id = entrant_map.get(sr.driver_number)
             if not entrant_id:
                 entrant = repo.get_entrant_by_driver_number(round_id, sr.driver_number)
