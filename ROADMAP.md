@@ -84,7 +84,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 **Lower Priority — Future Prep**
 - [x] Frontend e2e tests for critical flows (Playwright setup with homepage, auth, discovery, spoiler-shield tests)
-- [ ] Design system documentation (colors, typography, component patterns)
+- [x] Design system documentation (colors, typography, component patterns) → docs/DESIGN_SYSTEM.md
 
 ##### Manual (Priority Order)
 
