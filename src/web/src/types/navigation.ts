@@ -132,9 +132,10 @@ export const ROUTES = {
   SEARCH: '/search',
   STATUS: '/status',
 
-  // Legal
+  // Legal & Info
   PRIVACY: '/privacy',
   TERMS: '/terms',
+  ABOUT: '/about',
 } as const;
 
 // =========================

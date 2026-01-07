@@ -75,10 +75,10 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 **High Priority — Code Quality & Testing**
 - [x] Frontend component tests for SpoilerMask/SpoilerBlur behavior (54 tests)
-- [ ] Copy logo from WSL Host (C:\Users\jimdv\Pictures\logo.png) to repo /assets and use wherever applicable
+- [ ] Add logo (/assets/logo.png) to the frontend public folder and reference it in the HTML head for favicon 
 
 **Medium Priority — User-Facing Polish**
-- [ ] About page content creation (mission, team, FAQs)
+- [x] About page content creation (mission, team, FAQs)
 - [ ] SEO optimization for public pages (meta tags, Open Graph, structured data)
 - [ ] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
 

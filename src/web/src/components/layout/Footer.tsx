@@ -77,9 +77,14 @@ export function Footer() {
           {/* Legal */}
           <div>
             <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-4">
-              Legal
+              Info
             </h3>
             <ul className="space-y-2">
+              <li>
+                <Link to={ROUTES.ABOUT} className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
+                  About
+                </Link>
+              </li>
               <li>
                 <Link to={ROUTES.PRIVACY} className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
                   Privacy Policy

@@ -12,6 +12,7 @@ import { ErrorPage, ForbiddenPage, ServerErrorPage, MaintenancePage } from './pa
 // Legal pages
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { TermsPage } from './pages/TermsPage';
+import { AboutPage } from './pages/AboutPage';
 
 // Discovery pages
 import { SeriesListPage } from './pages/discovery/SeriesListPage';
@@ -61,6 +62,7 @@ function AppRoutes() {
       {/* Legal routes */}
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/about" element={<AboutPage />} />
 
       {/* Discovery routes - Series hierarchy */}
       <Route path="/series" element={<SeriesListPage />} />
