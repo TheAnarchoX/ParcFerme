@@ -1,12 +1,19 @@
 """OpenF1 API client for fetching F1 data."""
 
+import time
 from datetime import datetime
 from typing import Any
 
 import httpx  # type: ignore
 import structlog  # type: ignore
 from pydantic import BaseModel  # type: ignore
-from tenacity import retry, stop_after_attempt, wait_exponential  # type: ignore
+from tenacity import (  # type: ignore
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+    before_sleep_log,
+)
 
 from ingestion.config import settings
 
@@ -16,10 +23,25 @@ logger = structlog.get_logger()
 class OpenF1ApiError(Exception):
     """Raised when the OpenF1 API returns an error or is unavailable."""
 
-    def __init__(self, message: str, status_code: int | None = None):
+    def __init__(self, message: str, status_code: int | None = None, retryable: bool = False):
         self.message = message
         self.status_code = status_code
+        self.retryable = retryable
         super().__init__(self.message)
+
+
+class OpenF1RateLimitError(OpenF1ApiError):
+    """Raised when OpenF1 API returns 429 rate limit error. This is retryable."""
+
+    def __init__(self, message: str = "Rate limit exceeded"):
+        super().__init__(message, status_code=429, retryable=True)
+
+
+class OpenF1ServerError(OpenF1ApiError):
+    """Raised when OpenF1 API returns 5xx server error. This is retryable."""
+
+    def __init__(self, message: str, status_code: int):
+        super().__init__(message, status_code=status_code, retryable=True)
 
 
 class OpenF1Session(BaseModel):
@@ -160,36 +182,61 @@ class OpenF1Client:
     def __exit__(self, *args: Any) -> None:
         self.close()
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    @retry(
+        retry=retry_if_exception_type((OpenF1RateLimitError, OpenF1ServerError)),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=4, max=60),
+        before_sleep=before_sleep_log(logger, "warning"),
+        reraise=True,
+    )
     def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        """Make a GET request with retry logic."""
+        """Make a GET request with exponential backoff retry logic.
+        
+        Retries on:
+        - 429 Rate Limit: waits 4s, 8s, 16s, 32s, 60s between attempts
+        - 5xx Server Errors: same backoff pattern
+        
+        Does NOT retry on:
+        - 4xx Client Errors (except 429)
+        - Connection errors (network issues)
+        """
         try:
             response = self._client.get(endpoint, params=params)
             response.raise_for_status()
             return response.json()  # type: ignore[no-any-return]
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
-            if status == 502:
-                logger.error("OpenF1 API is down (502 Bad Gateway)", endpoint=endpoint)
-                raise OpenF1ApiError(
-                    "OpenF1 API is currently unavailable (502 Bad Gateway). "
-                    "The service may be experiencing issues. Please try again later.",
+            if status == 429:
+                # Rate limited - raise retryable error
+                logger.warning(
+                    "OpenF1 API rate limited (429), will retry with backoff",
+                    endpoint=endpoint,
+                )
+                raise OpenF1RateLimitError(
+                    "OpenF1 API rate limit exceeded. Retrying with exponential backoff..."
+                ) from e
+            elif status == 502:
+                logger.warning(
+                    "OpenF1 API bad gateway (502), will retry with backoff",
+                    endpoint=endpoint,
+                )
+                raise OpenF1ServerError(
+                    "OpenF1 API is currently unavailable (502 Bad Gateway). Retrying...",
                     status_code=502,
                 ) from e
-            elif status == 429:
-                logger.warning("OpenF1 API rate limited (429)", endpoint=endpoint)
-                raise OpenF1ApiError(
-                    "OpenF1 API rate limit exceeded. Please wait before retrying.",
-                    status_code=429,
-                ) from e
             elif status >= 500:
-                logger.error("OpenF1 API server error", status=status, endpoint=endpoint)
-                raise OpenF1ApiError(
-                    f"OpenF1 API server error ({status}). The service may be unavailable.",
+                logger.warning(
+                    "OpenF1 API server error, will retry with backoff",
+                    status=status,
+                    endpoint=endpoint,
+                )
+                raise OpenF1ServerError(
+                    f"OpenF1 API server error ({status}). Retrying...",
                     status_code=status,
                 ) from e
             else:
-                logger.error("OpenF1 API error", status=status, endpoint=endpoint)
+                # 4xx errors (except 429) are not retryable
+                logger.error("OpenF1 API client error", status=status, endpoint=endpoint)
                 raise OpenF1ApiError(
                     f"OpenF1 API request failed with status {status}",
                     status_code=status,
