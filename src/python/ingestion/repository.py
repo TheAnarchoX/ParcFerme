@@ -1304,3 +1304,113 @@ class RacingRepository:
                 ids.append(_to_uuid(row["Id"]) if row else result.id)
             conn.commit()
         return ids
+
+    def delete_results_for_year(self, year: int, series_slug: str = "formula-1") -> int:
+        """Delete all results for a specific year.
+        
+        ⚠️ DESTRUCTIVE - This permanently removes results data.
+        
+        Args:
+            year: The season year to delete results for
+            series_slug: The series slug (default: "formula-1")
+            
+        Returns:
+            Number of results deleted
+        """
+        with self._get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM "Results" r
+                USING "Sessions" s
+                JOIN "Rounds" rd ON s."RoundId" = rd."Id"
+                JOIN "Seasons" sn ON rd."SeasonId" = sn."Id"
+                JOIN "Series" sr ON sn."SeriesId" = sr."Id"
+                WHERE r."SessionId" = s."Id"
+                  AND sn."Year" = %s
+                  AND sr."Slug" = %s
+                """,
+                (year, series_slug),
+            )
+            deleted_count = cur.rowcount
+            conn.commit()
+            
+        logger.info(
+            "Deleted results for year",
+            year=year,
+            series=series_slug,
+            count=deleted_count,
+        )
+        return deleted_count
+
+    def delete_results_for_year_range(
+        self, start_year: int, end_year: int, series_slug: str = "formula-1"
+    ) -> int:
+        """Delete all results for a range of years.
+        
+        ⚠️ DESTRUCTIVE - This permanently removes results data.
+        
+        Args:
+            start_year: First year (inclusive)
+            end_year: Last year (inclusive)
+            series_slug: The series slug (default: "formula-1")
+            
+        Returns:
+            Total number of results deleted
+        """
+        with self._get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM "Results" r
+                USING "Sessions" s
+                JOIN "Rounds" rd ON s."RoundId" = rd."Id"
+                JOIN "Seasons" sn ON rd."SeasonId" = sn."Id"
+                JOIN "Series" sr ON sn."SeriesId" = sr."Id"
+                WHERE r."SessionId" = s."Id"
+                  AND sn."Year" >= %s
+                  AND sn."Year" <= %s
+                  AND sr."Slug" = %s
+                """,
+                (start_year, end_year, series_slug),
+            )
+            deleted_count = cur.rowcount
+            conn.commit()
+            
+        logger.info(
+            "Deleted results for year range",
+            start_year=start_year,
+            end_year=end_year,
+            series=series_slug,
+            count=deleted_count,
+        )
+        return deleted_count
+
+    def count_results_for_year_range(
+        self, start_year: int, end_year: int, series_slug: str = "formula-1"
+    ) -> int:
+        """Count results for a range of years.
+        
+        Args:
+            start_year: First year (inclusive)
+            end_year: Last year (inclusive)
+            series_slug: The series slug (default: "formula-1")
+            
+        Returns:
+            Number of results in the year range
+        """
+        with self._get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*) as count
+                FROM "Results" r
+                JOIN "Sessions" s ON r."SessionId" = s."Id"
+                JOIN "Rounds" rd ON s."RoundId" = rd."Id"
+                JOIN "Seasons" sn ON rd."SeasonId" = sn."Id"
+                JOIN "Series" sr ON sn."SeriesId" = sr."Id"
+                WHERE sn."Year" >= %s
+                  AND sn."Year" <= %s
+                  AND sr."Slug" = %s
+                """,
+                (start_year, end_year, series_slug),
+            )
+            row = cur.fetchone()
+            return row[0] if row else 0

@@ -209,6 +209,13 @@ function MarketingPage() {
               Get Started
             </Button>
           </Link>
+          <div className="mt-4">
+            <Link to="/about#faq">
+              <Button variant="secondary" size="lg" className="min-w-[200px]">
+                Not Yet
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 

@@ -20,6 +20,7 @@ import structlog  # type: ignore
 
 from ingestion.clients.openf1 import OpenF1ApiError, OpenF1Client
 from ingestion.config import settings
+from ingestion.repository import RacingRepository
 from ingestion.sync import OpenF1SyncService, SyncOptions
 
 # Configure structured logging
@@ -321,6 +322,9 @@ Examples:
   # Sync without results (faster, no spoilers)
   python -m ingestion.bulk_sync --all --no-results
   
+  # Clear and re-sync results from scratch
+  python -m ingestion.bulk_sync --start-year 2023 --end-year 2025 --clear-results
+  
   # Safe historical sync: only create new entities, don't update existing
   python -m ingestion.bulk_sync --start-year 2020 --end-year 2022 --create-only
 
@@ -402,6 +406,13 @@ Examples:
         action="store_true",
         help="Log what would be done without making database changes (not yet implemented)",
     )
+    parser.add_argument(
+        "--clear-results",
+        action="store_true",
+        help="""Clear all existing results for the specified year range before syncing.
+                ⚠️ DESTRUCTIVE: Permanently deletes results data.
+                Use when you want a fresh re-sync of results data.""",
+    )
     
     parser.add_argument(
         "--pause",
@@ -479,6 +490,19 @@ Examples:
         print("🛡️  Safety: --preserve-numbers enabled (canonical driver numbers preserved)")
     if args.dry_run:
         print("🧪 DRY RUN: Not yet implemented - changes WILL be made")
+
+    # Handle --clear-results: delete existing results before syncing
+    if args.clear_results:
+        print(f"\n🗑️  --clear-results: Clearing existing results for {start_year}-{end_year}...")
+        with RacingRepository() as repo:
+            # Show current count before deletion
+            current_count = repo.count_results_for_year_range(start_year, end_year)
+            if current_count == 0:
+                print(f"   No existing results found for {start_year}-{end_year}")
+            else:
+                print(f"   Found {current_count} existing results")
+                deleted_count = repo.delete_results_for_year_range(start_year, end_year)
+                print(f"   ✅ Deleted {deleted_count} results")
 
     # Create and run bulk sync
     runner = BulkSyncRunner(

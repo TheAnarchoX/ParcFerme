@@ -24,6 +24,11 @@ const faqs: FAQItem[] = [
       'Yes! Parc Fermé offers a generous free tier that includes access to all historical race data, logging capabilities, and community features. We believe motorsport history should be accessible to everyone. Premium features (PaddockPass) may be offered in the future for advanced statistics and exclusive features.',
   },
   {
+    question: 'Is there a mobile app?',
+    answer:
+      'Currently, Parc Fermé is available as a web application optimized for both desktop and mobile browsers. There\'s a not insignificant cost and effort to build and maintain native mobile apps (especially for iOS), so we\'re focusing on delivering the best possible web experience for now. We may explore native apps in the future based on user demand.',
+  },
+  {
     question: 'What is the Spoiler Shield?',
     answer:
       'The Spoiler Shield is our core feature that helps you avoid race spoilers. By default, race results are hidden until you log that you\'ve watched them. You can adjust your spoiler preferences to Strict (hide all results), Moderate (hide recent races), or None (show everything).',
@@ -214,7 +219,7 @@ export function AboutPage() {
         {/* FAQs */}
         <section className="mb-16">
           <div className="bg-neutral-900/50 rounded-xl border border-neutral-800 p-8">
-            <h2 className="text-2xl font-bold text-neutral-100 mb-8 flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-neutral-100 mb-8 flex items-center gap-3" id="faq">
               <span className="text-3xl">❓</span>
               Frequently Asked Questions
             </h2>

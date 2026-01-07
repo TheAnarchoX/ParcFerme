@@ -24,6 +24,25 @@ export function Footer() {
             <p className="text-sm text-neutral-500 leading-relaxed">
               Your personal motorsport diary. Log races, rate experiences, and connect with fellow fans.
             </p>
+            {/* You can add social media icons or other brand elements here */}
+            <div className="mt-4 flex items-center gap-3">
+              <a
+                href="https://x.com/ParcFermeApp"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Parc Fermé on X"
+                title="Follow Parc Fermé on X"
+                className="inline-flex items-center justify-center rounded-md p-2 text-neutral-500 hover:text-neutral-300 hover:bg-neutral-900/50 transition-colors"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  className="h-5 w-5 fill-current"
+                >
+                  <path d="M18.9 2H22l-6.8 7.8L23.2 22H16l-5.5-7.1L4.3 22H1.2l7.3-8.4L.8 2h7.4l5 6.4L18.9 2Zm-1.1 18h1.8L7.2 3.9H5.3L17.8 20Z" />
+                </svg>
+              </a>
+            </div>
           </div>
 
           {/* Discover */}
