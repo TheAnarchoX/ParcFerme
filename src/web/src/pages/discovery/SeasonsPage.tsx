@@ -5,7 +5,7 @@ import { useBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
 import { seriesApi } from '../../services/seriesService';
 import type { SeriesSummaryDto, SeasonSummaryDto } from '../../types/series';
-import { getSeriesColors } from '../../types/series';
+import { getSeriesColors, getContrastColor } from '../../types/series';
 
 // =========================
 // Loading Skeletons
@@ -128,6 +128,7 @@ function SeriesFilter({ allSeries, selectedSeries, onSelectSeries }: SeriesFilte
           : getSeriesColors(series.slug);
         const primaryColor = colors[0];
         const isSelected = selectedSeries === series.slug;
+        const textColor = primaryColor ? getContrastColor(primaryColor) : '#000000';
         
         return (
           <button
@@ -135,12 +136,13 @@ function SeriesFilter({ allSeries, selectedSeries, onSelectSeries }: SeriesFilte
             onClick={() => onSelectSeries(series.slug)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-all border ${
               isSelected
-                ? 'text-black'
+                ? ''
                 : 'bg-neutral-900/50 text-neutral-400 hover:text-neutral-200 border-neutral-800'
             }`}
             style={isSelected ? { 
               backgroundColor: primaryColor,
-              borderColor: primaryColor
+              borderColor: primaryColor,
+              color: textColor
             } : undefined}
           >
             {series.name}

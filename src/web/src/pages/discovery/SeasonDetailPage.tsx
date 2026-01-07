@@ -5,7 +5,7 @@ import { useBreadcrumbs, buildSeasonBreadcrumbs } from '../../components/navigat
 import { ROUTES } from '../../types/navigation';
 import { seriesApi } from '../../services/seriesService';
 import type { SeasonDetailDto, RoundSummaryForSeasonDto } from '../../types/series';
-import { getSeriesColors } from '../../types/series';
+import { getSeriesColors, getContrastColor } from '../../types/series';
 
 // =========================
 // Loading Skeleton
@@ -70,12 +70,53 @@ function StatsCard({ label, value, icon, primaryColor }: StatsCardProps) {
 
 interface RoundCardProps {
   seriesSlug: string;
+  seriesName: string;
   year: number;
   round: RoundSummaryForSeasonDto;
   primaryColor?: string;
 }
 
-function RoundCard({ seriesSlug, year, round, primaryColor }: RoundCardProps) {
+/**
+ * Clean up round name by removing series prefix and year suffix.
+ * e.g., "FORMULA 1 ROLEX AUSTRALIAN GRAND PRIX 2023" -> "Rolex Australian Grand Prix"
+ */
+function cleanRoundName(name: string, seriesName: string, year: number): string {
+  let cleaned = name;
+  
+  // Remove common series prefixes (case-insensitive)
+  const prefixes = [
+    `${seriesName} `,
+    'FORMULA 1 ',
+    'FORMULA ONE ',
+    'F1 ',
+    'MOTOGP ',
+    'MOTO GP ',
+    'WEC ',
+    'INDYCAR ',
+  ];
+  
+  for (const prefix of prefixes) {
+    if (cleaned.toUpperCase().startsWith(prefix.toUpperCase())) {
+      cleaned = cleaned.slice(prefix.length);
+      break;
+    }
+  }
+  
+  // Remove year suffix (e.g., " 2023" at the end)
+  const yearSuffix = ` ${year}`;
+  if (cleaned.endsWith(yearSuffix)) {
+    cleaned = cleaned.slice(0, -yearSuffix.length);
+  }
+  
+  // Convert to title case if all uppercase
+  if (cleaned === cleaned.toUpperCase()) {
+    cleaned = cleaned.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+  
+  return cleaned.trim();
+}
+
+function RoundCard({ seriesSlug, seriesName, year, round, primaryColor }: RoundCardProps) {
   const formatDateRange = (start: string, end: string): string => {
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -89,6 +130,8 @@ function RoundCard({ seriesSlug, year, round, primaryColor }: RoundCardProps) {
     // Different months: "Jun 30 - Jul 2, 2024"
     return `${startStr} - ${endStr}`;
   };
+  
+  const displayName = cleanRoundName(round.name, seriesName, year);
 
   return (
     <Link
@@ -122,7 +165,7 @@ function RoundCard({ seriesSlug, year, round, primaryColor }: RoundCardProps) {
         </div>
         
         <h3 className="text-lg font-bold text-neutral-100 group-hover:text-accent-green transition-colors mb-1">
-          {round.name}
+          {displayName}
         </h3>
         
         <div className="flex items-center gap-2 text-sm text-neutral-400 mb-2">
@@ -165,6 +208,9 @@ function FilterTabs({ activeFilter, onFilterChange, counts, primaryColor }: Filt
     { id: 'completed', label: 'Completed', count: counts.completed },
     { id: 'upcoming', label: 'Upcoming', count: counts.upcoming },
   ];
+  
+  const activeColor = primaryColor || '#4ade80';
+  const textColor = getContrastColor(activeColor);
 
   return (
     <div className="flex gap-2 mb-6">
@@ -174,12 +220,12 @@ function FilterTabs({ activeFilter, onFilterChange, counts, primaryColor }: Filt
           onClick={() => onFilterChange(tab.id)}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
             activeFilter === tab.id
-              ? 'text-white'
+              ? ''
               : 'bg-neutral-900/50 text-neutral-400 hover:text-neutral-200'
           }`}
           style={activeFilter === tab.id ? { 
-            backgroundColor: primaryColor || '#4ade80',
-            color: '#000'
+            backgroundColor: activeColor,
+            color: textColor
           } : undefined}
         >
           {tab.label} ({tab.count})
@@ -328,7 +374,7 @@ export function SeasonDetailPage() {
         />
         <div className="pt-4">
           <PageHeader
-            icon="📅"
+            icon={seasonData.series.logoUrl || "🏁"}
             title={`${seasonData.series.name} ${yearNum}`}
             subtitle={formatSeasonDates()}
           />
@@ -379,7 +425,8 @@ export function SeasonDetailPage() {
             {filteredRounds.map((round) => (
               <RoundCard 
                 key={round.id}
-                seriesSlug={seriesSlug} 
+                seriesSlug={seriesSlug}
+                seriesName={seasonData.series.name}
                 year={yearNum} 
                 round={round}
                 primaryColor={primaryColor}
