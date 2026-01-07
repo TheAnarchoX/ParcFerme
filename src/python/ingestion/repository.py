@@ -1013,11 +1013,10 @@ class RacingRepository:
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 """
-                    INSERT INTO "Entrants" ("Id", "RoundId", "DriverId", "TeamId", "CarNumber")
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO "Entrants" ("Id", "RoundId", "DriverId", "TeamId")
+                    VALUES (%s, %s, %s, %s)
                     ON CONFLICT ("RoundId", "DriverId") DO UPDATE SET
-                        "TeamId" = EXCLUDED."TeamId",
-                        "CarNumber" = EXCLUDED."CarNumber"
+                        "TeamId" = EXCLUDED."TeamId"
                     RETURNING "Id"
                     """,
                 (
@@ -1025,7 +1024,6 @@ class RacingRepository:
                     str(entrant.round_id),
                     str(entrant.driver_id),
                     str(entrant.team_id),
-                    entrant.car_number,
                 ),
             )
             row = cur.fetchone()
@@ -1036,7 +1034,7 @@ class RacingRepository:
         """Get an entrant by round and driver."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                """SELECT "Id", "RoundId", "DriverId", "TeamId", "CarNumber"
+                """SELECT "Id", "RoundId", "DriverId", "TeamId"
                        FROM "Entrants" WHERE "RoundId" = %s AND "DriverId" = %s""",
                 (str(round_id), str(driver_id)),
             )
@@ -1047,26 +1045,6 @@ class RacingRepository:
                     round_id=_to_uuid(row["RoundId"]),
                     driver_id=_to_uuid(row["DriverId"]),
                     team_id=_to_uuid(row["TeamId"]),
-                    car_number=row["CarNumber"],
-                )
-            return None
-
-    def get_entrant_by_driver_number(self, round_id: UUID, car_number: int) -> Entrant | None:
-        """Get an entrant by round and car number."""
-        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
-            cur.execute(
-                """SELECT "Id", "RoundId", "DriverId", "TeamId", "CarNumber"
-                       FROM "Entrants" WHERE "RoundId" = %s AND "CarNumber" = %s""",
-                (str(round_id), car_number),
-            )
-            row = cur.fetchone()
-            if row:
-                return Entrant(
-                    id=_to_uuid(row["Id"]),
-                    round_id=_to_uuid(row["RoundId"]),
-                    driver_id=_to_uuid(row["DriverId"]),
-                    team_id=_to_uuid(row["TeamId"]),
-                    car_number=row["CarNumber"],
                 )
             return None
 

@@ -199,7 +199,6 @@ class Entrant(BaseModel):
     round_id: UUID
     driver_id: UUID
     team_id: UUID
-    car_number: int | None = None
 
 
 class Result(BaseModel):

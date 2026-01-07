@@ -381,8 +381,6 @@ public sealed class Entrant
     public Guid DriverId { get; set; }
     public Guid TeamId { get; set; }
     
-    public int? CarNumber { get; set; }
-    
     public Round Round { get; set; } = null!;
     public Driver Driver { get; set; } = null!;
     public Team Team { get; set; } = null!;

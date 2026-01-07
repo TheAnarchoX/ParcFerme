@@ -167,9 +167,8 @@ class TestEntrantModel:
             round_id=UUID("12345678-1234-5678-1234-567812345678"),
             driver_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
             team_id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
-            car_number=1,
         )
-        assert entrant.car_number == 1
+        assert entrant.id is not None
 
 
 class TestResultModel:

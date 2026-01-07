@@ -157,7 +157,7 @@ This cluster defines the immutable facts of the sport.
 | **Round** | round_id | season_id, circuit_id, name, date_start, date_end | The "Weekend" container (e.g., British GP). |
 | **Session** | session_id | round_id, type (FP1, Quali, Race), start_time (UTC) | The actual rate-able unit. |
 | **Circuit** | circuit_id | name, location, country, layout_map_url | Holds geolocation data for maps. |
-| **Entrant** | entrant_id | round_id, driver_id, team_id, car_number | Links drivers to teams for _specific_ races. |
+| **Entrant** | entrant_id | round_id, driver_id, team_id | Links drivers to teams for _specific_ races. |
 | **Result** | result_id | session_id, entrant_id, position, status, points | **SPOILER DATA** (Must be protected). |
 
 #### 5.1.2 The "Social" Cluster (Subjective Experience)

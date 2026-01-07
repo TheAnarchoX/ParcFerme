@@ -163,8 +163,8 @@ public sealed class RoundsController : BaseApiController
 
         // Build entrants list with context-aware aliases
         var entrants = round.Entrants
-            .OrderBy(e => e.CarNumber ?? int.MaxValue)
-            .ThenBy(e => e.Driver.LastName)
+            .OrderBy(e => e.Driver.LastName)
+            .ThenBy(e => e.Driver.FirstName)
             .Select(e =>
             {
                 // Find applicable driver alias for this event
@@ -198,7 +198,6 @@ public sealed class RoundsController : BaseApiController
 
                 return new EntrantDto(
                     Id: e.Id,
-                    CarNumber: e.CarNumber,
                     Driver: new DriverSummaryDto(
                         Id: e.Driver.Id,
                         FirstName: driverFirstName,

@@ -504,20 +504,6 @@ export function RoundDetailPage() {
                 key={entrant.id}
                 className="flex items-center gap-3 p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg hover:border-neutral-700 transition-colors"
               >
-                {/* Car Number */}
-                {entrant.carNumber !== null && entrant.carNumber !== undefined && (
-                  <div 
-                    className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg"
-                    style={{
-                      backgroundColor: entrant.team.primaryColor ? `${entrant.team.primaryColor}30` : '#262626',
-                      color: entrant.team.primaryColor || '#ffffff',
-                      border: `2px solid ${entrant.team.primaryColor || '#404040'}`
-                    }}
-                  >
-                    {entrant.carNumber}
-                  </div>
-                )}
-                
                 {/* Driver & Team Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">

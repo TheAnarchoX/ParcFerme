@@ -168,7 +168,6 @@ public sealed record TeamSummaryDto(
 
 public sealed record EntrantDto(
     Guid Id,
-    int? CarNumber,
     DriverSummaryDto Driver,
     TeamSummaryDto Team
 );

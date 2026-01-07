@@ -160,7 +160,6 @@ export interface TeamSummaryDto {
 
 export interface EntrantDto {
   id: string;
-  carNumber?: number;
   driver: DriverSummaryDto;
   team: TeamSummaryDto;
 }

@@ -211,8 +211,7 @@ public class SessionsControllerTests : IClassFixture<ParcFermeWebApplicationFact
             Id = TestEntrantId,
             RoundId = TestRoundId,
             DriverId = TestDriverId,
-            TeamId = TestTeamId,
-            CarNumber = 44
+            TeamId = TestTeamId
         };
         db.Entrants.Add(entrant);
         await db.SaveChangesAsync();

@@ -186,7 +186,6 @@ def audit_data_quality() -> dict[str, Any]:
                     ("RoundId", False),
                     ("DriverId", False),
                     ("TeamId", False),
-                    ("CarNumber", True),  # May be null in edge cases
                 ])
                 
                 # Results

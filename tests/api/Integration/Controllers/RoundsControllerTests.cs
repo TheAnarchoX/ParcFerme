@@ -228,8 +228,7 @@ public class RoundsControllerTests : IClassFixture<ParcFermeWebApplicationFactor
             Id = Guid.NewGuid(),
             RoundId = britishGp2024.Id,
             DriverId = driver.Id,
-            TeamId = team.Id,
-            CarNumber = 44
+            TeamId = team.Id
         };
 
         db.Entrants.Add(entrant);

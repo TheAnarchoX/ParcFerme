@@ -445,7 +445,6 @@ class OpenF1SyncService:
                     round_id=round_id,
                     driver_id=driver_id,
                     team_id=team_id,
-                    car_number=driver_data.driver_number,
                 )
                 entrant_id = repo.upsert_entrant(entrant)
                 entrant_map[driver_data.driver_number] = entrant_id
