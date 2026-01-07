@@ -112,6 +112,14 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [x] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
 - [ ] Ensure Series Logo's are always readable (take the transparent motogp logo as an example, mainly black with red text. Not readable at all) by adding a white background or border around them where necessary.
 
+**Data & Ingestion**
+- [x] Add results-only sync mode for historical data (Completed: Jan 7, 2026)
+  - Added `--results-only` flag to bulk_sync CLI that syncs results without modifying driver/team/session entities
+  - Enhanced entrant lookup to use DriverAliases for historical driver numbers (e.g., Max Verstappen #1 → #3)
+  - Added `sync_results_only_year()`, `get_completed_sessions_by_year()`, `get_entrants_by_round()` methods
+  - Synced 1218 results for 2023 season; 2024-2025 pending (rate limited)
+- [ ] Complete 2024-2025 results sync (run `--results-only` with longer pauses to avoid rate limits)
+
 **Lower Priority — Future Prep**
 - [x] Frontend e2e tests for critical flows (Playwright setup with homepage, auth, discovery, spoiler-shield tests)
 - [x] Design system documentation (colors, typography, component patterns) → docs/DESIGN_SYSTEM.md
