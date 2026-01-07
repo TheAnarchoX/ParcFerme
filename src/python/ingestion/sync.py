@@ -673,9 +673,11 @@ class OpenF1SyncService:
         logger.info("Starting sync", year=year, include_results=include_results)
 
         # Ensure F1 series and season exist
+        print(f"  🔧 Ensuring F1 series and {year} season exist...")
         season_id = self._ensure_season(repo, year)
 
         # Fetch all meetings for the year
+        print(f"  📡 Fetching meetings from OpenF1...")
         try:
             meetings = api.get_meetings(year)
         except OpenF1ApiError as e:
@@ -692,6 +694,7 @@ class OpenF1SyncService:
             stats["errors"].append(f"Failed to fetch meetings: {e}")
             return stats
 
+        print(f"  📋 Found {len(meetings)} meetings for {year}")
         logger.info("Found meetings", count=len(meetings), year=year)
 
         # Sort meetings by date to calculate proper round numbers
@@ -701,8 +704,14 @@ class OpenF1SyncService:
         round_number_map = self._calculate_round_numbers(sorted_meetings)
 
         for i, meeting in enumerate(sorted_meetings, 1):
+            meeting_name = meeting.meeting_name
+            round_number = round_number_map.get(meeting.meeting_key, i)
+            
+            # Determine if this is testing or a race weekend
+            meeting_type = "Testing" if round_number == 0 else f"Round {round_number}"
+            print(f"\n  🏎️  [{i}/{len(sorted_meetings)}] {meeting_name} ({meeting_type})")
+            
             try:
-                round_number = round_number_map.get(meeting.meeting_key, i)
                 self._sync_meeting(
                     api, repo, meeting, season_id, include_results, stats, round_number, options
                 )
@@ -714,6 +723,7 @@ class OpenF1SyncService:
                     progress=f"{i}/{len(sorted_meetings)}",
                 )
             except Exception as e:
+                print(f"      ❌ Error: {e}")
                 logger.error(
                     "Failed to sync meeting",
                     meeting=meeting.meeting_name,
@@ -750,6 +760,7 @@ class OpenF1SyncService:
         options = options or SyncOptions()
         
         # Create circuit
+        print(f"      📍 Circuit: {meeting.circuit_short_name or meeting.country_name}")
         circuit_id = self._get_or_create_circuit(repo, meeting, options)
 
         # Calculate round dates (meeting date_start is usually the first session)
@@ -773,6 +784,7 @@ class OpenF1SyncService:
 
         # Fetch sessions for this meeting
         sessions = api.get_sessions_for_meeting(meeting.meeting_key)
+        print(f"      📅 Sessions: {len(sessions)}")
 
         # Track entrants for this round (driver_number -> entrant_id)
         entrant_map: dict[int, UUID] = {}
@@ -780,6 +792,7 @@ class OpenF1SyncService:
         # First, sync drivers and teams from first session with driver data
         if sessions:
             drivers = api.get_drivers_for_meeting(meeting.meeting_key)
+            driver_count = 0
             for driver_data in drivers:
                 # Skip drivers without teams (reserve/test drivers not competing)
                 if not driver_data.team_name:
@@ -805,10 +818,14 @@ class OpenF1SyncService:
                 entrant_id = repo.upsert_entrant(entrant)
                 entrant_map[driver_data.driver_number] = entrant_id
                 stats["drivers_synced"] += 1
+                driver_count += 1
 
             stats["teams_synced"] = len(self._team_cache)
+            print(f"      👥 Drivers: {driver_count}")
 
         # Sync sessions
+        session_names = []
+        results_count = 0
         for openf1_session in sessions:
             session = Session(
                 round_id=round_id,
@@ -819,12 +836,20 @@ class OpenF1SyncService:
             )
             session_id = repo.upsert_session(session)
             stats["sessions_synced"] += 1
+            session_names.append(openf1_session.session_name)
 
             # Sync results if requested and session is completed
             if include_results and session.status == SessionStatus.COMPLETED:
+                prev_results = stats["results_synced"]
                 self._sync_session_results(
                     api, repo, openf1_session, session_id, round_id, entrant_map, stats
                 )
+                results_count += stats["results_synced"] - prev_results
+        
+        # Print session summary on one line
+        print(f"      🏁 Sessions synced: {', '.join(session_names)}")
+        if include_results and results_count > 0:
+            print(f"      📊 Results: {results_count}")
 
     def _sync_session_results(
         self,
@@ -1086,9 +1111,11 @@ class OpenF1SyncService:
         logger.info("Starting results-only sync", year=year)
         
         # Get all completed sessions for this year
+        print(f"  🔍 Finding completed sessions for {year}...")
         sessions = repo.get_completed_sessions_by_year(year)
         stats["sessions_checked"] = len(sessions)
         
+        print(f"  📋 Found {len(sessions)} completed sessions")
         logger.info(
             "Found completed sessions",
             year=year,
@@ -1098,7 +1125,7 @@ class OpenF1SyncService:
         # Cache entrant maps by round_id to avoid repeated queries
         entrant_cache: dict[str, dict[int, Any]] = {}
         
-        for session in sessions:
+        for i, session in enumerate(sessions, 1):
             try:
                 # Skip if session already has results
                 existing_count = repo.count_results_for_session(session.id)
@@ -1132,16 +1159,30 @@ class OpenF1SyncService:
                     'session_name': session.type.value,
                 })()
                 
+                # Show progress
+                prev_count = stats["results_synced"]
+                
                 # Use existing _sync_session_results method
                 self._sync_session_results(
                     api, repo, openf1_session, session.id, session.round_id, entrant_map, stats
                 )
                 stats["sessions_synced"] += 1
                 
+                new_results = stats["results_synced"] - prev_count
+                print(f"  [{i}/{len(sessions)}] {session.type.value}: +{new_results} results")
+                
             except Exception as e:
                 error_msg = f"Session {session.openf1_session_key}: {e}"
                 logger.warning("Failed to sync results for session", error=error_msg)
                 stats["errors"].append(error_msg)
+        
+        print(f"\n  ✅ Results sync complete:")
+        print(f"      Sessions checked: {stats['sessions_checked']}")
+        print(f"      Already had results: {stats['sessions_with_existing_results']}")
+        print(f"      Sessions synced: {stats['sessions_synced']}")
+        print(f"      Results added: {stats['results_synced']}")
+        if stats['errors']:
+            print(f"      Errors: {len(stats['errors'])}")
         
         logger.info(
             "Results-only sync complete",

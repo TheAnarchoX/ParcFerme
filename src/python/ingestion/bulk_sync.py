@@ -121,6 +121,22 @@ class BulkSyncRunner:
         for attempt in range(1, self.max_retries + 1):
             try:
                 mode = "results-only" if self.results_only else "full"
+                
+                # Clear progress indicator
+                if attempt > 1:
+                    print(f"\n  🔄 Retry attempt {attempt}/{self.max_retries}")
+                
+                print(f"  📋 Mode: {mode}")
+                if not self.results_only:
+                    print(f"  📊 Include results: {self.include_results}")
+                    if self.sync_options:
+                        opts = self.sync_options
+                        print(f"  🛡️  Entity modes: driver={opts.driver_mode}, team={opts.team_mode}, circuit={opts.circuit_mode}")
+                        if opts.preserve_canonical_names:
+                            print("  🛡️  Preserving canonical names")
+                        if opts.preserve_canonical_numbers:
+                            print("  🛡️  Preserving canonical numbers")
+                
                 logger.info(
                     f"Syncing year {year}",
                     year=year,
@@ -144,6 +160,12 @@ class BulkSyncRunner:
                 # Check if there were critical errors
                 if stats.get("errors"):
                     error_count = len(stats["errors"])
+                    print(f"\n  ⚠️  Completed with {error_count} error(s)")
+                    for err in stats["errors"][:5]:  # Show first 5 errors
+                        print(f"      • {err}")
+                    if error_count > 5:
+                        print(f"      ... and {error_count - 5} more errors")
+                    
                     logger.warning(
                         f"Year {year} completed with errors",
                         year=year,
@@ -151,15 +173,32 @@ class BulkSyncRunner:
                     )
                     # If we got some data, consider it a partial success
                     if stats.get(success_key, 0) > 0:
+                        print(f"  ✅ Partial success: {stats.get(success_key, 0)} items synced")
                         logger.info(f"Partial success for year {year}", stats=stats)
                         return stats
                     # If no data synced and errors, retry
                     if attempt < self.max_retries:
+                        wait_time = self.pause_between_years * 2
+                        print(f"  ⏳ Waiting {wait_time}s before retry...")
                         logger.info(f"Retrying year {year} (attempt {attempt + 1})")
-                        time.sleep(self.pause_between_years * 2)  # Longer pause on error
+                        time.sleep(wait_time)
                         continue
                     return None
 
+                # Print success stats
+                print(f"\n  ✅ Year {year} sync complete:")
+                if self.results_only:
+                    print(f"      Sessions checked: {stats.get('sessions_checked', 0)}")
+                    print(f"      Sessions synced:  {stats.get('sessions_synced', 0)}")
+                    print(f"      Results added:    {stats.get('results_synced', 0)}")
+                else:
+                    print(f"      Meetings: {stats.get('meetings_synced', 0)}")
+                    print(f"      Sessions: {stats.get('sessions_synced', 0)}")
+                    print(f"      Drivers:  {stats.get('drivers_synced', 0)}")
+                    print(f"      Teams:    {stats.get('teams_synced', 0)}")
+                    if self.include_results:
+                        print(f"      Results:  {stats.get('results_synced', 0)}")
+                
                 logger.info(f"✅ Successfully synced year {year}", stats=stats)
                 return stats
 
@@ -214,6 +253,14 @@ class BulkSyncRunner:
         years = list(range(start_year, end_year + 1))
         total_years = len(years)
 
+        print_header(f"🏁 BULK SYNC: {start_year} → {end_year} ({total_years} year(s))")
+        
+        mode_desc = "results-only" if self.results_only else "full sync"
+        results_desc = "with results" if self.include_results and not self.results_only else "without results"
+        print(f"  Mode: {mode_desc} {results_desc}")
+        print(f"  Pause between years: {self.pause_between_years}s")
+        print(f"  Max retries per year: {self.max_retries}")
+
         logger.info(
             "🏁 Starting bulk sync",
             start_year=start_year,
@@ -223,19 +270,18 @@ class BulkSyncRunner:
         )
 
         # Check API health first
+        print("\n  Checking OpenF1 API health...")
         if not self.check_api_health():
+            print("  ❌ API not accessible - aborting")
             logger.error("Aborting bulk sync - API not accessible")
             return self.total_stats
+        print("  ✅ API is accessible\n")
 
         with OpenF1SyncService() as sync_service:
             for i, year in enumerate(years, 1):
                 self.total_stats["years_attempted"] += 1
 
-                logger.info(
-                    f"\n{'=' * 60}\n"
-                    f"📅 Processing year {year} ({i}/{total_years})\n"
-                    f"{'=' * 60}"
-                )
+                print_header(f"📅 YEAR {year}  ({i}/{total_years})", char="-", width=50)
 
                 stats = self.sync_year_with_retry(year, sync_service)
 
@@ -249,18 +295,19 @@ class BulkSyncRunner:
                 else:
                     self.total_stats["years_failed"] += 1
                     self.total_stats["failed_years"].append(year)
+                    print(f"\n  ❌ Failed to sync year {year} after {self.max_retries} attempts")
                     logger.error(f"❌ Failed to sync year {year} after all retries")
 
                 # Progress update
-                logger.info(
-                    f"Progress: {i}/{total_years} years processed "
-                    f"({self.total_stats['years_succeeded']} succeeded, "
-                    f"{self.total_stats['years_failed']} failed)"
-                )
+                success_rate = (self.total_stats['years_succeeded'] / i) * 100
+                print(f"\n  📊 Progress: {i}/{total_years} years")
+                print(f"      ✅ Succeeded: {self.total_stats['years_succeeded']}")
+                print(f"      ❌ Failed: {self.total_stats['years_failed']}")
+                print(f"      Success rate: {success_rate:.0f}%")
 
                 # Rate limiting: pause between years (except after last year)
                 if i < total_years:
-                    logger.info(f"Pausing {self.pause_between_years}s before next year...")
+                    print(f"\n  ⏳ Pausing {self.pause_between_years}s before next year...")
                     time.sleep(self.pause_between_years)
 
         return self.total_stats
@@ -300,6 +347,21 @@ class BulkSyncRunner:
             print("\n❌ Bulk sync failed - no years were synced successfully")
 
         print("=" * 70 + "\n")
+
+
+def print_header(text: str, char: str = "=", width: int = 70) -> None:
+    """Print a formatted header."""
+    print(f"\n{char * width}")
+    print(f"  {text}")
+    print(f"{char * width}")
+
+
+def print_step(step: str, detail: str = "") -> None:
+    """Print a step in the sync process."""
+    if detail:
+        print(f"  → {step}: {detail}")
+    else:
+        print(f"  → {step}")
 
 
 def main() -> int:
