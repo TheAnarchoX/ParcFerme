@@ -1,5 +1,9 @@
 # Parc Fermé 🏁
 
+<p align="center">
+       <img src="assets/logo-nobg.png" alt="Parc Fermé" width="240" />
+</p>
+
 **The social cataloging platform for motorsport** — a "Letterboxd for racing" where fans can log, rate, and review races they've watched or attended.
 
 ## Quick Start
@@ -69,6 +73,9 @@ make db-migrate  # Apply EF Core migrations
 make db-reset    # Reset database (WARNING: destroys data)
 make db-clean    # Clean racing data tables (preserves users)
 make db-audit    # Audit data quality
+
+# Cache
+make cache-clear # Clear Redis cache
 
 # Cleanup
 make clean       # Remove build artifacts and node_modules

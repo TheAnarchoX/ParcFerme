@@ -1,33 +1,83 @@
 import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs, buildRoundBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
+import { roundsApi } from '../../services/roundsService';
+import type { RoundPageResponse, SessionTimelineDto } from '../../types/round';
+import { cleanRoundName, formatDateRange, getSeriesPrimaryColor } from '../../types/round';
+import { getContrastColor } from '../../types/series';
 
 // =========================
-// Mock Data
+// Loading Skeletons
 // =========================
 
-const SERIES_INFO: Record<string, { name: string }> = {
-  'f1': { name: 'Formula 1' },
-  'motogp': { name: 'MotoGP' },
-  'wec': { name: 'World Endurance Championship' },
-  'indycar': { name: 'IndyCar Series' },
-};
+function SessionCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
+      <div className="flex items-center justify-between mb-2">
+        <div className="h-4 bg-neutral-800 rounded w-16" />
+        <div className="h-4 bg-neutral-800 rounded w-24" />
+      </div>
+      <div className="h-6 bg-neutral-800 rounded w-2/3 mb-2" />
+      <div className="h-4 bg-neutral-800 rounded w-1/3" />
+    </div>
+  );
+}
 
-const ROUND_INFO: Record<string, { name: string; circuit: string; country: string }> = {
-  'bahrain': { name: 'Bahrain Grand Prix', circuit: 'Bahrain International Circuit', country: 'Bahrain' },
-  'saudi-arabia': { name: 'Saudi Arabian Grand Prix', circuit: 'Jeddah Corniche Circuit', country: 'Saudi Arabia' },
-  'australia': { name: 'Australian Grand Prix', circuit: 'Albert Park Circuit', country: 'Australia' },
-  'japan': { name: 'Japanese Grand Prix', circuit: 'Suzuka International Racing Course', country: 'Japan' },
-};
+function CircuitCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6 animate-pulse">
+      <div className="flex items-start gap-6">
+        <div className="w-32 h-20 bg-neutral-800 rounded-lg" />
+        <div className="flex-1">
+          <div className="h-6 bg-neutral-800 rounded w-1/2 mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-1/3 mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-40" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
-const SESSIONS_DATA = [
-  { type: 'FP1', name: 'Free Practice 1', date: '2025-03-07', time: '11:30', status: 'completed' },
-  { type: 'FP2', name: 'Free Practice 2', date: '2025-03-07', time: '15:00', status: 'completed' },
-  { type: 'FP3', name: 'Free Practice 3', date: '2025-03-08', time: '12:30', status: 'completed' },
-  { type: 'Qualifying', name: 'Qualifying', date: '2025-03-08', time: '16:00', status: 'completed' },
-  { type: 'Race', name: 'Race', date: '2025-03-09', time: '17:00', status: 'completed' },
-];
+function StatsCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
+      <div className="h-8 bg-neutral-800 rounded w-12 mb-2" />
+      <div className="h-4 bg-neutral-800 rounded w-24" />
+    </div>
+  );
+}
+
+// =========================
+// Stats Card Component
+// =========================
+
+interface StatsCardProps {
+  label: string;
+  value: number | string;
+  icon: string;
+  primaryColor?: string;
+}
+
+function StatsCard({ label, value, icon, primaryColor }: StatsCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{icon}</span>
+        <div>
+          <p 
+            className="text-2xl font-bold"
+            style={primaryColor ? { color: primaryColor } : { color: '#e5e5e5' }}
+          >
+            {value}
+          </p>
+          <p className="text-sm text-neutral-500">{label}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // =========================
 // Session Card Component
@@ -37,18 +87,60 @@ interface SessionCardProps {
   seriesSlug: string;
   year: number;
   roundSlug: string;
-  session: typeof SESSIONS_DATA[0];
+  session: SessionTimelineDto;
+  primaryColor?: string;
 }
 
-function SessionCard({ seriesSlug, year, roundSlug, session }: SessionCardProps) {
-  const isRace = session.type === 'Race' || session.type === 'Sprint';
+function SessionCard({ seriesSlug, year, roundSlug, session, primaryColor }: SessionCardProps) {
+  const isMainEvent = session.type === 'Race' || session.type === 'Sprint' || 
+                       session.type === 'MotoGPRace' || session.type === 'Moto2Race' || 
+                       session.type === 'Moto3Race';
+  
+  const formatSessionTime = (utcTime: string): string => {
+    const date = new Date(utcTime);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short',
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusBadge = () => {
+    if (session.status === 'Completed') {
+      return (
+        <span className="text-xs text-neutral-500">
+          🛡️ Spoiler protected
+        </span>
+      );
+    }
+    if (session.status === 'InProgress') {
+      return (
+        <span 
+          className="px-2 py-0.5 text-xs rounded font-medium"
+          style={{ 
+            backgroundColor: primaryColor ? `${primaryColor}20` : 'rgba(74, 222, 128, 0.1)',
+            color: primaryColor || '#4ade80'
+          }}
+        >
+          🔴 Live
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 bg-pf-green/10 text-accent-green text-xs rounded">
+        Upcoming
+      </span>
+    );
+  };
   
   return (
     <Link
       to={ROUTES.SESSION_DETAIL(seriesSlug, year, roundSlug, session.type)}
       className={`
         group block border rounded-lg overflow-hidden transition-all
-        ${isRace 
+        ${isMainEvent 
           ? 'bg-pf-green/5 border-pf-green/20 hover:border-pf-green/40' 
           : 'bg-neutral-900/50 border-neutral-800 hover:border-neutral-700'
         }
@@ -56,34 +148,28 @@ function SessionCard({ seriesSlug, year, roundSlug, session }: SessionCardProps)
     >
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className={`text-xs font-medium ${isRace ? 'text-accent-green' : 'text-neutral-500'}`}>
+          <span className={`text-xs font-medium ${isMainEvent ? 'text-accent-green' : 'text-neutral-500'}`}>
             {session.type}
           </span>
-          <span className="text-xs text-neutral-500">
-            {new Date(session.date).toLocaleDateString('en-US', { 
-              weekday: 'short',
-              month: 'short', 
-              day: 'numeric'
-            })}
-          </span>
+          {getStatusBadge()}
         </div>
         
         <h3 className={`text-lg font-bold mb-1 transition-colors ${
-          isRace 
+          isMainEvent 
             ? 'text-neutral-100 group-hover:text-accent-green' 
             : 'text-neutral-200 group-hover:text-neutral-100'
         }`}>
-          {session.name}
+          {session.displayName}
         </h3>
         
         <div className="flex items-center justify-between">
           <p className="text-sm text-neutral-500">
-            {session.time} local
+            {formatSessionTime(session.startTimeUtc)}
           </p>
           
-          {session.status === 'completed' && (
-            <span className="text-xs text-neutral-500">
-              🛡️ Spoiler protected
+          {session.isLogged && (
+            <span className="text-xs text-accent-green">
+              ✓ Logged
             </span>
           )}
         </div>
@@ -93,11 +179,62 @@ function SessionCard({ seriesSlug, year, roundSlug, session }: SessionCardProps)
 }
 
 // =========================
+// Circuit Info Card
+// =========================
+
+interface CircuitCardProps {
+  circuit: RoundPageResponse['round']['circuit'];
+  primaryColor?: string;
+}
+
+function CircuitCard({ circuit, primaryColor }: CircuitCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+      <div className="flex items-start gap-6">
+        <div className="w-32 h-20 bg-neutral-800 rounded-lg flex items-center justify-center text-4xl">
+          {circuit.layoutMapUrl ? (
+            <img 
+              src={circuit.layoutMapUrl} 
+              alt={`${circuit.name} layout`}
+              className="w-full h-full object-contain rounded-lg"
+            />
+          ) : (
+            <span>🗺️</span>
+          )}
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-neutral-100 mb-1">{circuit.name}</h3>
+          <p className="text-neutral-400 mb-2">{circuit.location}, {circuit.country}</p>
+          
+          <div className="flex flex-wrap gap-4 text-sm text-neutral-500 mb-2">
+            {circuit.lengthMeters && (
+              <span>📏 {(circuit.lengthMeters / 1000).toFixed(3)} km</span>
+            )}
+            {circuit.countryCode && (
+              <span>🏳️ {circuit.countryCode}</span>
+            )}
+          </div>
+          
+          <Link 
+            to={ROUTES.CIRCUIT_DETAIL(circuit.slug)}
+            className="text-sm hover:underline transition-colors"
+            style={{ color: primaryColor || '#4ade80' }}
+          >
+            View circuit guide →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========================
 // Page Component
 // =========================
 
 /**
  * Round detail page - shows sessions for a race weekend.
+ * Fetches real data from the API and displays session timeline.
  */
 export function RoundDetailPage() {
   const { seriesSlug, year, roundSlug } = useParams<{ 
@@ -106,77 +243,263 @@ export function RoundDetailPage() {
     roundSlug: string 
   }>();
   
-  const series = seriesSlug ? SERIES_INFO[seriesSlug] : null;
-  const round = roundSlug ? ROUND_INFO[roundSlug] : null;
+  const [roundData, setRoundData] = useState<RoundPageResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const yearNum = year ? parseInt(year, 10) : NaN;
   
+  // Fetch round data
+  useEffect(() => {
+    if (!seriesSlug || !roundSlug || isNaN(yearNum)) return;
+    
+    let cancelled = false;
+    
+    async function fetchRoundDetail() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await roundsApi.getRoundBySlug(seriesSlug!, yearNum, roundSlug!);
+        if (!cancelled) {
+          setRoundData(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch round:', err);
+        if (!cancelled) {
+          setError('Failed to load round data. Please try again later.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+    
+    fetchRoundDetail();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesSlug, yearNum, roundSlug]);
+  
   // Set breadcrumbs
+  const displayName = roundData 
+    ? cleanRoundName(roundData.round.name, roundData.round.series.name, roundData.round.year)
+    : roundSlug || '';
+    
   useBreadcrumbs(
-    series && round && seriesSlug && roundSlug && !isNaN(yearNum)
-      ? buildRoundBreadcrumbs(series.name, seriesSlug, yearNum, round.name, roundSlug)
+    roundData && seriesSlug && roundSlug && !isNaN(yearNum)
+      ? buildRoundBreadcrumbs(
+          roundData.round.series.name, 
+          seriesSlug, 
+          yearNum, 
+          displayName, 
+          roundSlug
+        )
       : [
           { label: 'Home', path: ROUTES.HOME, icon: '🏠' },
           { label: 'Series', path: ROUTES.SERIES_LIST, icon: '🏁' },
         ]
   );
   
-  if (!series || !round || !seriesSlug || !roundSlug || isNaN(yearNum)) {
+  // Loading state
+  if (isLoading) {
+    return (
+      <MainLayout showBreadcrumbs>
+        <div className="animate-pulse mb-8">
+          <div className="h-8 bg-neutral-800 rounded w-1/3 mb-2" />
+          <div className="h-5 bg-neutral-800 rounded w-2/3" />
+        </div>
+        
+        <Section>
+          <CircuitCardSkeleton />
+        </Section>
+        
+        <Section>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[1, 2, 3, 4].map(i => <StatsCardSkeleton key={i} />)}
+          </div>
+        </Section>
+        
+        <Section title="Sessions">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5].map(i => <SessionCardSkeleton key={i} />)}
+          </div>
+        </Section>
+      </MainLayout>
+    );
+  }
+  
+  // Error or not found state
+  if (error || !roundData || !seriesSlug || !roundSlug || isNaN(yearNum)) {
     return (
       <MainLayout showBreadcrumbs>
         <EmptyState
           icon="🔍"
           title="Round not found"
-          description="The race weekend you're looking for doesn't exist."
+          description={error ?? "The race weekend you're looking for doesn't exist or isn't available yet."}
           action={
-            <Link to={ROUTES.SERIES_LIST} className="text-accent-green hover:underline">
-              Browse all series
-            </Link>
+            seriesSlug && !isNaN(yearNum) ? (
+              <Link 
+                to={ROUTES.SEASON_DETAIL(seriesSlug, yearNum)} 
+                className="text-accent-green hover:underline"
+              >
+                Back to {yearNum} season
+              </Link>
+            ) : (
+              <Link to={ROUTES.SERIES_LIST} className="text-accent-green hover:underline">
+                Browse all series
+              </Link>
+            )
           }
         />
       </MainLayout>
     );
   }
   
+  const { round, previousRound, nextRound } = roundData;
+  const primaryColor = getSeriesPrimaryColor(round.series);
+  const textColor = getContrastColor(primaryColor);
+  
   return (
     <MainLayout showBreadcrumbs>
-      <PageHeader
-        icon="🏆"
-        title={round.name}
-        subtitle={`${round.circuit} • ${round.country}`}
-      />
+      {/* Header with color accent */}
+      <div className="relative mb-8">
+        <div 
+          className="absolute inset-0 h-1 rounded-full" 
+          style={{ backgroundColor: primaryColor }}
+        />
+        <div className="pt-4">
+          <PageHeader
+            icon="🏆"
+            title={displayName}
+            subtitle={`${round.circuit.name} • ${formatDateRange(round.dateStart, round.dateEnd)}`}
+          />
+          
+          {/* Status badge */}
+          <div className="mt-2">
+            {round.isCurrent ? (
+              <span 
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                style={{ backgroundColor: primaryColor, color: textColor }}
+              >
+                🔴 Live Weekend
+              </span>
+            ) : round.isCompleted ? (
+              <span className="inline-flex items-center px-3 py-1 bg-neutral-800 text-neutral-300 rounded-full text-sm">
+                ✓ Completed
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-3 py-1 bg-pf-green/10 text-accent-green rounded-full text-sm">
+                Upcoming
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
       
       {/* Circuit Info Card */}
       <Section>
-        <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6 mb-6">
-          <div className="flex items-start gap-6">
-            <div className="w-32 h-20 bg-neutral-800 rounded-lg flex items-center justify-center text-4xl">
-              🗺️
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-neutral-100 mb-1">{round.circuit}</h3>
-              <p className="text-neutral-400 mb-2">{round.country}</p>
-              <Link 
-                to={`/circuits/${roundSlug}`}
-                className="text-sm text-accent-green hover:underline"
-              >
-                View circuit guide →
-              </Link>
-            </div>
-          </div>
+        <CircuitCard circuit={round.circuit} primaryColor={primaryColor} />
+      </Section>
+      
+      {/* Round Stats */}
+      <Section>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatsCard 
+            icon="📺" 
+            label="Sessions" 
+            value={round.stats.totalSessions}
+            primaryColor={primaryColor}
+          />
+          <StatsCard 
+            icon="✅" 
+            label="Completed" 
+            value={round.stats.completedSessions}
+            primaryColor={primaryColor}
+          />
+          <StatsCard 
+            icon="👥" 
+            label="Entrants" 
+            value={round.stats.totalEntrants}
+            primaryColor={primaryColor}
+          />
+          <StatsCard 
+            icon="🔥" 
+            label="Avg Excitement" 
+            value={round.stats.averageExcitement?.toFixed(1) ?? '-'}
+            primaryColor={primaryColor}
+          />
         </div>
       </Section>
       
+      {/* Sessions Timeline */}
       <Section title="Sessions" subtitle="Click on a session to view details and log your experience">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {SESSIONS_DATA.map((session) => (
-            <SessionCard 
-              key={session.type} 
-              seriesSlug={seriesSlug} 
-              year={yearNum} 
-              roundSlug={roundSlug}
-              session={session} 
-            />
-          ))}
+        {round.sessions.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {round.sessions.map((session) => (
+              <SessionCard 
+                key={session.id} 
+                seriesSlug={seriesSlug} 
+                year={yearNum} 
+                roundSlug={roundSlug}
+                session={session}
+                primaryColor={primaryColor}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="📅"
+            title="No sessions scheduled"
+            description="Session details for this race weekend may not be available yet."
+          />
+        )}
+      </Section>
+      
+      {/* Navigation */}
+      <Section>
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-center py-6">
+          <Link 
+            to={ROUTES.SEASON_DETAIL(seriesSlug, yearNum)}
+            className="text-neutral-400 hover:text-accent-green transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to {yearNum} {round.series.name}
+          </Link>
+          
+          {/* Adjacent round navigation */}
+          <div className="flex gap-4">
+            {previousRound ? (
+              <Link 
+                to={ROUTES.ROUND_DETAIL(seriesSlug, yearNum, previousRound.slug)}
+                className="px-4 py-2 bg-neutral-900/50 border border-neutral-800 rounded-lg text-neutral-400 hover:text-neutral-100 hover:border-neutral-700 transition-all text-sm"
+                title={previousRound.name}
+              >
+                ← Round {previousRound.roundNumber}
+              </Link>
+            ) : (
+              <span className="px-4 py-2 bg-neutral-900/30 border border-neutral-800/50 rounded-lg text-neutral-600 text-sm cursor-not-allowed">
+                ← Previous
+              </span>
+            )}
+            
+            {nextRound ? (
+              <Link 
+                to={ROUTES.ROUND_DETAIL(seriesSlug, yearNum, nextRound.slug)}
+                className="px-4 py-2 bg-neutral-900/50 border border-neutral-800 rounded-lg text-neutral-400 hover:text-neutral-100 hover:border-neutral-700 transition-all text-sm"
+                title={nextRound.name}
+              >
+                Round {nextRound.roundNumber} →
+              </Link>
+            ) : (
+              <span className="px-4 py-2 bg-neutral-900/30 border border-neutral-800/50 rounded-lg text-neutral-600 text-sm cursor-not-allowed">
+                Next →
+              </span>
+            )}
+          </div>
         </div>
       </Section>
     </MainLayout>
