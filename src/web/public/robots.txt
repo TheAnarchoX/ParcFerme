@@ -1,0 +1,27 @@
+# Parc Fermé Robots.txt
+# https://parcferme.com
+
+# Allow all crawlers to index public pages
+User-agent: *
+Allow: /
+
+# Allow specific sections
+Allow: /series
+Allow: /drivers
+Allow: /teams
+Allow: /circuits
+Allow: /about
+Allow: /privacy
+Allow: /terms
+
+# Disallow private user pages and API
+Disallow: /api/
+Disallow: /profile
+Disallow: /settings
+Disallow: /log
+
+# Sitemap location
+Sitemap: https://parcferme.com/sitemap.xml
+
+# Crawl-delay for politeness (optional)
+# Crawl-delay: 1

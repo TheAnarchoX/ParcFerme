@@ -79,7 +79,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 **Medium Priority — User-Facing Polish**
 - [x] About page content creation (mission, team, FAQs)
-- [ ] SEO optimization for public pages (meta tags, Open Graph, structured data)
+- [x] SEO optimization for public pages (meta tags, Open Graph, structured data)
 - [ ] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
 
 **Lower Priority — Future Prep**
