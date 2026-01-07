@@ -59,6 +59,7 @@
 - [x] Fix session ordering bug in GetSessionsWithSpoilerShieldAsync
 - [x] Enhance Swagger documentation (API info, JWT auth scheme, XML docs)
 - [x] Update README with architecture overview and development workflow
+- [x] Add unit tests for SpoilerShieldService edge cases (16 tests)
 
 ### 🚧 In Progress
 _(None currently)_
@@ -73,8 +74,8 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 ##### Agentic (Priority Order)
 
 **High Priority — Code Quality & Testing**
-- [ ] Add unit tests for SpoilerShieldService edge cases
-- [ ] Frontend component tests for SpoilerMask/SpoilerBlur behavior
+- [x] Frontend component tests for SpoilerMask/SpoilerBlur behavior (54 tests)
+- [ ] Copy logo from WSL Host (C:\Users\jimdv\Pictures\logo.png) to repo /assets and use wherever applicable
 
 **Medium Priority — User-Facing Polish**
 - [ ] About page content creation (mission, team, FAQs)
@@ -84,7 +85,6 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 **Lower Priority — Future Prep**
 - [ ] Frontend e2e tests for critical flows (Playwright or Cypress setup)
 - [ ] Design system documentation (colors, typography, component patterns)
-= [ ] Fix `make cache-clear` command in Makefile to ensure it works correctly
 
 ##### Manual (Priority Order)
 

@@ -3,8 +3,10 @@ import { render, RenderOptions } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import authReducer from '../store/slices/authSlice';
-import type { User } from '../types/api';
+import { authSlice } from '../store/slices/authSlice';
+import { spoilerSlice } from '../store/slices/spoilerSlice';
+import { navigationSlice } from '../store/slices/navigationSlice';
+import type { User, SpoilerMode } from '../types/api';
 
 // Define the root state type
 export interface RootState {
@@ -15,10 +17,22 @@ export interface RootState {
     isInitialized: boolean;
     error: string | null;
   };
+  spoiler: {
+    mode: SpoilerMode;
+    loggedSessionIds: string[];
+    tempRevealedIds: string[];
+    isLoading: boolean;
+    error: string | null;
+  };
+  navigation: {
+    breadcrumbs: { label: string; href?: string }[];
+  };
 }
 
 const rootReducer = combineReducers({
-  auth: authReducer,
+  auth: authSlice.reducer,
+  spoiler: spoilerSlice.reducer,
+  navigation: navigationSlice.reducer,
 });
 
 export function setupStore(preloadedState?: Partial<RootState>) {
@@ -115,6 +129,47 @@ export const loadingState: Partial<RootState> = {
     error: null,
   },
 };
+
+// Spoiler state presets
+export const strictSpoilerState = {
+  mode: 'Strict' as const,
+  loggedSessionIds: [],
+  tempRevealedIds: [],
+  isLoading: false,
+  error: null,
+};
+
+export const moderateSpoilerState = {
+  mode: 'Moderate' as const,
+  loggedSessionIds: [],
+  tempRevealedIds: [],
+  isLoading: false,
+  error: null,
+};
+
+export const noSpoilerProtectionState = {
+  mode: 'None' as const,
+  loggedSessionIds: [],
+  tempRevealedIds: [],
+  isLoading: false,
+  error: null,
+};
+
+export const loggedSessionSpoilerState = (sessionId: string) => ({
+  mode: 'Strict' as const,
+  loggedSessionIds: [sessionId],
+  tempRevealedIds: [],
+  isLoading: false,
+  error: null,
+});
+
+export const tempRevealedSpoilerState = (sessionId: string) => ({
+  mode: 'Strict' as const,
+  loggedSessionIds: [],
+  tempRevealedIds: [sessionId],
+  isLoading: false,
+  error: null,
+});
 
 // Re-export everything from testing-library
 export * from '@testing-library/react';
