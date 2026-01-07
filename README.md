@@ -112,7 +112,11 @@ parcferme/
 
 ### The "Spoiler Shield" 🛡️
 
-All APIs and UIs hide race results by default. Results are only revealed when a user has logged the race as watched.
+All APIs and UIs hide race results by default. Results are only revealed when a user has logged the race as watched. This is configurable per-user with three modes:
+
+- **Strict** (default): Hide all results until logged
+- **Moderate**: Show excitement ratings but hide winner/podium
+- **None**: Show everything (for users who don't care about spoilers)
 
 ### "Watched" vs. "Attended" 📺🎫
 
@@ -120,9 +124,63 @@ Users can rate both:
 - **Watched**: The broadcast experience (TV direction, on-track action)
 - **Attended**: The venue experience (view quality, atmosphere, facilities)
 
+Attended logs include additional fields like seat location, facilities rating, and seat-view photos to build crowdsourced circuit guides.
+
 ### Multi-Series Support 🏎️
 
 Schema designed for F1, MotoGP, IndyCar, and WEC without refactoring.
+
+## Architecture
+
+### Domain Model
+
+```
+Series → Season → Round (Weekend) → Session
+                      ↓
+                  Circuit
+
+User → Log → Review
+         ↓
+     Experience (venue data if attended)
+```
+
+### Data Flow
+
+```
+                    ┌──────────────┐
+                    │   Frontend   │
+                    │  (React 19)  │
+                    └──────┬───────┘
+                           │ HTTP/REST
+                    ┌──────▼───────┐
+                    │   API (.NET) │
+                    │ Spoiler Shield│
+                    └──────┬───────┘
+           ┌───────────────┼───────────────┐
+           │               │               │
+    ┌──────▼───────┐┌──────▼───────┐┌──────▼───────┐
+    │  PostgreSQL  ││    Redis     ││ Elasticsearch│
+    │   (data)     ││   (cache)    ││   (search)   │
+    └──────────────┘└──────────────┘└──────────────┘
+                           ▲
+                    ┌──────┴───────┐
+                    │   Python     │
+                    │  Ingestion   │
+                    └──────────────┘
+                           ▲
+                    ┌──────┴───────┐
+                    │  OpenF1 API  │
+                    └──────────────┘
+```
+
+### Key Services
+
+| Service | Purpose |
+|---------|---------|
+| `SpoilerShieldService` | Masks race results based on user preferences and log history |
+| `JwtTokenService` | JWT and refresh token generation/validation |
+| `CacheService` | Redis-backed caching with response caching middleware |
+| `EntityResolver` | Resolves driver/team/circuit aliases across data sources |
 
 ## Tech Stack
 
@@ -133,23 +191,57 @@ Schema designed for F1, MotoGP, IndyCar, and WEC without refactoring.
 | Database | PostgreSQL |
 | Cache | Redis |
 | Search | Elasticsearch |
-| Frontend | React 19, TypeScript, Redux Toolkit, Tailwind CSS |
+| Frontend | React 18, TypeScript, Redux Toolkit, Tailwind CSS |
 | Data Pipeline | Python 3.11+, OpenF1 API |
 
-## API Endpoints
+## API Documentation
 
+The API is documented using Swagger/OpenAPI. When running locally:
+
+- **Swagger UI**: http://localhost:5000/swagger
+- **OpenAPI JSON**: http://localhost:5000/swagger/v1/swagger.json
+
+### Key Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/series` | List all racing series |
+| `GET` | `/api/v1/series/{slug}` | Get series details with seasons |
+| `GET` | `/api/v1/sessions/{id}` | Session details (spoiler-aware) |
+| `POST` | `/api/v1/sessions/{id}/reveal` | Reveal spoilers (creates log) |
+| `POST` | `/api/v1/auth/login` | Authenticate and get JWT tokens |
+| `POST` | `/api/v1/auth/register` | Create new account |
+
+## Testing
+
+```bash
+# Run all backend tests
+cd tests/api && dotnet test
+
+# Run specific test class
+dotnet test --filter "FullyQualifiedName~SessionsControllerTests"
+
+# Run with detailed output
+dotnet test --logger "console;verbosity=detailed"
 ```
-GET  /api/v1/status              # Health check
-GET  /api/v1/sessions/{id}       # Session details (spoiler-aware)
-GET  /api/v1/circuits/{id}/reviews  # Venue ratings aggregate
-POST /api/v1/logs                # Log a race
-```
+
+The test suite includes:
+- **Unit tests**: Service and utility tests
+- **Integration tests**: Full API endpoint tests with in-memory database
 
 ## Documentation
 
 - [BLUEPRINT.md](docs/BLUEPRINT.md) — Full product specification
-- [.github/copilot-instructions.md](.github/copilot-instructions.md) — AI coding guidelines
-- [.github/copilot-setup-steps.yaml](.github/copilot-setup-steps.yaml) — Copilot environment setup
+- [ROADMAP.md](ROADMAP.md) — Development roadmap and task tracking
+- [AGENTS.md](AGENTS.md) — AI coding guidelines
+- [Bulk Sync Guide](docs/BULK_SYNC.md) — OpenF1 data synchronization guide
+
+## Contributing
+
+1. Check the [ROADMAP.md](ROADMAP.md) for current tasks
+2. Follow the [AGENTS.md](AGENTS.md) coding guidelines
+3. Ensure all tests pass before submitting PRs
+4. Use conventional commits format
 
 ## License
 
