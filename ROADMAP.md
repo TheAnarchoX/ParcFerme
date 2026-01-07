@@ -124,11 +124,15 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - SeasonsPage for browsing all seasons across series
   - SeasonDetailPage with real API integration
   - Navigation links added to header dropdown
-- [ ] Round (weekend) detail pages + API
-  - Sessions timeline
-  - Circuit context
-  - Spoiler-safe status/metadata
-  - Primary "choose what to log" screen
+- [x] Round (weekend) detail pages + API (Completed: Jan 8, 2026)
+  - Sessions timeline with session cards, status badges, spoiler indicators
+  - Circuit context with link to circuit guide
+  - Round stats (sessions, entrants, excitement rating)
+  - Adjacent round navigation (prev/next)
+  - Loading skeletons, error states, empty states
+  - GET /{seriesSlug}/{year}/{roundSlug} for round detail
+  - GET /{seriesSlug}/{year} for rounds listing
+  - 24 integration tests covering all scenarios
 - [ ] Session detail pages + API (spoiler shield end-to-end)
   - Results properly masked until logged
   - Full integration with spoiler shield
