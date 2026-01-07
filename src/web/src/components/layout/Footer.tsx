@@ -19,7 +19,7 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link to={ROUTES.HOME} className="flex items-center gap-2 mb-4">
-              <span className="text-xl font-bold text-accent-green italic">Parc Fermé</span>
+              <span className="text-xl font-bold brand-logo">Parc Fermé</span>
             </Link>
             <p className="text-sm text-neutral-500 leading-relaxed">
               Your personal motorsport diary. Log races, rate experiences, and connect with fellow fans.
@@ -81,12 +81,12 @@ export function Footer() {
             </h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/privacy" className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
+                <Link to={ROUTES.PRIVACY} className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
+                <Link to={ROUTES.TERMS} className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
                   Terms of Service
                 </Link>
               </li>

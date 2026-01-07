@@ -14,6 +14,12 @@ public sealed class Series
     public required string Slug { get; set; }
     public string? LogoUrl { get; set; }
     
+    /// <summary>
+    /// Brand colors as hex codes (e.g., ["#E10600", "#FFFFFF"]).
+    /// First color is primary (used for text), additional colors for gradients/accents.
+    /// </summary>
+    public List<string> BrandColors { get; set; } = [];
+    
     public ICollection<Season> Seasons { get; set; } = [];
     public ICollection<SeriesAlias> Aliases { get; set; } = [];
 }

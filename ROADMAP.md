@@ -1,195 +1,290 @@
 # Parc Fermé - Development Roadmap
 
-> Last updated: January 6, 2026
+> Last updated: January 7, 2026
 
-## 🏁 Current Sprint: Foundation
+## 🏁 Current Sprint: Core Discovery & Logging
 
 ### ✅ Completed
+
+#### Infrastructure & Foundation
 - [x] Project scaffolding (monorepo structure)
 - [x] .NET 10 API setup with EF Core, Identity, PostgreSQL
 - [x] React 18 + Vite + TypeScript + Tailwind frontend
 - [x] Docker Compose for local services (PostgreSQL, Redis, Elasticsearch)
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] Unit and Integration tests (backend + frontend)
+
+#### Authentication & Authorization
 - [x] Authentication infrastructure (JWT + refresh tokens)
 - [x] Authorization with membership tiers (Free / PaddockPass)
-- [x] Caching infrastructure (Redis service, response caching)
-- [x] Domain models (Series, Season, Round, Session, Circuit, Driver, Team, etc.)
-- [x] Social models (Log, Review, Experience, UserList, UserFollow)
 - [x] Frontend auth state management (Redux Toolkit)
 - [x] Protected routes and membership gates
-- [x] Python ingestion project structure
-- [x] Unit and Integration tests (backend + frontend)
-- [x] CI/CD pipeline (GitHub Actions)
 - [x] Auth UI pages (Login, Register, Profile)
+
+#### Data Layer
+- [x] Domain models (Series, Season, Round, Session, Circuit, Driver, Team, etc.)
+- [x] Social models (Log, Review, Experience, UserList, UserFollow)
+- [x] Caching infrastructure (Redis service, response caching)
+- [x] Python ingestion project structure
 - [x] OpenF1 data sync implementation (Python ingestion pipeline)
-- [x] Spoiler shield implementation (core feature, both backend and frontend)
-  - [x] Backend: SpoilerShieldService, SessionDtos, SessionsController
-  - [x] Frontend: spoilerSlice, useSpoilerShield hook, SpoilerMask/SpoilerBlur components
-- [x] Bug: Fix Antonelli driver duplicate (added DriverNumber field as stable identifier, merged duplicates, updated ingestion to use driver numbers)
 - [x] Entity normalization and alias tracking (Teams, Drivers, Circuits, Series)
-  - [x] DriverAlias and TeamAlias database tables with EF Core migration
-  - [x] SeriesAlias and CircuitAlias database tables with EF Core migration
-  - [x] EntityResolver service with multi-strategy matching (driver number, slug, known alias, DB alias, fuzzy match)
-  - [x] known_aliases.json config with F1 canonical names and historical aliases (drivers, teams, circuits, series)
-  - [x] Repository updates for ID-first upsert logic to respect entity resolver decisions
-  - [x] Comprehensive tests (33 entity resolver tests, 81 total Python tests passing)
-- [x] Navigation header + IA refactor for multi-series + discovery (define primary nav model: Series → Season → Round → Session; add dedicated entry points for Discovery: Sessions / Drivers / Teams / Circuits; include a global search box (spoiler-safe result rendering + respects spoiler_mode), persistent user menu + spoiler mode toggle, and breadcrumbs for deep pages; ensure routes/URLs align with BLUEPRINT.md and are consistent across all discovery/detail pages; responsive + keyboard accessible)
-- [x] Series hub pages + API endpoint(s) (top-level entry point; series overview, supported seasons, quick links into season browser; establishes URL + navigation conventions for multi-series)
-  - [x] SeriesController with GET /series, GET /series/{slug}, GET /series/{slug}/seasons, GET /series/{slug}/seasons/{year}
-  - [x] SeriesDtos with summary and detail types for series, seasons, rounds
-  - [x] Frontend SeriesListPage and SeriesDetailPage wired to real API
-  - [x] Frontend types and seriesService for API calls
+  - [x] DriverAlias, TeamAlias, SeriesAlias, CircuitAlias database tables
+  - [x] EntityResolver service with multi-strategy matching
+  - [x] known_aliases.json config with canonical names and historical aliases
+  - [x] Repository updates for ID-first upsert logic
+  - [x] Comprehensive tests (33 entity resolver tests, 81 total Python tests)
+- [x] Multi-color brand support for Series (database, API, frontend)
+
+#### Spoiler Shield (Core Feature)
+- [x] Backend: SpoilerShieldService, SessionDtos, SessionsController
+- [x] Frontend: spoilerSlice, useSpoilerShield hook, SpoilerMask/SpoilerBlur components
+
+#### Navigation & Discovery Foundation
+- [x] Navigation header + IA refactor for multi-series + discovery
+- [x] Global search box (spoiler-safe, respects spoiler_mode)
+- [x] Breadcrumbs for deep pages
+- [x] Series hub pages + API endpoints
+  - [x] SeriesController with full CRUD
+  - [x] SeriesDtos with summary and detail types
+  - [x] Frontend SeriesListPage and SeriesDetailPage
   - [x] 19 integration tests for SeriesController
 
+#### Bug Fixes
+- [x] Fix Antonelli driver duplicate (added DriverNumber field, merged duplicates)
+
+#### Chores
+- [x] Add privacy policy and terms of service pages + links in footer
+
 ### 🚧 In Progress
+_(None currently)_
+
+### 📋 Up Next (Priority Order)
+
+#### 0. Chore Tasks
+There are 2 types of chores: "Agentic" and "Manual". "Manual" chores are tasks are only to be done by humans, while "Agentic" chores can be completed by AI agents following the [AI Coding Guidelines](./AGENTS.md).
+
+##### Agents
+- [ ] Write unit and integration tests for newly added APIs and features
+- [ ] About/Help/FAQ pages content creation
+- [ ] API Documentation (Swagger) enhancements for all endpoints
+- [ ] Finalize branding assets (logo, colors, fonts) + documentation for design consistency
+- [ ] Write onboarding email series for new users
+- [ ] Finalize marketing materials for launch (press kit, screenshots, feature list)
+
+##### Manual
+- [ ] Setup social media accounts (Twitter, Instagram) + initial posts
+- [ ] Find and onboard community members for data contributions (MotoGP, IndyCar, WEC) and feeback
+- [ ] Legal review of historical data usage and user-generated content policies
+- [ ] FInalize marketing materials for launch (press kit, screenshots, feature list)
 
 
-### 📋 Up Next
-- [ ] Season browser + season detail pages + API endpoint(s) (per-series; calendar/round list, filters by session type, progress indicators for "logged" vs "unlogged"; spoiler-safe aggregates only)
-- [ ] Round (weekend) detail pages + API endpoint(s) (per season; sessions timeline, circuit context, spoiler-safe status/metadata; acts as the primary "choose what to log" screen)
-- [ ] Session discovery + detail pages + API endpoint(s) (spoiler shield end-to-end; after this task users can browse sessions by series/season/round and view session details with results properly masked until logged)
-- [ ] "Log a Race" flow (core feature, end-to-end; multi-step modal or dedicated page; select session, enter basic info (date, watched vs attended, car/team/driver driven, comments), submit log; post-log redirect to session detail with results revealed)
-- [ ] Driver discovery + detail pages + API endpoint(s) (spoiler shield; profile, teams over time, seasons participated; includes tabular + statistical views)
-- [ ] Team discovery + detail pages + API endpoint(s) (spoiler shield; overview, seasons participated, drivers roster over time; includes tabular + statistical views)
-- [ ] Circuit discovery + detail pages + API endpoint(s) (spoiler-safe by default; circuit overview, location/map, sessions hosted by season/series, "Attended" venue aggregates when available; includes tabular + statistical views)
-- [ ] Basic feed/home page with recent activity API endpoint(s) 
-- [ ] Global search UI + API endpoint(s) (spoiler-safe results; respects spoiler mode; covers sessions, drivers, teams, circuits, users, logs)
+#### 1. Complete Discovery Flow (Browse → Find → View)
+- [ ] Season browser + detail pages + API
+  - Per-series calendar/round list
+  - Filters by session type
+  - Progress indicators (logged vs unlogged)
+  - Spoiler-safe aggregates only
+- [ ] Round (weekend) detail pages + API
+  - Sessions timeline
+  - Circuit context
+  - Spoiler-safe status/metadata
+  - Primary "choose what to log" screen
+- [ ] Session detail pages + API (spoiler shield end-to-end)
+  - Results properly masked until logged
+  - Full integration with spoiler shield
+- [ ] Navigation flow between Series → Season → Round → Session
+  - Check that all links/buttons work correctly
+  - Ensure "Statistics" like for the Series detail page the "Teams" and "Drivers" sections link to the correct pre-filtered pages. E.g. For Formula 1 if you click on "Teams" it should take you to the Teams page filtered to only show teams that have participated in Formula 1.
+  - Ensure breadcrumb navigation works correctly across all new pages.
+  
+#### 2. Core Logging Flow (The MVP Feature)
+- [ ] "Log a Race" flow
+  - Multi-step modal or dedicated page
+  - Session selection
+  - Basic info (date, watched vs attended)
+  - Optional: car/team/driver focus, comments
+  - Post-log redirect with results revealed
+- [ ] Logs API (CRUD for race logs)
+- [ ] Reviews API (create, read, like)
+
+#### 3. User Experience Polish
+- [ ] User profiles API + page
+- [ ] User settings page (spoiler mode, preferences)
+- [ ] Gravatar integration
+- [ ] Basic feed/home page with recent activity
+
+#### 4. Supporting Discovery Pages
+- [ ] Driver discovery + detail pages + API
+  - Profile, teams over time, seasons participated
+  - Spoiler-safe by default
+- [ ] Team discovery + detail pages + API
+  - Overview, seasons, drivers roster over time
+- [ ] Circuit discovery + detail pages + API
+  - Overview, location/map, sessions hosted
+  - "Attended" venue aggregates when available
+- [ ] Global search UI + API
+  - Covers sessions, drivers, teams, circuits, users, logs
 
 ---
 
-## 🗓️ Phase 1: Shakedown (MVP)
+## 🗓️ Phase 1: Shakedown (MVP Release)
 
-**Goal:** F1 2024-2025 seasons, basic logging, user profiles
+**Goal:** F1 2024-2025 fully functional, users can log races and see profiles
 
-### Backend
+### Remaining Items
 - [ ] Complete auth endpoints (password reset, email verification)
-- [ ] Logs API (CRUD for race logs)
-- [ ] Reviews API (create, read, like)
-- [ ] User profiles API
-- [ ] Gravatar integration
-- [ ] OpenF1 data sync (scheduled job)
-- [ ] Seed 2024-2025 F1 calendar data
-- [ ] WEC data integration (multi-series, multi-class and multi-driver support. This task requires the development of a custom scraper for https://fiawec.alkamelsystems.com/)
-- [ ] Admin/Mod tools (basic user management, content moderation queue) + distinguished mod/admin roles that are separate from normal users and membership tiers with elevated permissions and their own badges
+- [ ] OpenF1 scheduled sync job (automated weekly updates)
+- [ ] Seed complete 2024-2025 F1 calendar data
 
-### Frontend
-- [ ] Auth pages (Login, Register, Forgot Password)
-- [ ] Navigation header with user menu
-- [ ] Home feed (recent logs from followed users)
-- [ ] Session browser (by season, by round)
-- [ ] Session detail page (with spoiler shield)
-- [ ] Log race modal/page
-- [ ] User profile page
-- [ ] User settings page (spoiler mode, preferences)
-- [ ] Admin/Mod dashboard
-
-### Infrastructure
+### Infrastructure for Launch
 - [ ] Production deployment setup
 - [ ] Error tracking (Sentry or similar)
 - [ ] Basic analytics
 
+### [DEFERRED] Items moved to later phases
+- [ ] ~~Admin/Mod tools~~ → Moved to Phase 2 (not MVP critical)
+- [ ] ~~WEC data integration~~ → Moved to Phase 3 (complex multi-driver/multi-class requires significant effort)
+
 ---
 
-## 🗓️ Phase 2: Midfield
+## 🗓️ Phase 2: Midfield (Growth & Engagement)
 
-**Goal:** Historical archive, lists, social features
+**Goal:** Historical archive, social features, lists, search
 
-### Backend
-- [ ] Historical F1 data import (1950-2023)
+### Historical Data
+- [ ] Historical F1 data import (1950-2023 from Ergast archive)
+- [ ] Historical season browser UI
+
+### Social & Discovery
 - [ ] Lists API (create, share, collaborate)
+- [ ] Lists feature UI (create, edit, share)
 - [ ] Social feed algorithm
-- [ ] Search API (Elasticsearch integration)
-- [ ] Activity notifications
+- [ ] Activity notifications + notification center
+- [ ] Enhanced user profiles (stats, badges, year in review)
 
-### Frontend
-- [ ] Historical season browser
-- [ ] Advanced search UI
-- [ ] Lists feature (create, edit, share)
-- [ ] Notifications center
-- [ ] Enhanced user profiles (stats, badges)
-- [ ] Mobile-responsive improvements
+### Search & Performance
+- [ ] Search API (Elasticsearch integration)
+- [ ] Advanced search UI with filters
+
+### Moderation (Moved from Phase 1)
+- [ ] Admin/Mod tools (user management, content moderation queue)
+- [ ] Distinguished mod/admin roles with elevated permissions and badges
+
+### Mobile & Responsive
+- [ ] Mobile-responsive improvements across all pages
 
 ---
 
-## 🗓️ Phase 3: Podium
+## 🗓️ Phase 3: Podium (Multi-Series & Premium)
 
-**Goal:** Multi-series, venue guides, gamification, premium tier
+**Goal:** Expand beyond F1, venue guides, gamification, monetization
 
-### Backend
-- [ ] MotoGP data integration
-- [ ] IndyCar data integration
+### Multi-Series Expansion
+- [ ] MotoGP data integration (community contribution model)
+- [ ] IndyCar data integration (community JSON sources)
+- [ ] WEC data integration (complex: multi-class, multi-driver per car, time-based races)
+  - Custom scraper for https://fiawec.alkamelsystems.com/
+- [ ] Multi-series navigation UI updates
+
+### Venue & Circuit Guides
 - [ ] Circuit/Venue guides API
-- [ ] Gamification system (achievements, streaks)
-- [ ] PaddockPass premium features
-- [ ] Payment integration (Stripe)
+- [ ] Circuit guide pages (crowdsourced seat views, travel tips)
+- [ ] Seat map overlays with user ratings
 
-### Frontend
-- [ ] Multi-series navigation
-- [ ] Circuit guide pages (crowdsourced seat views)
+### Gamification
+- [ ] Gamification system (achievements, streaks, XP/Superlicence levels)
 - [ ] Achievement system UI
-- [ ] PaddockPass upgrade flow
-- [ ] Advanced stats dashboards (premium)
+- [ ] Stats dashboards
 
-### Mobile
+### Premium Tier (PaddockPass)
+- [ ] PaddockPass premium features definition
+- [ ] Payment integration (Stripe)
+- [ ] PaddockPass upgrade flow
+- [ ] Advanced stats dashboards (premium-only)
+
+### Mobile App
 - [ ] React Native app scaffold
-- [ ] Core features parity
+- [ ] Core features parity with web
 - [ ] Push notifications
 
 ---
 
-## 🎯 Backlog (Unprioritized)
+## 🎯 Backlog (Unprioritized / Future Consideration)
 
-### Features
-- [ ] OAuth providers (Discord, Apple)
-- [ ] Import from other platforms
-- [ ] Export user data
+### Additional Features
+- [ ] OAuth providers (Discord, Apple) — [PARTIAL: Google planned for MVP]
+- [ ] Import from other platforms (CSV, potential BoxBoxd migration)
+- [ ] Export user data (GDPR compliance)
 - [ ] Public API for third-party apps
 - [ ] Browser extension for spoiler blocking
-- [ ] Calendar sync (Google, Apple)
+- [ ] Calendar sync (Google Calendar, Apple Calendar)
 - [ ] Watch party coordination
 - [ ] Prediction games
 - [ ] Fantasy league integration
 
-### Technical
-- [ ] GraphQL API option
-- [ ] WebSocket for live updates
-- [ ] CDN for images
-- [ ] Database read replicas
-- [ ] Rate limiting
-- [ ] API versioning strategy
-- [ ] Automated testing suite
+### Technical Improvements
+- [ ] GraphQL API option — [LOW PRIORITY: REST approach is sufficient]
+- [ ] WebSocket for live updates — [FUTURE: For live session tracking]
+- [ ] CDN for images (user-uploaded seat photos)
+- [ ] Database read replicas — [SCALE: When traffic demands]
+- [ ] Rate limiting — [SECURITY: Before public launch]
 - [ ] Performance monitoring
 - [ ] A/B testing framework
 
-### Content
-- [ ] Editorial content system
-- [ ] Community moderation tools
-- [ ] Verified accounts for drivers/teams
+### Content & Community
+- [ ] Editorial content system (curated lists, "Essential Races")
+- [ ] Verified accounts for drivers/teams/journalists
 - [ ] Official series partnerships
+
+### [COMPLETED] — Previously in backlog
+- [x] ~~API versioning strategy~~ — URL path versioning implemented
+- [x] ~~Automated testing suite~~ — Unit + Integration tests in place
+
+### [OBSOLETE] — Superseded by completed work or restructured tasks
+- [ ] ~~Auth pages (Login, Register, Forgot Password)~~ — [COMPLETED in Current Sprint]
+- [ ] ~~Navigation header with user menu~~ — [COMPLETED in Current Sprint]
+- [ ] ~~Session browser (by season, by round)~~ — [RESTRUCTURED: Now part of Discovery Flow]
+- [ ] ~~Session detail page (with spoiler shield)~~ — [RESTRUCTURED: Now part of Discovery Flow]
+- [ ] ~~Log race modal/page~~ — [RESTRUCTURED: Now "Log a Race" flow in Up Next]
+- [ ] ~~User profile page~~ — [RESTRUCTURED: Now in Up Next section]
+- [ ] ~~Home feed (recent logs from followed users)~~ — [RESTRUCTURED: Now "Basic feed/home page" in Up Next]
+- [ ] ~~Admin/Mod dashboard~~ — [DEFERRED: Frontend follows backend, moved to Phase 2]
+- [ ] ~~Community moderation tools~~ — [DUPLICATE: Covered by Admin/Mod tools in Phase 2]
 
 ---
 
 ## 📝 Notes
 
 ### Key Decisions Made
-1. **Spoiler Shield is non-negotiable** - All UIs hide results by default
-2. **Watched vs Attended** - Separate rating systems for broadcast and venue
-3. **Free tier is generous** - Historical data never gated
-4. **Excitement != Quality** - Separate ratings for "how exciting" vs "how good"
+1. **Spoiler Shield is non-negotiable** — All UIs hide results by default
+2. **Watched vs Attended** — Separate rating systems for broadcast and venue experience
+3. **Free tier is generous** — Historical data never gated (unlike BoxBoxd competitor)
+4. **Excitement ≠ Quality** — Separate ratings for "how exciting" vs "how good"
+5. **Multi-color brand support** — Series can have multiple brand colors for visual identity
+6. **Entity normalization** — Alias tracking for consistent driver/team/circuit identity across data sources
 
 ### Open Questions
 - How to handle live session updates without spoilers?
 - Should lists be collaborative by default?
-- PaddockPass pricing strategy?
+- PaddockPass pricing strategy? (Letterboxd model: ~$4/mo Pro, ~$10/mo Patron)
+- Community contribution model details for non-F1 series data?
 
 ### External Dependencies
-- OpenF1 API reliability
-- Community contribution model for non-F1 series
-- Legal considerations for historical data
+- **OpenF1 API** — Unofficial, may change; fallback to SportMonks (~€55/mo) if needed
+- **Ergast archive** — Deprecated but archived; needed for 1950-2023 historical import
+- **Community contributors** — Required for MotoGP/IndyCar/WEC data
+- **Legal review** — Historical data usage rights
+
+### Risk Mitigation
+- **OpenF1 dependency**: Can migrate to SportMonks commercial API if needed
+- **Data gaps**: Community Wiki model for missing race data
+- **Scale**: Redis caching + query optimization before considering read replicas
 
 ---
 
 ## 🔗 Quick Links
 
 - [Product Blueprint](./docs/BLUEPRINT.md)
-- [AI Coding Guidelines](./.github/copilot-instructions.md)
+- [AI Coding Guidelines](./AGENTS.md)
 - [API Documentation](http://localhost:5000/swagger) (local dev)
+- [Bulk Sync Guide](./docs/BULK_SYNC.md)

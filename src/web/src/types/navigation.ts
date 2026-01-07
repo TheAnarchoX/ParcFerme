@@ -131,6 +131,10 @@ export const ROUTES = {
   // Utility
   SEARCH: '/search',
   STATUS: '/status',
+
+  // Legal
+  PRIVACY: '/privacy',
+  TERMS: '/terms',
 } as const;
 
 // =========================

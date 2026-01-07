@@ -9,6 +9,10 @@ import { StatusPage } from './pages/StatusPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ErrorPage, ForbiddenPage, ServerErrorPage, MaintenancePage } from './pages/ErrorPage';
 
+// Legal pages
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { TermsPage } from './pages/TermsPage';
+
 // Discovery pages
 import { SeriesListPage } from './pages/discovery/SeriesListPage';
 import { SeriesDetailPage } from './pages/discovery/SeriesDetailPage';
@@ -54,6 +58,10 @@ function AppRoutes() {
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       
+      {/* Legal routes */}
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+
       {/* Discovery routes - Series hierarchy */}
       <Route path="/series" element={<SeriesListPage />} />
       <Route path="/series/:seriesSlug" element={<SeriesDetailPage />} />

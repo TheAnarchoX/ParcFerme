@@ -46,6 +46,19 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
         modelBuilder.Entity<Series>(entity =>
         {
             entity.HasIndex(e => e.Slug).IsUnique();
+            
+            // Store BrandColors as JSON array
+            entity.Property(e => e.BrandColors)
+                  .HasConversion(
+                      v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                      v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
+                  )
+                  .HasColumnType("jsonb")
+                  .Metadata.SetValueComparer(new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<string>>(
+                      (c1, c2) => c1 != null && c2 != null && c1.SequenceEqual(c2),
+                      c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                      c => c.ToList()
+                  ));
         });
 
         modelBuilder.Entity<SeriesAlias>(entity =>

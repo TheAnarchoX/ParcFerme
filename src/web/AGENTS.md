@@ -173,3 +173,25 @@ npm run type-check    # TypeScript check without emit
 - Primary accent: Racing red (#E10600)
 - Use racing metaphors in UI copy (e.g., "Pit Stop" for loading)
 - Checkered flag motifs for completion states
+
+## Roadmap Hygiene
+
+**Keep ROADMAP.md in sync with actual work.** When working on tasks:
+
+1. **Before starting work**: Move the relevant item from its current section to the "In Progress" section at the top of the roadmap
+2. **Upon completion**: Move the item to the "Completed" section with a completion date
+3. **During work**: Update status markers as appropriate:
+   - `[IN PROGRESS]` - actively being worked on
+   - `[COMPLETED]` - fully implemented and tested
+   - `[DEFERRED]` - postponed to later phase
+   - `[OBSOLETE]` - no longer relevant or superseded
+   - `[RESTRUCTURED]` - reorganized into other items
+
+### General Maintenance
+- Keep completed items organized by date (most recent first)
+- Add brief notes about implementation details to completed items when helpful
+- Flag items that are blocked or need clarification
+- Consolidate duplicate or overlapping tasks
+- Ensure priority ordering makes sense from engineering and product perspectives
+
+The roadmap is a living document—treat it as a source of truth for project status, not just a wish list.

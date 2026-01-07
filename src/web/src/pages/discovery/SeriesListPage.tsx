@@ -5,7 +5,7 @@ import { useBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
 import { seriesApi } from '../../services/seriesService';
 import type { SeriesSummaryDto } from '../../types/series';
-import { getSeriesColor } from '../../types/series';
+import { getSeriesColors } from '../../types/series';
 
 // =========================
 // Loading Skeleton
@@ -43,7 +43,22 @@ function SeriesCard({ series }: SeriesCardProps) {
     return null;
   }
   
-  const color = getSeriesColor(series.slug);
+  // Use brandColors from API if available, otherwise fall back to local mapping
+  const colors = series.brandColors?.length > 0 
+    ? series.brandColors 
+    : getSeriesColors(series.slug);
+  const primaryColor = colors[0];
+  
+  // Generate header style - gradient for multi-color, solid for single
+  const getHeaderStyle = (): React.CSSProperties => {
+    if (colors.length === 1) {
+      return { backgroundColor: primaryColor };
+    }
+    const gradient = colors.map((c, i) => 
+      `${c} ${(i / colors.length) * 100}%, ${c} ${((i + 1) / colors.length) * 100}%`
+    ).join(', ');
+    return { background: `linear-gradient(to right, ${gradient})` };
+  };
   
   return (
     <Link
@@ -53,7 +68,7 @@ function SeriesCard({ series }: SeriesCardProps) {
       {/* Header with color accent */}
       <div 
         className="h-2" 
-        style={{ backgroundColor: color }}
+        style={getHeaderStyle()}
         aria-hidden="true"
       />
       
@@ -68,7 +83,7 @@ function SeriesCard({ series }: SeriesCardProps) {
         ) : (
           <div 
             className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl mb-4"
-            style={{ backgroundColor: `${color}20` }}
+            style={{ backgroundColor: `${primaryColor}20` }}
           >
             🏁
           </div>
@@ -89,11 +104,11 @@ function SeriesCard({ series }: SeriesCardProps) {
         {/* Stats */}
         <div className="flex items-center gap-4 text-sm">
           <span className="text-neutral-500">
-            <span className="text-neutral-300 font-medium">{series.seasonCount}</span> seasons
+            <span className="font-bold" style={{ color: primaryColor }}>{series.seasonCount}</span> seasons
           </span>
           {series.latestSeasonYear && (
             <span className="text-neutral-500">
-              Latest: <span className="text-neutral-300 font-medium">{series.latestSeasonYear}</span>
+              Latest: <span className="font-bold" style={{ color: primaryColor }}>{series.latestSeasonYear}</span>
             </span>
           )}
         </div>
@@ -202,69 +217,173 @@ export function SeriesListPage() {
       <Section title="Coming Soon" subtitle="More series will be added over time">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { name: 'WEC', color: '#01b9ff' },
-            { name: 'IndyCar', color: '#0e56a3' },
-            { name: 'MotoGP', color: '#C90909' },
-            { name: 'Many More', color: '#00FF7F' }
+            { name: 'WEC', colors: ['#01b9ff'], split: 'none' as const },
+            { name: 'IndyCar', colors: ['#e51937',  '#111'], split: 'horizontal' as const },
+            { name: 'MotoGP', colors: ['#C90909'], split: 'none' as const },
+            { name: 'NASCAR', colors: ['#FFD659', '#E4002B', '#007AC2', '#111'], split: 'vertical' as const },
+            { name: 'DTM', colors: ['#ffd208'], split: 'none' as const },
+            { name: 'Many More', colors: ['#00FF7F'], split: 'none' as const }
           ].map((item) => (
-            <div 
-              key={item.name}
-              className="group bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-xl hover:border-neutral-700"
-            >
-              {/* Header with color accent */}
-              <div 
-                className="h-2" 
-                style={{ backgroundColor: item.color }}
-                aria-hidden="true"
-              />
-              
-              {/* Card content */}
-              <div className="relative p-6 text-center">
-                {/* Random expanding blobs that fill the card - positioned to cover entire card including top bar */}
-                <div className="absolute inset-0 -top-2">
-                  {/* Top-left blob */}
-                  <div 
-                    className="absolute -top-4 -left-4 w-20 h-20 rounded-full opacity-0 scale-0 blur-xl group-hover:opacity-100 group-hover:scale-[3] transition-all duration-500 ease-out"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  {/* Bottom-right blob */}
-                  <div 
-                    className="absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-0 scale-0 blur-xl group-hover:opacity-100 group-hover:scale-[2.5] transition-all duration-600 delay-100 ease-out"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  {/* Top-right blob */}
-                  <div 
-                    className="absolute -top-2 -right-6 w-16 h-16 rounded-full opacity-0 scale-0 blur-lg group-hover:opacity-90 group-hover:scale-[3.5] transition-all duration-550 delay-75 ease-out"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  {/* Bottom-left blob */}
-                  <div 
-                    className="absolute -bottom-6 -left-2 w-18 h-18 rounded-full opacity-0 scale-0 blur-lg group-hover:opacity-90 group-hover:scale-[4] transition-all duration-650 delay-150 ease-out"
-                    style={{ backgroundColor: item.color }}
-                  />
-                </div>
-                
-                {/* Text content with subtle lift animation */}
-                <span 
-                  className="relative font-bold text-lg block group-hover:-translate-y-0.5 transition-all duration-500"
-                >
-                  <span 
-                    className="transition-all duration-500 group-hover:opacity-0"
-                    style={{ 
-                      color: item.color,
-                    }}
-                  >
-                    {item.name}
-                  </span>
-                  <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold">
-                    {item.name}
-                  </span>
-                </span>
-              </div>
-            </div>
+            <ComingSoonCard key={item.name} {...item} />
           ))}
         </div>
       </Section>
     </MainLayout>
+  );
+}
+
+// =========================
+// Coming Soon Card Component
+// =========================
+
+interface ComingSoonCardProps {
+  name: string;
+  colors: string[];
+  split: 'none' | 'horizontal' | 'vertical';
+}
+
+function ComingSoonCard({ name, colors, split }: ComingSoonCardProps) {
+  // Generate header bar style based on split type
+  const getHeaderStyle = (): React.CSSProperties => {
+    if (colors.length === 1) {
+      return { backgroundColor: colors[0] };
+    }
+    const gradient = colors.map((c, i) => 
+      `${c} ${(i / colors.length) * 100}%, ${c} ${((i + 1) / colors.length) * 100}%`
+    ).join(', ');
+    return { background: `linear-gradient(to right, ${gradient})` };
+  };
+
+  // Generate text style - always use first color
+  const getTextStyle = (): React.CSSProperties => {
+    return { color: colors[0] };
+  };
+
+  // Generate blob configurations based on colors and split type
+  const getBlobs = () => {
+    const blobs: Array<{
+      color: string;
+      top?: string;
+      bottom?: string;
+      left?: string;
+      right?: string;
+      width: string;
+      height: string;
+      scale: number;
+      delay: number;
+      blur: number;
+    }> = [];
+
+    const primaryColor = colors[0] ?? '#ffffff';
+
+    if (colors.length === 1) {
+      // Single color - blobs in all corners
+      blobs.push(
+        { color: primaryColor, top: '-1rem', left: '-1rem', width: '5rem', height: '5rem', scale: 3, delay: 0, blur: 24 },
+        { color: primaryColor, bottom: '-1rem', right: '-1rem', width: '6rem', height: '6rem', scale: 2.5, delay: 100, blur: 24 },
+        { color: primaryColor, top: '-0.5rem', right: '-1.5rem', width: '4rem', height: '4rem', scale: 3.5, delay: 75, blur: 16 },
+        { color: primaryColor, bottom: '-1.5rem', left: '-0.5rem', width: '4.5rem', height: '4.5rem', scale: 4, delay: 150, blur: 16 },
+      );
+    } else if (split === 'horizontal') {
+      // Horizontal split - colors on top/bottom
+      colors.forEach((color, i) => {
+        const isTop = i === 0;
+        blobs.push(
+          { 
+            color, 
+            ...(isTop ? { top: '-1rem' } : { bottom: '-1rem' }), 
+            left: '-1rem', 
+            width: '5rem', height: '5rem', scale: 3, delay: i * 50, blur: 24 
+          },
+          { 
+            color, 
+            ...(isTop ? { top: '-0.5rem' } : { bottom: '-0.5rem' }), 
+            right: '-1rem', 
+            width: '6rem', height: '6rem', scale: 2.5, delay: i * 50 + 100, blur: 24 
+          },
+        );
+      });
+    } else if (split === 'vertical') {
+      // Vertical split - distribute blobs across width
+      const sectionWidth = 100 / colors.length;
+      colors.forEach((color, i) => {
+        const leftPos = `${(i * sectionWidth) + (sectionWidth / 2) - 10}%`;
+        blobs.push(
+          { color, top: '-1rem', left: leftPos, width: '4rem', height: '4rem', scale: 3, delay: i * 40, blur: 24 },
+          { color, bottom: '-1rem', left: leftPos, width: '5rem', height: '5rem', scale: 2.5, delay: i * 40 + 80, blur: 16 },
+        );
+      });
+    }
+
+    return blobs;
+  };
+
+  const blobs = getBlobs();
+  const cardId = `coming-soon-${name.replace(/\s+/g, '-').toLowerCase()}`;
+
+  return (
+    <div 
+      className="group bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-xl hover:border-neutral-700"
+    >
+      {/* Inject scoped styles for this card's blob animations */}
+      <style>{`
+        #${cardId}:hover .blob {
+          opacity: 1 !important;
+        }
+        ${blobs.map((blob, i) => `
+          #${cardId}:hover .blob-${i} {
+            transform: scale(${blob.scale}) !important;
+          }
+        `).join('')}
+      `}</style>
+      
+      <div id={cardId}>
+        {/* Header with color accent */}
+        <div 
+          className="h-2" 
+          style={getHeaderStyle()}
+          aria-hidden="true"
+        />
+        
+        {/* Card content */}
+        <div className="relative p-6 text-center">
+          {/* Expanding blobs container */}
+          <div className="absolute inset-0 -top-2 overflow-hidden rounded-b-xl">
+            {blobs.map((blob, i) => (
+              <div 
+                key={i}
+                className={`blob blob-${i} absolute rounded-full transition-all duration-500 ease-out`}
+                style={{ 
+                  backgroundColor: blob.color,
+                  top: blob.top,
+                  bottom: blob.bottom,
+                  left: blob.left,
+                  right: blob.right,
+                  width: blob.width,
+                  height: blob.height,
+                  filter: `blur(${blob.blur}px)`,
+                  transform: 'scale(0)',
+                  opacity: 0,
+                  transitionDelay: `${blob.delay}ms`,
+                }}
+              />
+            ))}
+          </div>
+          
+          {/* Text content with subtle lift animation */}
+          <span className="relative font-bold text-lg block group-hover:-translate-y-0.5 transition-all duration-500">
+            <span 
+              className="transition-all duration-500 group-hover:opacity-0"
+              style={getTextStyle()}
+            >
+              {name}
+            </span>
+            <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold text-white">
+              {name}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
