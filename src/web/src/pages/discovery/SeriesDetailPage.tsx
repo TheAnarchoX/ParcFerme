@@ -5,7 +5,7 @@ import { useBreadcrumbs, buildSeriesBreadcrumbs } from '../../components/navigat
 import { ROUTES } from '../../types/navigation';
 import { seriesApi } from '../../services/seriesService';
 import type { SeriesDetailDto, SeasonSummaryDto } from '../../types/series';
-import { getSeriesColor } from '../../types/series';
+import { getSeriesColors } from '../../types/series';
 
 // =========================
 // Loading Skeleton
@@ -213,7 +213,22 @@ export function SeriesDetailPage() {
     );
   }
   
-  const color = getSeriesColor(seriesSlug);
+  // Use brandColors from API if available, otherwise fall back to local mapping
+  const colors = seriesData.brandColors?.length > 0 
+    ? seriesData.brandColors 
+    : getSeriesColors(seriesSlug);
+  const primaryColor = colors[0];
+  
+  // Generate header style - gradient for multi-color, solid for single
+  const getHeaderStyle = (): React.CSSProperties => {
+    if (colors.length === 1) {
+      return { backgroundColor: primaryColor };
+    }
+    const gradient = colors.map((c, i) => 
+      `${c} ${(i / colors.length) * 100}%, ${c} ${((i + 1) / colors.length) * 100}%`
+    ).join(', ');
+    return { background: `linear-gradient(to right, ${gradient})` };
+  };
   
   // Calculate additional insights
   const currentSeason = seriesData.seasons.find(s => s.isCurrent);
@@ -231,7 +246,7 @@ export function SeriesDetailPage() {
       <div className="relative mb-8">
         <div 
           className="absolute inset-0 h-1 rounded-full" 
-          style={{ backgroundColor: color }}
+          style={getHeaderStyle()}
         />
         <div className="pt-4">
           <PageHeader
@@ -339,6 +354,8 @@ export function SeriesDetailPage() {
 
         {/* Right column: Quick info (1/3 width on large screens) */}
         <div className="space-y-6">
+        <h2 className="text-lg font-semibold text-neutral-100 mb-4">Information</h2>
+
           {seriesData.description && (
             <InfoCard title="About" icon="ℹ️">
               <p className="text-sm text-neutral-300 leading-relaxed">
@@ -371,18 +388,26 @@ export function SeriesDetailPage() {
           </InfoCard>
 
           {/* Color indicator */}
-          <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <div 
-                className="w-12 h-12 rounded-lg" 
-                style={{ backgroundColor: color }}
-              />
-              <div>
-                <p className="text-xs text-neutral-500 uppercase tracking-wide">Brand Color</p>
-                <p className="text-sm text-neutral-300 font-mono">{color}</p>
-              </div>
+          <InfoCard title={colors.length > 1 ? "Brand Colors" : "Brand Color"} icon="🎨">
+            <div className="space-y-3">
+              {colors.map((color, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div 
+                    className="w-10 h-10 rounded-lg border border-neutral-700" 
+                    style={{ backgroundColor: color }}
+                  />
+                  <div className="flex-1">
+                    {colors.length > 1 && (
+                      <p className="text-xs text-neutral-500 mb-0.5">
+                        {index === 0 ? 'Primary' : `Accent ${index}`}
+                      </p>
+                    )}
+                    <p className="text-sm text-neutral-300 font-mono">{color}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          </InfoCard>
         </div>
       </div>
       

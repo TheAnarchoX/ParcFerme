@@ -16,6 +16,7 @@ export interface SeriesSummaryDto {
   seasonCount: number;
   latestSeasonYear?: number;
   currentSeasonRoundCount?: number;
+  brandColors: string[];
 }
 
 export interface SeriesDetailDto {
@@ -24,6 +25,7 @@ export interface SeriesDetailDto {
   slug: string;
   logoUrl?: string;
   description?: string;
+  brandColors: string[];
   seasons: SeasonSummaryDto[];
   stats: SeriesStatsDto;
 }
@@ -99,17 +101,34 @@ export interface CircuitSummaryForRoundDto {
 // Color Mapping for Series
 // =========================
 
-export const SERIES_COLORS: Record<string, string> = {
-  'f1': '#E10600',
-  'formula-1': '#E10600',
-  'motogp': '#FF6B00',
-  'wec': '#0066CC',
-  'indycar': '#1E1E1E',
-  'formula-e': '#00BCD4',
-  'nascar': '#FEBD30',
+/**
+ * Default brand colors for series when not provided by API.
+ * First color is primary (used for text), additional colors for gradients/accents.
+ */
+export const SERIES_COLORS: Record<string, string[]> = {
+  'f1': ['#E10600', '#FFFFFF', '#000000'],
+  'formula-1': ['#E10600', '#FFFFFF', '#000000'],
+  'motogp': ['#FF6B00'],
+  'wec': ['#01b9ff'],
+  'indycar': ['#e51937', '#000000'],
+  'formula-e': ['#00BCD4'],
+  'nascar': ['#FFD659', '#E4002B', '#007AC2', '#000000'],
 };
 
+/**
+ * Get brand colors for a series.
+ * Returns array of colors - first is primary (for text), rest for accents/gradients.
+ */
+export function getSeriesColors(slug: string | undefined): string[] {
+  if (!slug) return ['#666666'];
+  return SERIES_COLORS[slug.toLowerCase()] ?? ['#666666'];
+}
+
+/**
+ * Get the primary brand color for a series (for text, single-color usage).
+ * @deprecated Use getSeriesColors() for full multi-color support
+ */
 export function getSeriesColor(slug: string | undefined): string {
-  if (!slug) return '#666666';
-  return SERIES_COLORS[slug.toLowerCase()] ?? '#666666';
+  const colors = getSeriesColors(slug);
+  return colors[0] ?? '#666666';
 }
