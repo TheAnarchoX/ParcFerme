@@ -326,6 +326,67 @@ class RacingRepository:
             conn.commit()
             return _to_uuid(row["Id"]) if row else session.id
 
+    def upsert_session_by_round_type(self, session: Session) -> UUID:
+        """Upsert a session using (RoundId, Type, StartTimeUtc date) as lookup key.
+        
+        Use this for seeding sessions that don't have OpenF1 keys.
+        This first looks for an existing session with matching round, type, and date,
+        and updates it if found. Otherwise inserts a new session.
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            # First, try to find an existing session with same round, type, and date
+            cur.execute(
+                """
+                SELECT "Id" FROM "Sessions"
+                WHERE "RoundId" = %s
+                  AND "Type" = %s
+                  AND DATE("StartTimeUtc") = DATE(%s)
+                """,
+                (str(session.round_id), session.type.value, session.start_time_utc),
+            )
+            existing = cur.fetchone()
+            
+            if existing:
+                # Update existing session
+                cur.execute(
+                    """
+                    UPDATE "Sessions"
+                    SET "StartTimeUtc" = %s,
+                        "Status" = %s,
+                        "OpenF1SessionKey" = COALESCE(%s, "OpenF1SessionKey")
+                    WHERE "Id" = %s
+                    RETURNING "Id"
+                    """,
+                    (
+                        session.start_time_utc,
+                        session.status.value,
+                        session.openf1_session_key,
+                        str(existing["Id"]),
+                    ),
+                )
+            else:
+                # Insert new session
+                cur.execute(
+                    """
+                    INSERT INTO "Sessions" ("Id", "RoundId", "Type", "StartTimeUtc",
+                                           "Status", "OpenF1SessionKey")
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING "Id"
+                    """,
+                    (
+                        str(session.id),
+                        str(session.round_id),
+                        session.type.value,
+                        session.start_time_utc,
+                        session.status.value,
+                        session.openf1_session_key,
+                    ),
+                )
+            
+            row = cur.fetchone()
+            conn.commit()
+            return _to_uuid(row["Id"]) if row else session.id
+
     def get_session_by_key(self, session_key: int) -> Session | None:
         """Get a session by its OpenF1 session key."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:

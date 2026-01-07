@@ -88,6 +88,23 @@ python -m ingestion.bulk_sync --all --pause 5
 python -m ingestion.bulk_sync --all --max-retries 5
 ```
 
+### Seed Future Calendar
+
+For seasons where OpenF1 data isn't yet available, you can seed calendar data from ICS files:
+
+```bash
+# Seed 2026 F1 calendar from ICS file (dry-run)
+python -m ingestion.seed_f1_2026 --dry-run
+
+# Actually seed the 2026 calendar
+python -m ingestion.seed_f1_2026
+
+# Use a custom ICS file path
+python -m ingestion.seed_f1_2026 --ics-path /path/to/calendar.ics
+```
+
+The seed script parses calendar ICS files (e.g., from RacingNews365), translates Dutch event names to English, removes branding, and creates rounds with sessions. Sessions are seeded without results since the races haven't happened yet.
+
 **Bulk Sync Features:**
 - ✅ **Idempotent**: Run multiple times without duplicates or errors
 - ✅ **Retry logic**: Automatic retry with exponential backoff on failures
