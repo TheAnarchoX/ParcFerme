@@ -117,8 +117,14 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - Added `--results-only` flag to bulk_sync CLI that syncs results without modifying driver/team/session entities
   - Enhanced entrant lookup to use DriverAliases for historical driver numbers (e.g., Max Verstappen #1 → #3)
   - Added `sync_results_only_year()`, `get_completed_sessions_by_year()`, `get_entrants_by_round()` methods
-  - Synced 1218 results for 2023 season; 2024-2025 pending (rate limited)
-- [ ] Complete 2024-2025 results sync (run `--results-only` with longer pauses to avoid rate limits)
+  - Synced 1218 results for 2023 season, 311 results for 2024 (partial)
+- [x] Add safety flags for historical sync (Completed: Jan 8, 2026)
+  - Added `--create-only` flag: Only creates new entities, never updates existing ones
+  - Added `--preserve-names` flag: Keeps canonical names, creates aliases for variations
+  - Added `--preserve-numbers` flag: Keeps canonical driver numbers, creates aliases for historical numbers
+  - SyncOptions dataclass with modes: "full", "create_only", "skip"
+  - Enables safe syncing while preserving curated canonical data
+- [ ] Complete 2024-2025 results sync (run with `--pause 5` to avoid rate limits)
 
 **Lower Priority — Future Prep**
 - [x] Frontend e2e tests for critical flows (Playwright setup with homepage, auth, discovery, spoiler-shield tests)
