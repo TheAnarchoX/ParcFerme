@@ -6,6 +6,7 @@ This is the core of the data ingestion pipeline.
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 import structlog  # type: ignore
@@ -692,4 +693,99 @@ class OpenF1SyncService:
                 )
                 stats["errors"].append(f"Meeting {meeting.meeting_name}: {e}")
 
+        return stats
+
+    def sync_results_only_year(self, year: int) -> dict:
+        """Sync ONLY results for existing sessions in a given year.
+        
+        This is a lightweight sync that:
+        - Does NOT create/update drivers, teams, circuits, rounds, or sessions
+        - Only fetches results from OpenF1 for existing completed sessions
+        - Uses existing entrant mappings
+        
+        Use this when you want to add results without modifying any entity data.
+        
+        Returns:
+            Dictionary with sync statistics.
+        """
+        api, repo = self._ensure_clients()
+        
+        stats = {
+            "year": year,
+            "sessions_checked": 0,
+            "sessions_with_existing_results": 0,
+            "sessions_synced": 0,
+            "results_synced": 0,
+            "errors": [],
+        }
+        
+        logger.info("Starting results-only sync", year=year)
+        
+        # Get all completed sessions for this year
+        sessions = repo.get_completed_sessions_by_year(year)
+        stats["sessions_checked"] = len(sessions)
+        
+        logger.info(
+            "Found completed sessions",
+            year=year,
+            count=len(sessions),
+        )
+        
+        # Cache entrant maps by round_id to avoid repeated queries
+        entrant_cache: dict[str, dict[int, Any]] = {}
+        
+        for session in sessions:
+            try:
+                # Skip if session already has results
+                existing_count = repo.count_results_for_session(session.id)
+                if existing_count > 0:
+                    stats["sessions_with_existing_results"] += 1
+                    logger.debug(
+                        "Session already has results, skipping",
+                        session_key=session.openf1_session_key,
+                        existing_count=existing_count,
+                    )
+                    continue
+                
+                # Get entrant map for this round (cached)
+                round_id_str = str(session.round_id)
+                if round_id_str not in entrant_cache:
+                    entrant_cache[round_id_str] = repo.get_entrants_by_round(session.round_id)
+                entrant_map = entrant_cache[round_id_str]
+                
+                if not entrant_map:
+                    logger.warning(
+                        "No entrants found for round, skipping session",
+                        session_key=session.openf1_session_key,
+                        round_id=round_id_str,
+                    )
+                    continue
+                
+                # Create a minimal OpenF1Session object for the results sync
+                # We only need session_key and session_name for logging
+                openf1_session = type('OpenF1Session', (), {
+                    'session_key': session.openf1_session_key,
+                    'session_name': session.type.value,
+                })()
+                
+                # Use existing _sync_session_results method
+                self._sync_session_results(
+                    api, repo, openf1_session, session.id, session.round_id, entrant_map, stats
+                )
+                stats["sessions_synced"] += 1
+                
+            except Exception as e:
+                error_msg = f"Session {session.openf1_session_key}: {e}"
+                logger.warning("Failed to sync results for session", error=error_msg)
+                stats["errors"].append(error_msg)
+        
+        logger.info(
+            "Results-only sync complete",
+            year=year,
+            sessions_synced=stats["sessions_synced"],
+            results_synced=stats["results_synced"],
+            skipped=stats["sessions_with_existing_results"],
+            errors=len(stats["errors"]),
+        )
+        
         return stats

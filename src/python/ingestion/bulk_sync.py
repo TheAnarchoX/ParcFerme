@@ -61,6 +61,7 @@ class BulkSyncRunner:
         pause_between_years: float = 2.0,
         max_retries: int = 3,
         include_results: bool = True,
+        results_only: bool = False,
     ):
         """
         Initialize bulk sync runner.
@@ -68,11 +69,13 @@ class BulkSyncRunner:
         Args:
             pause_between_years: Seconds to pause between year syncs (rate limiting)
             max_retries: Max retry attempts per year on failure
-            include_results: Whether to sync results (spoiler data)
+            include_results: Whether to sync results (spoiler data) - ignored if results_only=True
+            results_only: If True, only sync results for existing sessions (no entity updates)
         """
         self.pause_between_years = pause_between_years
         self.max_retries = max_retries
         self.include_results = include_results
+        self.results_only = results_only
         self.total_stats = {
             "years_attempted": 0,
             "years_succeeded": 0,
@@ -113,14 +116,22 @@ class BulkSyncRunner:
         """
         for attempt in range(1, self.max_retries + 1):
             try:
+                mode = "results-only" if self.results_only else "full"
                 logger.info(
                     f"Syncing year {year}",
                     year=year,
+                    mode=mode,
                     attempt=attempt,
                     max_retries=self.max_retries,
                 )
 
-                stats = sync_service.sync_year(year=year, include_results=self.include_results)
+                if self.results_only:
+                    stats = sync_service.sync_results_only_year(year=year)
+                    # For results-only mode, check sessions_synced instead of meetings_synced
+                    success_key = "sessions_synced"
+                else:
+                    stats = sync_service.sync_year(year=year, include_results=self.include_results)
+                    success_key = "meetings_synced"
 
                 # Check if there were critical errors
                 if stats.get("errors"):
@@ -131,7 +142,7 @@ class BulkSyncRunner:
                         error_count=error_count,
                     )
                     # If we got some data, consider it a partial success
-                    if stats["meetings_synced"] > 0:
+                    if stats.get(success_key, 0) > 0:
                         logger.info(f"Partial success for year {year}", stats=stats)
                         return stats
                     # If no data synced and errors, retry
@@ -250,18 +261,20 @@ class BulkSyncRunner:
         """Print comprehensive summary of bulk sync results."""
         stats = self.total_stats
 
+        mode_label = "RESULTS-ONLY SYNC" if self.results_only else "BULK SYNC"
         print("\n" + "=" * 70)
-        print("🏁 BULK SYNC COMPLETE")
+        print(f"🏁 {mode_label} COMPLETE")
         print("=" * 70)
         print(f"\n📊 SUMMARY:")
         print(f"  Years attempted:    {stats['years_attempted']}")
         print(f"  ✅ Years succeeded:  {stats['years_succeeded']}")
         print(f"  ❌ Years failed:     {stats['years_failed']}")
         print(f"\n📈 TOTAL DATA SYNCED:")
-        print(f"  Meetings:           {stats['total_meetings']}")
-        print(f"  Sessions:           {stats['total_sessions']}")
-        print(f"  Drivers:            {stats['total_drivers']}")
-        print(f"  Teams:              {stats['total_teams']}")
+        if not self.results_only:
+            print(f"  Meetings:           {stats['total_meetings']}")
+            print(f"  Sessions:           {stats['total_sessions']}")
+            print(f"  Drivers:            {stats['total_drivers']}")
+            print(f"  Teams:              {stats['total_teams']}")
         if self.include_results:
             print(f"  Results:            {stats['total_results']}")
 
@@ -338,6 +351,11 @@ Examples:
         help="Skip syncing results (faster, avoids spoiler data)",
     )
     parser.add_argument(
+        "--results-only",
+        action="store_true",
+        help="Only sync results for existing sessions (no driver/team/session updates)",
+    )
+    parser.add_argument(
         "--pause",
         type=float,
         default=2.0,
@@ -353,6 +371,10 @@ Examples:
     )
 
     args = parser.parse_args()
+
+    # Validate arguments
+    if args.results_only and args.no_results:
+        parser.error("--results-only and --no-results are mutually exclusive")
 
     # Validate year range arguments
     if args.start_year and not args.end_year:
@@ -384,6 +406,7 @@ Examples:
         pause_between_years=args.pause,
         max_retries=args.max_retries,
         include_results=not args.no_results,
+        results_only=args.results_only,
     )
 
     try:

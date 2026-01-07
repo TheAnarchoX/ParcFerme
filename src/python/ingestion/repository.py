@@ -407,6 +407,134 @@ class RacingRepository:
                 )
             return None
 
+    def get_completed_sessions_by_year(self, year: int) -> list[Session]:
+        """Get all completed sessions for a given year.
+        
+        Used for results-only sync to find sessions that need results.
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT s."Id", s."RoundId", s."Type", s."StartTimeUtc", 
+                       s."Status", s."OpenF1SessionKey"
+                FROM "Sessions" s
+                JOIN "Rounds" r ON s."RoundId" = r."Id"
+                JOIN "Seasons" se ON r."SeasonId" = se."Id"
+                WHERE se."Year" = %s
+                  AND s."Status" = %s
+                  AND s."OpenF1SessionKey" IS NOT NULL
+                ORDER BY s."StartTimeUtc"
+                """,
+                (year, SessionStatus.COMPLETED.value),
+            )
+            rows = cur.fetchall()
+            return [
+                Session(
+                    id=_to_uuid(row["Id"]),
+                    round_id=_to_uuid(row["RoundId"]),
+                    type=SessionType(row["Type"]),
+                    start_time_utc=row["StartTimeUtc"],
+                    status=SessionStatus(row["Status"]),
+                    openf1_session_key=row["OpenF1SessionKey"],
+                )
+                for row in rows
+            ]
+
+    def get_entrants_by_round(self, round_id: UUID) -> dict[int, UUID]:
+        """Get all entrants for a round, keyed by driver number.
+        
+        Returns a dict mapping driver_number -> entrant_id.
+        Includes both current driver numbers and historical aliases.
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            # Get entrants with current driver numbers
+            cur.execute(
+                """
+                SELECT e."Id", d."DriverNumber"
+                FROM "Entrants" e
+                JOIN "Drivers" d ON e."DriverId" = d."Id"
+                WHERE e."RoundId" = %s AND d."DriverNumber" IS NOT NULL
+                """,
+                (str(round_id),),
+            )
+            rows = cur.fetchall()
+            result = {row["DriverNumber"]: _to_uuid(row["Id"]) for row in rows}
+            
+            # Also include historical driver numbers from aliases
+            cur.execute(
+                """
+                SELECT e."Id", da."DriverNumber"
+                FROM "Entrants" e
+                JOIN "DriverAliases" da ON e."DriverId" = da."DriverId"
+                WHERE e."RoundId" = %s AND da."DriverNumber" IS NOT NULL
+                """,
+                (str(round_id),),
+            )
+            alias_rows = cur.fetchall()
+            for row in alias_rows:
+                # Don't overwrite if we already have an entry from current driver number
+                if row["DriverNumber"] not in result:
+                    result[row["DriverNumber"]] = _to_uuid(row["Id"])
+            
+            return result
+
+    def get_entrant_by_driver_number(self, round_id: UUID, driver_number: int) -> Entrant | None:
+        """Get an entrant by round and driver number.
+        
+        First tries to find by the driver's current DriverNumber.
+        Falls back to searching DriverAliases for historical driver numbers.
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            # First try direct driver number match
+            cur.execute(
+                """
+                SELECT e."Id", e."RoundId", e."DriverId", e."TeamId"
+                FROM "Entrants" e
+                JOIN "Drivers" d ON e."DriverId" = d."Id"
+                WHERE e."RoundId" = %s AND d."DriverNumber" = %s
+                """,
+                (str(round_id), driver_number),
+            )
+            row = cur.fetchone()
+            if row:
+                return Entrant(
+                    id=_to_uuid(row["Id"]),
+                    round_id=_to_uuid(row["RoundId"]),
+                    driver_id=_to_uuid(row["DriverId"]),
+                    team_id=_to_uuid(row["TeamId"]),
+                )
+            
+            # Fall back to driver alias lookup (historical driver numbers)
+            cur.execute(
+                """
+                SELECT e."Id", e."RoundId", e."DriverId", e."TeamId"
+                FROM "Entrants" e
+                JOIN "DriverAliases" da ON e."DriverId" = da."DriverId"
+                WHERE e."RoundId" = %s AND da."DriverNumber" = %s
+                """,
+                (str(round_id), driver_number),
+            )
+            row = cur.fetchone()
+            if row:
+                return Entrant(
+                    id=_to_uuid(row["Id"]),
+                    round_id=_to_uuid(row["RoundId"]),
+                    driver_id=_to_uuid(row["DriverId"]),
+                    team_id=_to_uuid(row["TeamId"]),
+                )
+            
+            return None
+
+    def count_results_for_session(self, session_id: UUID) -> int:
+        """Count results for a session."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                'SELECT COUNT(*) as count FROM "Results" WHERE "SessionId" = %s',
+                (str(session_id),),
+            )
+            row = cur.fetchone()
+            return row["count"] if row else 0
+
     # =========================
     # Driver Operations
     # =========================
