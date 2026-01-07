@@ -75,7 +75,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 **High Priority — Code Quality & Testing**
 - [x] Frontend component tests for SpoilerMask/SpoilerBlur behavior (54 tests)
-- [ ] Add logo (/assets/logo.png) to the frontend public folder and reference it in the HTML head for favicon 
+- [x] Add logo (/assets/logo.png) to the frontend public folder and add it to the frontend in the hero/header area.
 
 **Medium Priority — User-Facing Polish**
 - [x] About page content creation (mission, team, FAQs)
@@ -129,8 +129,8 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Reviews API (create, read, like)
 
 #### 3. User Experience Polish
-- [ ] User profiles API + page (favorites [whatever entities they want basically, series (max 1: ), teams, drivers, circuits], stats, logs, reviews),
-- [ ] User settings page (spoiler mode, preferences)
+- [ ] User profiles API + page (favorites [whatever entities they want basically, teams, drivers, circuits], stats, logs, reviews)
+- [ ] User settings page (spoiler mode, preferences, themeing based on favorite series (store seperatly from the favorites on the profile page))
 - [ ] Gravatar integration
 - [ ] Basic feed/home page with recent activity
 

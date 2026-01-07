@@ -60,6 +60,13 @@ function MarketingPage() {
         <div className="absolute top-40 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-pf-green/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative max-w-4xl mx-auto text-center">
+          {/* Hero Logo */}
+          <img 
+            src="/logo.png" 
+            alt="" 
+            className="h-24 w-24 md:h-32 md:w-32 mx-auto mb-6"
+            aria-hidden="true"
+          />
           <h1 className="text-5xl md:text-7xl font-bold mb-6">
             <span className="brand-logo">Parc Fermé</span>
           </h1>

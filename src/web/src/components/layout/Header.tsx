@@ -291,7 +291,10 @@ function MobileMenu() {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-neutral-800">
-          <span className="text-lg font-bold brand-logo">Parc Fermé</span>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Parc Fermé" className="h-6 w-6" />
+            <span className="text-lg font-bold brand-logo">Parc Fermé</span>
+          </div>
           <button
             onClick={() => dispatch(closeMobileMenu())}
             className="p-2 text-neutral-400 hover:text-neutral-100 rounded-lg hover:bg-neutral-800"
@@ -449,6 +452,11 @@ export function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
+              <img 
+                src="/logo.png" 
+                alt="Parc Fermé" 
+                className="h-8 w-8 group-hover:opacity-80 transition-opacity"
+              />
               <span className="text-xl font-bold brand-logo group-hover:opacity-80 transition-opacity">
                 Parc Fermé
               </span>
