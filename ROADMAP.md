@@ -156,6 +156,11 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
   - Deleted 36 garbage aliases that had no date bounds
 - [x] Fixed qualifying session ordering (qualifying was appearing after race)
   - Qualifying sessions now correctly placed day before race at 14:00 UTC
+- [x] Fixed wrong entrants in historical races (modern drivers appearing in 1950s-2000s races)
+  - Root cause: Ergast stores lifetime permanent numbers (from 2014+) for drivers
+  - e.g., Nico Rosberg has #6 in Ergast, matching to Isack Hadjar #6 instead of creating historical Rosberg
+  - Fix: Don't use driver_permanent_number for historical matching, use name-based matching
+  - Fixed 2,341 wrongly-matched entrants by re-importing
 
 ##### Phase 5: Validation & Cleanup
 - [ ] Verify row counts and data integrity
