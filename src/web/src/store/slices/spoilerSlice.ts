@@ -199,6 +199,14 @@ export const selectSpoilerMode = (state: RootState) => state.spoiler.mode;
 export const selectShouldShowSpoilers = (state: RootState, sessionId: string): boolean => {
   const { mode, loggedSessionIds, tempRevealedIds } = state.spoiler;
   
+  // DEBUG: Log the decision process
+  console.log('🔍 selectShouldShowSpoilers:', { 
+    sessionId, 
+    mode, 
+    hasLoggedSession: loggedSessionIds.includes(sessionId),
+    hasTempReveal: tempRevealedIds.includes(sessionId)
+  });
+  
   // SpoilerMode.None shows everything
   if (mode === 'None') {
     return true;

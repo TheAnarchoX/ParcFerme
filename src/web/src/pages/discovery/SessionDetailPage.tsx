@@ -472,11 +472,16 @@ export function SessionDetailPage() {
   const { visibility, isLogged, shouldShow } = useSpoilerVisibility(sessionId || '');
   const { markLogged } = useSpoilerShield();
   
+  // DEBUG: Log spoiler state
+  console.log('🛡️ Spoiler State:', { sessionId, visibility, isLogged, shouldShow });
+  
   // Fetch session data
   // Pass forceReveal=true when local state says spoilers should be shown
   // This ensures results are returned even for anonymous users with mode="None"
   const fetchSession = useCallback(async () => {
     if (!sessionId) return;
+    
+    console.log('📡 Fetching session with forceReveal:', shouldShow);
     
     try {
       setIsLoading(true);
