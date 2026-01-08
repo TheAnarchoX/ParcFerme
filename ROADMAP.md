@@ -97,7 +97,6 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
   - Driver: `DateOfBirth`, `WikipediaUrl`
   - Team: `Nationality`, `WikipediaUrl`
   - Round: `ErgastRaceId`, `WikipediaUrl`
-  - Entrant: `CarNumber`
   - Result: `TimeMilliseconds`, `FastestLapNumber`, `FastestLapRank`, `FastestLapTime`, `FastestLapSpeed`, `StatusDetail`, `Q1Time`, `Q2Time`, `Q3Time`
 - [ ] Create EF Core migration
 - [ ] Update DTOs and API responses where applicable

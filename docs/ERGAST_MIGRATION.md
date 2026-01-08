@@ -187,14 +187,36 @@ This document outlines the strategy for importing historical F1 data (1950-2017)
 
 ### 8. Entrants (Derived from Ergast Results)
 
-**Strategy:** Create Entrant records linking Driver + Team for each Round.
+**Strategy:** Create Entrant records linking Driver + Team for each Round. Car numbers are handled via existing `Driver.DriverNumber` and `DriverAlias.DriverNumber` fields.
 
 | Ergast Source | ParcFerme Column | Action |
 |---------------|------------------|--------|
 | `results.raceId` | → `RoundId` | Via Round lookup |
 | `results.driverId` | → `DriverId` | Via Driver lookup |
 | `results.constructorId` | → `TeamId` | Via Team lookup |
-| `results.number` | `CarNumber` | **⚠️ REQUIRES SCHEMA CHANGE** — Add (int?) |
+| `results.number` | → `Driver.DriverNumber` / `DriverAlias` | See Car Number Strategy below |
+
+**Car Number Strategy:**
+
+The `results.number` field contains the car number used in that specific race. We handle this using our existing alias infrastructure:
+
+1. **First Occurrence:** When importing a driver's first result, set `Driver.DriverNumber` to the car number from that result.
+
+2. **Subsequent Results:** For each subsequent result:
+   - If `results.number` matches `Driver.DriverNumber` → No action needed
+   - If `results.number` matches any existing `DriverAlias.DriverNumber` → No action needed
+   - If `results.number` is different → Create a `DriverAlias` with:
+     - `AliasName`: Same as driver's canonical name
+     - `DriverNumber`: The new number
+     - `ValidFrom`: Race date (approximate)
+     - `Source`: "Ergast"
+
+3. **Lookup During Import:** When creating Entrants for results, use EntityResolver to match by driver name AND car number (checking both `Driver.DriverNumber` and `DriverAlias.DriverNumber`).
+
+**Example:** Max Verstappen
+- `Driver.DriverNumber` = 1 (current/canonical)
+- `DriverAlias` with `DriverNumber` = 33 (used 2015-2021)
+- `DriverAlias` with `DriverNumber` = 3 (used in some historical contexts)
 
 ### 9. Qualifying Results (Ergast → ParcFerme)
 
@@ -256,10 +278,8 @@ public int? ErgastRaceId { get; set; }    // for correlation during import
 public string? WikipediaUrl { get; set; }
 ```
 
-### Entrant Model Additions
-```csharp
-public int? CarNumber { get; set; }        // race number for that weekend
-```
+### Entrant Model
+No changes required. Car numbers are handled via existing `Driver.DriverNumber` and `DriverAlias.DriverNumber` fields (see Car Number Strategy above).
 
 ### Result Model Additions
 ```csharp
