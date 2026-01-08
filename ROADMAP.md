@@ -1,6 +1,6 @@
 # Parc Fermé - Development Roadmap
 
-> Last updated: January 8, 2026
+> Last updated: January 9, 2026
 
 ## 🏁 Current Sprint: Core Discovery & Logging
 
@@ -384,6 +384,50 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 ---
 
+## 🗓️ Phase 4: Smart Calendar Sync
+
+**Goal:** Become the single sync point for motorsport calendars—never hunt for ICS files again
+
+### Philosophy
+Traditional motorsport calendars are static files you download once per year. We want dynamic, personalized calendars that:
+1. **Auto-update** when schedules change (session times, cancellations, new events)
+2. **Personalize** based on user preferences (series, teams, drivers they follow)
+3. **Link back** to ParcFerme session pages as an entry point to the platform
+4. **Just work** with modern calendar apps (Google, Apple, Outlook, etc.)
+
+### Core Features
+- [ ] iCalendar (.ics) subscription feeds (not static downloads)
+  - `/api/v1/calendar/{userId}/subscribe.ics` - personalized feed
+  - `/api/v1/calendar/series/{seriesSlug}.ics` - per-series public feed
+  - Event descriptions with deep links to session pages
+  - Location data for attended-mode reminders
+- [ ] Smart profile inference
+  - Auto-detect preferred series from logging history
+  - Infer timezone from most-viewed sessions
+  - Suggest calendar based on followed drivers/teams
+- [ ] Calendar customization settings
+  - Include/exclude session types (skip FP1/FP2 for casual fans)
+  - Lead time reminders (30min, 1hr, 1 day before)
+  - Spoiler-safe event titles option ("F1 Race" vs "Monaco Grand Prix")
+- [ ] Automatic schedule sync
+  - Background job to update ICS feeds when source data changes
+  - Push notifications for last-minute schedule changes (PaddockPass feature)
+
+### Technical Implementation
+- [ ] ICS generation service (iCalendar RFC 5545 compliant)
+- [ ] User calendar preferences model and API
+- [ ] Feed caching with cache invalidation on schedule changes
+- [ ] VTIMEZONE support for local session times
+- [ ] Recurring event handling for multi-day weekends
+
+### Future Enhancements
+- [ ] "Add to Calendar" one-click buttons on session pages
+- [ ] Calendar widget for mobile app home screen
+- [ ] Outlook/Exchange direct sync (enterprise users)
+- [ ] Shared team calendars for watch parties
+
+---
+
 ## 🎯 Backlog (Unprioritized / Future Consideration)
 
 ### Additional Features
@@ -392,7 +436,6 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Export user data (GDPR compliance)
 - [ ] Public API for third-party apps
 - [ ] Browser extension for spoiler blocking
-- [ ] Calendar sync (Google Calendar, Apple Calendar)
 - [ ] Watch party coordination
 - [ ] Prediction games
 - [ ] Fantasy league integration
