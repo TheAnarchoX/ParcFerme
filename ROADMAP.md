@@ -91,15 +91,17 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
 - 7,397 qualifying results (1994+)
 - 840 drivers, 208 teams, 73 circuits
 
-##### Phase 1: Schema Migration
-- [ ] Add new columns to domain models:
+##### Phase 1: Schema Migration (Completed: Jan 8, 2026)
+- [x] Add new columns to domain models:
   - Circuit: `Altitude`, `WikipediaUrl`
   - Driver: `DateOfBirth`, `WikipediaUrl`
   - Team: `Nationality`, `WikipediaUrl`
   - Round: `ErgastRaceId`, `WikipediaUrl`
   - Result: `TimeMilliseconds`, `FastestLapNumber`, `FastestLapRank`, `FastestLapTime`, `FastestLapSpeed`, `StatusDetail`, `Q1Time`, `Q2Time`, `Q3Time`
-- [ ] Create EF Core migration
-- [ ] Update DTOs and API responses where applicable
+- [x] Create EF Core migration (`20260108004257_AddErgastHistoricalFields`)
+- [x] Update DTOs and API responses where applicable
+  - Updated CircuitDetailDto, DriverSummaryDto, TeamSummaryDto, ResultDto
+  - Updated mappings in SpoilerShieldService and RoundsController
 
 ##### Phase 2: Reference Data Import
 - [ ] Import/merge 73 Ergast circuits into ParcFerme (with aliases)
