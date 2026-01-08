@@ -34,7 +34,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from ingestion.config import get_database_url, get_pool, setup_logging
+from ingestion.config import settings
 from ingestion.entity_resolver import EntityResolver
 from ingestion.repository import RacingRepository
 from ingestion.services.ergast import ErgastSyncService
@@ -260,7 +260,7 @@ def get_ergast_db_url() -> str:
     """Get the Ergast database URL from environment or default."""
     return os.environ.get(
         "ERGAST_DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/ergastf1",
+        "postgresql://parcferme:localdev@localhost:5432/ergastf1",
     )
 
 
@@ -271,6 +271,12 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Import reference data (circuits, drivers, teams, seasons) first
+  python -m ingestion.ergast_import --reference-data
+  
+  # Verify Ergast database connectivity
+  python -m ingestion.ergast_import --verify
+
   # Import a single year
   python -m ingestion.ergast_import --year 1980
 
@@ -285,19 +291,29 @@ Examples:
         """,
     )
 
-    # Year selection (mutually exclusive)
-    year_group = parser.add_mutually_exclusive_group(required=True)
-    year_group.add_argument(
+    # Operation selection (mutually exclusive)
+    op_group = parser.add_mutually_exclusive_group(required=True)
+    op_group.add_argument(
         "--year",
         type=int,
         help="Import a single year (e.g., 1980)",
     )
-    year_group.add_argument(
+    op_group.add_argument(
         "--year-range",
         type=int,
         nargs=2,
         metavar=("START", "END"),
         help="Import a range of years (e.g., 1950 2017)",
+    )
+    op_group.add_argument(
+        "--reference-data",
+        action="store_true",
+        help="Import reference data only (circuits, drivers, teams, seasons 1950-2019)",
+    )
+    op_group.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify Ergast database connectivity and data counts",
     )
 
     # Options
@@ -340,11 +356,22 @@ def main() -> int:
     args = parse_args()
 
     # Set up logging
-    log_level = "DEBUG" if args.verbose else "INFO"
-    setup_logging(log_level=log_level)
+    import logging
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(log_level),
+    )
 
     # Get database URLs
-    parcferme_db_url = args.parcferme_db or get_database_url()
+    parcferme_db_url = args.parcferme_db or settings.database_url
+
+    # Handle --verify command
+    if args.verify:
+        return run_verification(args.ergast_db, parcferme_db_url)
+
+    # Handle --reference-data command
+    if args.reference_data:
+        return run_reference_data_import(args.ergast_db, parcferme_db_url, args.skip_existing, args.dry_run)
 
     # Validate year range if provided
     if args.year_range:
@@ -391,6 +418,149 @@ def main() -> int:
         return 130
     except Exception as e:
         log.exception("Import failed", error=str(e))
+        return 1
+
+
+def run_verification(ergast_db_url: str, parcferme_db_url: str) -> int:
+    """Verify Ergast database connectivity and data counts."""
+    from ingestion.sources.ergast import ErgastConfig
+    import urllib.parse
+    
+    print("=" * 60)
+    print("ERGAST DATABASE VERIFICATION")
+    print("=" * 60)
+    
+    try:
+        # Parse ergast URL to create config
+        parsed = urllib.parse.urlparse(ergast_db_url)
+        ergast_config = ErgastConfig(
+            host=parsed.hostname or "localhost",
+            port=parsed.port or 5432,
+            user=parsed.username or "parcferme",
+            password=parsed.password or "localdev",
+            database=parsed.path.lstrip("/") if parsed.path else "ergastf1",
+        )
+        
+        # Use context manager for repo to ensure connection
+        with RacingRepository(parcferme_db_url) as repo:
+            sync_service = ErgastSyncService(
+                repository=repo,
+                config=ergast_config,
+            )
+            
+            results = sync_service.verify_ergast_data()
+        
+        if results["connected"]:
+            print("\n✅ Ergast database verified successfully!")
+            return 0
+        else:
+            print(f"\n❌ Verification failed: {results.get('error')}")
+            return 1
+            
+    except Exception as e:
+        log.exception("Verification failed", error=str(e))
+        print(f"\n❌ Verification failed: {e}")
+        return 1
+
+
+def run_reference_data_import(
+    ergast_db_url: str,
+    parcferme_db_url: str,
+    skip_existing: bool,
+    dry_run: bool,
+) -> int:
+    """Import reference data (circuits, drivers, teams, seasons)."""
+    from ingestion.sources.ergast import ErgastConfig
+    
+    print("=" * 60)
+    print("ERGAST REFERENCE DATA IMPORT")
+    print("=" * 60)
+    
+    if dry_run:
+        print("DRY RUN MODE - showing what would be imported\n")
+    
+    try:
+        # Parse ergast URL to create config
+        import urllib.parse
+        parsed = urllib.parse.urlparse(ergast_db_url)
+        ergast_config = ErgastConfig(
+            host=parsed.hostname or "localhost",
+            port=parsed.port or 5432,
+            user=parsed.username or "parcferme",
+            password=parsed.password or "localdev",
+            database=parsed.path.lstrip("/") if parsed.path else "ergastf1",
+        )
+        
+        sync_options = SyncOptions(
+            driver_mode="skip" if skip_existing else "create_only",
+            team_mode="skip" if skip_existing else "create_only",
+            circuit_mode="skip" if skip_existing else "create_only",
+        )
+        
+        total_stats = {
+            "circuits": {"created": 0, "matched": 0, "errors": 0},
+            "drivers": {"created": 0, "matched": 0, "errors": 0},
+            "teams": {"created": 0, "matched": 0, "errors": 0},
+            "seasons": {"created": 0},
+        }
+        
+        # Use context manager for repository to ensure proper connection
+        with RacingRepository(parcferme_db_url) as repo:
+            sync_service = ErgastSyncService(
+                config=ergast_config,
+                repository=repo,
+            )
+            
+            # Import circuits
+            circuit_stats = sync_service.import_circuits_with_stats(sync_options)
+            total_stats["circuits"]["created"] = circuit_stats["created"]
+            total_stats["circuits"]["matched"] = circuit_stats["matched"]
+            total_stats["circuits"]["errors"] = len(circuit_stats.get("errors", []))
+            
+            # Import drivers
+            driver_stats = sync_service.import_drivers_with_stats(sync_options)
+            total_stats["drivers"]["created"] = driver_stats["created"]
+            total_stats["drivers"]["matched"] = driver_stats["matched"]
+            total_stats["drivers"]["errors"] = len(driver_stats.get("errors", []))
+            
+            # Import teams
+            team_stats = sync_service.import_teams_with_stats(sync_options)
+            total_stats["teams"]["created"] = team_stats["created"]
+            total_stats["teams"]["matched"] = team_stats["matched"]
+            total_stats["teams"]["errors"] = len(team_stats.get("errors", []))
+            
+            # Create F1 seasons 1950-2019
+            seasons_created = sync_service.create_historical_seasons(1950, 2019)
+            total_stats["seasons"]["created"] = seasons_created
+        
+        # Print summary
+        print("\n" + "=" * 60)
+        print("IMPORT SUMMARY")
+        print("=" * 60)
+        print(f"Circuits:  Created {total_stats['circuits']['created']}, "
+              f"Matched {total_stats['circuits']['matched']}")
+        print(f"Drivers:   Created {total_stats['drivers']['created']}, "
+              f"Matched {total_stats['drivers']['matched']}")
+        print(f"Teams:     Created {total_stats['teams']['created']}, "
+              f"Matched {total_stats['teams']['matched']}")
+        print(f"Seasons:   Created {total_stats['seasons']['created']}")
+        
+        total_errors = (
+            total_stats["circuits"]["errors"]
+            + total_stats["drivers"]["errors"]
+            + total_stats["teams"]["errors"]
+        )
+        
+        if total_errors:
+            print(f"\n⚠️  {total_errors} errors occurred during import")
+            return 1
+        
+        print("\n✅ Reference data import completed successfully!")
+        return 0
+        
+    except Exception as e:
+        log.exception("Reference data import failed", error=str(e))
+        print(f"\n❌ Import failed: {e}")
         return 1
 
 

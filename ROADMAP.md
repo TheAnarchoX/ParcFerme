@@ -103,8 +103,8 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
   - Updated CircuitDetailDto, DriverSummaryDto, TeamSummaryDto, ResultDto
   - Updated mappings in SpoilerShieldService and RoundsController
 
-##### Phase 2: Reference Data Import [IN PROGRESS]
-- [x] Refactor OpenF1 ingestion to be more generic/reusable (Completed: Jan 8, 2026)
+##### Phase 2: Reference Data Import (Completed: Jan 8, 2026)
+- [x] Refactor OpenF1 ingestion to be more generic/reusable
   - Created `sources/` package with BaseDataSource protocol and SourceXxx dataclasses
   - Created `OpenF1DataSource` adapter wrapping existing client
   - Created `ErgastDataSource` reading directly from ergastf1 PostgreSQL database
@@ -112,10 +112,19 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
   - CLI script: `python -m ingestion.ergast_import --year-range 1950 2017`
   - Supports `--dry-run`, `--skip-existing` flags
   - Maps 134 Ergast status codes to ResultStatus enum
-- [ ] Import/merge 73 Ergast circuits into ParcFerme (with aliases)
-- [ ] Import/merge 840 drivers (with aliases for name variations)
-- [ ] Import/merge 208 teams/constructors (with aliases for rebrands)
-- [ ] Create F1 seasons 1950-2019
+- [x] Import/merge 73 Ergast circuits into ParcFerme (with aliases)
+  - All 73 circuits matched existing records, 22 circuit aliases created
+  - Final count: 109 circuits in database
+- [x] Import/merge 840 drivers (with aliases for name variations)
+  - Created 790 new historical drivers, matched 50 existing modern drivers
+  - Created 21 driver aliases for name variations
+  - Final count: 851 drivers in database
+- [x] Import/merge 208 teams/constructors (with aliases for rebrands)
+  - Created 191 new historical teams, matched 17 existing modern teams
+  - Created 11 team aliases for team rebrands
+  - Final count: 203 teams in database
+- [x] Create F1 seasons 1950-2019
+  - Created 70 seasons (1950-2019), now 77 total with modern 2020-2026
 
 ##### Phase 3: Event Data Import
 - [ ] Import 976 Rounds from Ergast races table
