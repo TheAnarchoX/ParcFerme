@@ -162,11 +162,32 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
   - Fix: Don't use driver_permanent_number for historical matching, use name-based matching
   - Fixed 2,341 wrongly-matched entrants by re-importing
 
-##### Phase 5: Validation & Cleanup
-- [ ] Verify row counts and data integrity
-- [ ] Spot-check famous races (1950 British GP, 1976 Japan, 1994 San Marino, 2008 Brazil)
-- [ ] Verify championship points calculations possible
-- [ ] Remove temporary correlation IDs if not needed
+##### Phase 5: Validation & Cleanup (Completed: Jan 9, 2026)
+- [x] Verify row counts and data integrity
+  - Created `ingestion/validate_ergast.py` comprehensive validation script
+  - Historical rounds: 976/976 ✅
+  - Historical race results: 22,925/23,657 (97.0%, small gaps from merged teams)
+  - Historical qualifying results: 7,064/7,397 (95.5%)
+  - Circuits: 109 (exceeds 73 - includes modern circuits)
+  - Drivers: 864 (exceeds 840 - includes modern drivers)
+  - Teams: 204/208 (4 historical variants merged into canonical teams)
+- [x] Spot-check famous races (all verified ✅)
+  - 1950 British GP (first F1 race): 23/23 results
+  - 1976 Japanese GP (Hunt vs Lauda): 26/26 results
+  - 1994 San Marino GP (Senna): 28/28 results
+  - 2008 Brazilian GP (Hamilton champion): 20/20 results
+  - 2010 Abu Dhabi GP (4-way title fight): 24/24 results
+  - 2016 Abu Dhabi GP (Rosberg champion): 22/22 results
+- [x] Fix Unicode name matching bug
+  - Ergast names with diacritics (Hülkenberg, Pérez, Räikkönen) weren't matching
+  - Added `_normalize_name()` function using Unicode NFD normalization
+  - Re-imported 2008-2017 results after fix
+- [x] Add 4 missing drivers not imported in Phase 2
+  - Esteban Gutiérrez, André Lotterer, Roberto Merhi, Antonio Giovinazzi
+  - Created 75 missing entrants for their race participations
+- [x] ErgastRaceId correlation preserved on Rounds for debugging
+
+**Validation Command:** `python -m ingestion.validate_ergast --famous-races --year-summary`
 
 ---
 

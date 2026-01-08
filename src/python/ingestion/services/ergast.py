@@ -5,6 +5,7 @@ Imports historical F1 data (1950-2017) from the Ergast PostgreSQL database
 into the ParcFerme database.
 """
 
+import unicodedata
 from datetime import timedelta
 from typing import Any
 from uuid import UUID
@@ -47,6 +48,19 @@ from ingestion.sources import (
 from ingestion.sync import SyncOptions
 
 logger = structlog.get_logger()
+
+
+def _normalize_name(name: str) -> str:
+    """Normalize a name for comparison.
+    
+    Removes accents/diacritics and converts to lowercase for matching
+    names with special characters (e.g., Hülkenberg vs Hulkenberg, Pérez vs Perez).
+    """
+    # NFD normalization decomposes characters (é → e + combining accent)
+    normalized = unicodedata.normalize('NFD', name)
+    # Remove combining diacritical marks (category 'Mn')
+    ascii_name = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
+    return ascii_name.lower().strip()
 
 
 class ErgastSyncService(BaseSyncService[ErgastDataSource]):
@@ -733,6 +747,9 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
     ) -> tuple[dict[str, UUID], dict[int, UUID]]:
         """Build entrant maps for a meeting by matching Ergast drivers to our entrants.
         
+        Uses normalized name matching to handle special characters in driver names
+        (e.g., Hülkenberg vs Hulkenberg, Pérez vs Perez, Räikkönen vs Raikkonen).
+        
         Returns:
             Tuple of (driver_source_id -> entrant_id, driver_number -> entrant_id)
         """
@@ -745,22 +762,39 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
         # Get our entrants for this round with driver info
         our_entrants = repo.get_entrants_with_drivers_by_round(round_id)
         
-        # Build a name-based lookup for our entrants
-        our_entrants_by_name = {
-            f"{e['first_name']} {e['last_name']}".lower(): e
-            for e in our_entrants
-        }
+        # Build BOTH normalized and exact name lookups for our entrants
+        # This handles cases where names have special characters
+        our_entrants_by_normalized_name: dict[str, dict] = {}
+        our_entrants_by_exact_name: dict[str, dict] = {}
+        
+        for e in our_entrants:
+            full_name = f"{e['first_name']} {e['last_name']}"
+            exact_key = full_name.lower()
+            normalized_key = _normalize_name(full_name)
+            
+            our_entrants_by_exact_name[exact_key] = e
+            our_entrants_by_normalized_name[normalized_key] = e
+        
+        matched_count = 0
+        unmatched_drivers = []
         
         for ergast_entrant in ergast_entrants:
             if not ergast_entrant.driver:
                 continue
             
-            # Find matching entrant in our database by driver name
-            full_name = ergast_entrant.driver.full_name.lower()
-            our_entrant = our_entrants_by_name.get(full_name)
+            ergast_full_name = ergast_entrant.driver.full_name
+            
+            # Try exact match first (preserves special characters)
+            our_entrant = our_entrants_by_exact_name.get(ergast_full_name.lower())
+            
+            # Fall back to normalized match (handles Hülkenberg→Hulkenberg, etc.)
+            if not our_entrant:
+                normalized_ergast_name = _normalize_name(ergast_full_name)
+                our_entrant = our_entrants_by_normalized_name.get(normalized_ergast_name)
             
             if our_entrant:
                 entrant_id = our_entrant['entrant_id']
+                matched_count += 1
                 
                 # Map by driverRef
                 if ergast_entrant.driver_source_id:
@@ -770,15 +804,23 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
                 if ergast_entrant.car_number:
                     driver_number_map[ergast_entrant.car_number] = entrant_id
             else:
-                logger.debug(
-                    "No entrant found for Ergast driver",
-                    driver_name=ergast_entrant.driver.full_name,
-                    round_id=str(round_id),
-                )
+                unmatched_drivers.append(ergast_full_name)
+        
+        if unmatched_drivers:
+            logger.warning(
+                "Unmatched Ergast drivers for round",
+                round_id=str(round_id),
+                unmatched_count=len(unmatched_drivers),
+                unmatched_drivers=unmatched_drivers[:5],  # Log first 5
+            )
+        else:
+            logger.debug(
+                "All Ergast drivers matched",
+                round_id=str(round_id),
+                matched_count=matched_count,
+            )
         
         return entrant_map, driver_number_map
-        
-        return stats
     
     def import_results_for_year_range(
         self,
