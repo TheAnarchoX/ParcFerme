@@ -1,0 +1,63 @@
+🛡️  Safety: --create-only enabled (new entities only, existing unchanged)
+
+🗑️  --clear-results: Clearing existing results for 2020-2026...
+   No existing results found for 2020-2026
+
+======================================================================
+  🏁 BULK SYNC: 2020 → 2026 (7 year(s))
+======================================================================
+  Mode: full sync with results
+  Pause between years: 10.0s
+  Max retries per year: 3
+
+  Checking OpenF1 API health...
+  ✅ API is accessible
+
+
+--------------------------------------------------
+  📅 YEAR 2020  (1/7)
+--------------------------------------------------
+  📋 Mode: full
+  📊 Include results: True
+  🛡️  Entity modes: driver=create_only, team=create_only, circuit=create_only
+  🔧 Ensuring F1 series and 2020 season exist...
+  📡 Fetching meetings from OpenF1...
+  📋 Found 0 meetings for 2020
+
+  ✅ Year 2020 sync complete:
+      Meetings: 0
+      Sessions: 0
+      Drivers:  0
+      Teams:    0
+      Results:  0
+
+  📊 Progress: 1/7 years
+      ✅ Succeeded: 1
+      ❌ Failed: 0
+      Success rate: 100%
+
+  ⏳ Pausing 10.0s before next year...
+
+
+⚠️  Sync interrupted by user (Ctrl+C)
+Progress has been saved. You can resume by running the command again.
+
+======================================================================
+🏁 BULK SYNC COMPLETE
+======================================================================
+
+📊 SUMMARY:
+  Years attempted:    1
+  ✅ Years succeeded:  1
+  ❌ Years failed:     0
+
+📈 TOTAL DATA SYNCED:
+  Meetings:           0
+  Sessions:           0
+  Drivers:            0
+  Teams:              0
+  Results:            0
+
+✅ All years synced successfully!
+======================================================================
+

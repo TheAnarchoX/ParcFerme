@@ -23,7 +23,7 @@ from ingestion.config import settings
 from ingestion.repository import RacingRepository
 from ingestion.sync import OpenF1SyncService, SyncOptions
 
-# Configure structured logging
+# Configure structured logging with human-readable console output
 structlog.configure(
     processors=[
         structlog.stdlib.filter_by_level,
@@ -34,11 +34,7 @@ structlog.configure(
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
-        (
-            structlog.dev.ConsoleRenderer()
-            if settings.log_level == "DEBUG"
-            else structlog.processors.JSONRenderer()
-        ),
+        structlog.dev.ConsoleRenderer(colors=True),  # Always use pretty console output
     ],
     wrapper_class=structlog.stdlib.BoundLogger,
     context_class=dict,
