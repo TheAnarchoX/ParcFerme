@@ -70,12 +70,10 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
 
     public async Task<bool> ShouldRevealSpoilersAsync(Guid? userId, Guid sessionId, CancellationToken ct = default)
     {
-        // For development: Anonymous users can see spoilers
-        // TODO: In production, require authentication or implement "Reveal Spoilers" button
+        // Anonymous users never see spoilers
         if (userId is null)
         {
-            // Allow anonymous users to see spoilers for now (dev mode)
-            return true;
+            return false;
         }
 
         var user = await _db.Users

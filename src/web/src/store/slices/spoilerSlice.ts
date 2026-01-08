@@ -35,7 +35,7 @@ interface SpoilerSliceState {
 }
 
 const initialState: SpoilerSliceState = {
-  mode: 'Strict',
+  mode: 'None', // Default to 'None' for development (shows all spoilers)
   loggedSessionIds: [],
   tempRevealedIds: [],
   isLoading: false,
