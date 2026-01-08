@@ -61,6 +61,17 @@ export interface ResultDto {
   fastestLap: boolean;
   driver: DriverSummaryDto;
   team: TeamSummaryDto;
+  // Ergast detailed timing fields
+  timeMilliseconds?: number;
+  fastestLapNumber?: number;
+  fastestLapRank?: number;
+  fastestLapTime?: string;
+  fastestLapSpeed?: string;
+  statusDetail?: string;
+  // Qualifying times (1994+)
+  q1Time?: string;
+  q2Time?: string;
+  q3Time?: string;
 }
 
 /**

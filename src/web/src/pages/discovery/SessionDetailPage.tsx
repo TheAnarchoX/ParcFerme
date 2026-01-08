@@ -102,9 +102,80 @@ function StatsCard({ label, value, icon, primaryColor }: StatsCardProps) {
 interface ResultRowProps {
   result: ResultDto;
   primaryColor?: string;
+  sessionType?: string;
+  leaderTime?: number; // Leader's timeMilliseconds for calculating intervals
 }
 
-function ResultRow({ result, primaryColor }: ResultRowProps) {
+/**
+ * Helper to format milliseconds as a lap time string (e.g., "1:23.456")
+ */
+function formatLapTime(ms: number): string {
+  const totalSeconds = ms / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  
+  if (minutes > 0) {
+    return `${minutes}:${seconds.toFixed(3).padStart(6, '0')}`;
+  }
+  return seconds.toFixed(3);
+}
+
+/**
+ * Helper to format interval to leader (e.g., "+0.123")
+ */
+function formatInterval(ms: number): string {
+  const seconds = ms / 1000;
+  return `+${seconds.toFixed(3)}`;
+}
+
+/**
+ * Check if session type is time-based (practice/qualifying where lap time matters)
+ */
+function isTimedSession(sessionType?: string): boolean {
+  if (!sessionType) return false;
+  return ['FP1', 'FP2', 'FP3', 'Qualifying', 'SprintQualifying'].includes(sessionType);
+}
+
+/**
+ * Get the display time for a result, handling timed sessions vs races
+ */
+function getResultDisplayTime(
+  result: ResultDto, 
+  sessionType?: string, 
+  leaderTime?: number
+): string {
+  // For timed sessions (FP/Quali), show lap times and intervals
+  if (isTimedSession(sessionType)) {
+    // Try to get best qualifying time first (Q3 > Q2 > Q1)
+    const bestQualiTime = result.q3Time || result.q2Time || result.q1Time;
+    if (bestQualiTime) {
+      return bestQualiTime;
+    }
+    
+    // Fall back to timeMilliseconds
+    if (result.timeMilliseconds) {
+      if (result.position === 1) {
+        return formatLapTime(result.timeMilliseconds);
+      }
+      // Show interval to leader if we have leader's time
+      if (leaderTime && leaderTime > 0) {
+        const interval = result.timeMilliseconds - leaderTime;
+        return formatInterval(interval);
+      }
+      return formatLapTime(result.timeMilliseconds);
+    }
+    
+    return result.time || '-';
+  }
+  
+  // For races: P1 shows laps, others show gap to leader
+  if (result.position === 1) {
+    return result.laps ? `${result.laps} laps` : result.time || '-';
+  }
+  return result.time || '-';
+}
+
+function ResultRow({ result, primaryColor, sessionType, leaderTime }: ResultRowProps) {
   const getPositionStyle = (pos: number) => {
     switch (pos) {
       case 1:
@@ -200,10 +271,7 @@ function ResultRow({ result, primaryColor }: ResultRowProps) {
       <div className="text-right shrink-0">
         {result.status === 'Finished' ? (
           <span className="text-neutral-400 font-mono text-sm">
-            {result.position === 1 
-              ? (result.laps ? `${result.laps} laps` : result.time || '-')
-              : result.time || '-'
-            }
+            {getResultDisplayTime(result, sessionType, leaderTime)}
           </span>
         ) : (
           getStatusBadge(result.status)
@@ -228,9 +296,10 @@ function ResultRow({ result, primaryColor }: ResultRowProps) {
 interface ResultsTableProps {
   results: ResultDto[];
   primaryColor?: string;
+  sessionType?: string;
 }
 
-function ResultsTable({ results, primaryColor }: ResultsTableProps) {
+function ResultsTable({ results, primaryColor, sessionType }: ResultsTableProps) {
   if (results.length === 0) {
     return (
       <EmptyState
@@ -245,13 +314,23 @@ function ResultsTable({ results, primaryColor }: ResultsTableProps) {
   const finishers = results.filter(r => r.status === 'Finished');
   const dnfs = results.filter(r => r.status === 'DNF');
   const others = results.filter(r => r.status !== 'Finished' && r.status !== 'DNF');
+  
+  // Get leader's time for interval calculations in timed sessions
+  const leader = finishers.find(r => r.position === 1);
+  const leaderTime = leader?.timeMilliseconds;
 
   return (
     <div className="space-y-4">
       {/* Main classification */}
       <div className="space-y-2">
         {finishers.map((result) => (
-          <ResultRow key={result.position} result={result} primaryColor={primaryColor} />
+          <ResultRow 
+            key={result.position} 
+            result={result} 
+            primaryColor={primaryColor} 
+            sessionType={sessionType}
+            leaderTime={leaderTime}
+          />
         ))}
       </div>
       
@@ -261,7 +340,13 @@ function ResultsTable({ results, primaryColor }: ResultsTableProps) {
           <h4 className="text-sm font-medium text-neutral-500 mb-2">Did Not Finish</h4>
           <div className="space-y-2">
             {dnfs.map((result) => (
-              <ResultRow key={result.position} result={result} primaryColor={primaryColor} />
+              <ResultRow 
+                key={result.position} 
+                result={result} 
+                primaryColor={primaryColor} 
+                sessionType={sessionType}
+                leaderTime={leaderTime}
+              />
             ))}
           </div>
         </div>
@@ -273,7 +358,13 @@ function ResultsTable({ results, primaryColor }: ResultsTableProps) {
           <h4 className="text-sm font-medium text-neutral-500 mb-2">Other</h4>
           <div className="space-y-2">
             {others.map((result) => (
-              <ResultRow key={result.position} result={result} primaryColor={primaryColor} />
+              <ResultRow 
+                key={result.position} 
+                result={result} 
+                primaryColor={primaryColor} 
+                sessionType={sessionType}
+                leaderTime={leaderTime}
+              />
             ))}
           </div>
         </div>
@@ -472,16 +563,11 @@ export function SessionDetailPage() {
   const { visibility, isLogged, shouldShow } = useSpoilerVisibility(sessionId || '');
   const { markLogged } = useSpoilerShield();
   
-  // DEBUG: Log spoiler state
-  console.log('🛡️ Spoiler State:', { sessionId, visibility, isLogged, shouldShow });
-  
   // Fetch session data
   // Pass forceReveal=true when local state says spoilers should be shown
   // This ensures results are returned even for anonymous users with mode="None"
   const fetchSession = useCallback(async () => {
     if (!sessionId) return;
-    
-    console.log('📡 Fetching session with forceReveal:', shouldShow);
     
     try {
       setIsLoading(true);
@@ -760,6 +846,7 @@ export function SessionDetailPage() {
               <ResultsTable 
                 results={session.results.classification} 
                 primaryColor={primaryColor}
+                sessionType={session.type}
               />
             </div>
           ) : (
@@ -784,6 +871,7 @@ export function SessionDetailPage() {
                 <ResultsTable 
                   results={session.results.classification} 
                   primaryColor={primaryColor}
+                  sessionType={session.type}
                 />
               )}
             </SpoilerMask>
