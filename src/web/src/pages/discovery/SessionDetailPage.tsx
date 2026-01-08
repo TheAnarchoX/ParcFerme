@@ -104,6 +104,7 @@ interface ResultRowProps {
   primaryColor?: string;
   sessionType?: string;
   leaderTime?: number; // Leader's timeMilliseconds for calculating intervals
+  leaderLaps?: number; // Leader's lap count for calculating laps behind
 }
 
 /**
@@ -142,7 +143,8 @@ function isTimedSession(sessionType?: string): boolean {
 function getResultDisplayTime(
   result: ResultDto, 
   sessionType?: string, 
-  leaderTime?: number
+  leaderTime?: number,
+  leaderLaps?: number
 ): string {
   // For timed sessions (FP/Quali), show lap times and intervals
   if (isTimedSession(sessionType)) {
@@ -173,15 +175,21 @@ function getResultDisplayTime(
     return result.laps ? `${result.laps} laps` : result.time || '-';
   }
   
-  // Check for lapped drivers (statusDetail contains "+1 Lap", "+2 Laps", etc.)
+  // Check for lapped drivers (statusDetail contains "+1 Lap", "+2 Laps", etc. from Ergast)
   if (result.statusDetail && result.statusDetail.includes('Lap')) {
     return result.statusDetail;
+  }
+  
+  // Calculate laps behind from laps field (for OpenF1 data or when statusDetail is missing)
+  if (leaderLaps && result.laps && result.laps < leaderLaps) {
+    const lapsBehind = leaderLaps - result.laps;
+    return lapsBehind === 1 ? '+1 Lap' : `+${lapsBehind} Laps`;
   }
   
   return result.time || '-';
 }
 
-function ResultRow({ result, primaryColor, sessionType, leaderTime }: ResultRowProps) {
+function ResultRow({ result, primaryColor, sessionType, leaderTime, leaderLaps }: ResultRowProps) {
   const getPositionStyle = (pos: number) => {
     switch (pos) {
       case 1:
@@ -277,7 +285,7 @@ function ResultRow({ result, primaryColor, sessionType, leaderTime }: ResultRowP
       <div className="text-right shrink-0">
         {result.status === 'Finished' ? (
           <span className="text-neutral-400 font-mono text-sm">
-            {getResultDisplayTime(result, sessionType, leaderTime)}
+            {getResultDisplayTime(result, sessionType, leaderTime, leaderLaps)}
           </span>
         ) : (
           getStatusBadge(result.status)
@@ -321,9 +329,10 @@ function ResultsTable({ results, primaryColor, sessionType }: ResultsTableProps)
   const dnfs = results.filter(r => r.status === 'DNF');
   const others = results.filter(r => r.status !== 'Finished' && r.status !== 'DNF');
   
-  // Get leader's time for interval calculations in timed sessions
+  // Get leader's time and laps for interval/lapped calculations
   const leader = finishers.find(r => r.position === 1);
   const leaderTime = leader?.timeMilliseconds;
+  const leaderLaps = leader?.laps;
 
   return (
     <div className="space-y-4">
@@ -336,6 +345,7 @@ function ResultsTable({ results, primaryColor, sessionType }: ResultsTableProps)
             primaryColor={primaryColor} 
             sessionType={sessionType}
             leaderTime={leaderTime}
+            leaderLaps={leaderLaps}
           />
         ))}
       </div>
@@ -352,6 +362,7 @@ function ResultsTable({ results, primaryColor, sessionType }: ResultsTableProps)
                 primaryColor={primaryColor} 
                 sessionType={sessionType}
                 leaderTime={leaderTime}
+                leaderLaps={leaderLaps}
               />
             ))}
           </div>
@@ -370,6 +381,7 @@ function ResultsTable({ results, primaryColor, sessionType }: ResultsTableProps)
                 primaryColor={primaryColor} 
                 sessionType={sessionType}
                 leaderTime={leaderTime}
+                leaderLaps={leaderLaps}
               />
             ))}
           </div>
