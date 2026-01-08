@@ -350,12 +350,15 @@ class ErgastDataSource(BaseDataSource):
             
             entrants = []
             for row in cur.fetchall():
+                # IMPORTANT: Only use driver_permanent_number (for 2014+ drivers)
+                # NOT the race car_number which changes per race and could
+                # accidentally match modern drivers' permanent numbers
                 driver = SourceDriver(
                     first_name=row["forename"],
                     last_name=row["surname"],
                     abbreviation=row["code"],
                     nationality=row["driver_nationality"],
-                    driver_number=row["car_number"] or row["driver_permanent_number"],
+                    driver_number=row["driver_permanent_number"],  # Only permanent, not car_number
                     date_of_birth=row["dob"],
                     wikipedia_url=row["driver_url"],
                     source_id=row["driverRef"],

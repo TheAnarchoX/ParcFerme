@@ -399,12 +399,20 @@
       "aliases": [
         {"name": "Stake F1 Team Kick Sauber", "source": "official-2024"},
         {"name": "Sauber", "source": "short"},
-        {"name": "Alfa Romeo", "source": "historical-2019-2023"},
         {"name": "Alfa Romeo F1 Team", "source": "official-2022-2023"},
         {"name": "Alfa Romeo Racing", "source": "official-2019-2021"},
+        {"name": "Alfa Romeo Racing ORLEN", "source": "official-2021"},
         {"name": "Alfa Romeo Ferrari", "source": "OpenF1-2023"}
       ],
-      "notes": "Was Alfa Romeo 2019-2023, becoming Audi in 2026."
+      "notes": "Was Alfa Romeo Racing 2019-2023, becoming Audi in 2026. NOTE: This is NOT the historic 1950s Alfa Romeo factory team."
+    },
+    
+    "alfa-romeo": {
+      "canonical_name": "Alfa Romeo",
+      "aliases": [
+        {"name": "Alfa", "source": "short"}
+      ],
+      "notes": "Historic Italian manufacturer that competed 1950-1951 and 1979-1985. NOT the same as the 2019-2023 Alfa Romeo Racing (which was Sauber)."
     }
   },
   

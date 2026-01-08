@@ -537,7 +537,8 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
                         start_time_utc=source_session.start_time,
                         status=session_status,
                     )
-                    repo.upsert_session(session)
+                    # Use upsert_session_by_round_type for Ergast (no OpenF1 key)
+                    repo.upsert_session_by_round_type(session)
                     stats["sessions_created"] += 1
                 
                 # Get and create entrants
