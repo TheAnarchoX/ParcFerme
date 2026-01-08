@@ -469,6 +469,150 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
         print(f"   ✅ Created {created} seasons")
         return created
     
+    def import_events_for_year(
+        self,
+        year: int,
+        options: SyncOptions | None = None,
+    ) -> dict[str, Any]:
+        """Import all rounds and sessions for a single year.
+        
+        This imports the race weekend structure without results.
+        
+        Args:
+            year: The year to import events for
+            options: Sync options controlling entity behavior
+            
+        Returns:
+            Dict with import statistics.
+        """
+        data_source, repo = self._ensure_clients()
+        options = options or SyncOptions.safe_historical()
+        
+        stats = {
+            "year": year,
+            "rounds_created": 0,
+            "sessions_created": 0,
+            "entrants_created": 0,
+            "errors": [],
+        }
+        
+        # Ensure series and season exist
+        season_id = self._ensure_season(repo, year)
+        
+        # Get meetings for the year
+        meetings = data_source.get_meetings(year)
+        
+        for meeting in meetings:
+            try:
+                # Get or create circuit
+                if not meeting.circuit:
+                    raise ValueError(f"Meeting {meeting.name} has no circuit data")
+                
+                circuit_id = self._get_or_create_circuit(repo, meeting.circuit, options)
+                
+                # Create/update round (upsert handles existing detection)
+                round_slug = slugify(f"{year}-{meeting.name}")
+                round_ = Round(
+                    season_id=season_id,
+                    circuit_id=circuit_id,
+                    name=meeting.official_name or meeting.name,
+                    slug=round_slug,
+                    round_number=meeting.round_number or 0,
+                    date_start=meeting.date_start,
+                    date_end=meeting.date_end or meeting.date_start,
+                )
+                
+                round_id = repo.upsert_round(round_)
+                stats["rounds_created"] += 1
+                
+                # Get and create sessions
+                sessions = data_source.get_sessions(meeting.source_id)
+                for source_session in sessions:
+                    session_type = self._map_session_type(source_session.session_type)
+                    session_status = self._map_session_status(source_session.status)
+                    
+                    session = Session(
+                        round_id=round_id,
+                        type=session_type,
+                        start_time_utc=source_session.start_time,
+                        status=session_status,
+                    )
+                    repo.upsert_session(session)
+                    stats["sessions_created"] += 1
+                
+                # Get and create entrants
+                entrants = data_source.get_entrants(meeting.source_id)
+                for source_entrant in entrants:
+                    if not source_entrant.driver or not source_entrant.team:
+                        continue
+                    
+                    driver_id = self._get_or_create_driver(repo, source_entrant.driver, options)
+                    team_id = self._get_or_create_team(repo, source_entrant.team, options)
+                    
+                    entrant = Entrant(
+                        round_id=round_id,
+                        driver_id=driver_id,
+                        team_id=team_id,
+                    )
+                    repo.upsert_entrant(entrant)
+                    stats["entrants_created"] += 1
+                    
+            except Exception as e:
+                stats["errors"].append(f"Meeting {meeting.name}: {e}")
+                logger.warning("Failed to import meeting", name=meeting.name, error=str(e))
+        
+        return stats
+    
+    def import_events_for_year_range(
+        self,
+        start_year: int,
+        end_year: int,
+        options: SyncOptions | None = None,
+    ) -> dict[str, Any]:
+        """Import all rounds, sessions, and entrants for a year range.
+        
+        Args:
+            start_year: First year to import
+            end_year: Last year to import (inclusive)
+            options: Sync options
+            
+        Returns:
+            Combined statistics for all years.
+        """
+        options = options or SyncOptions.safe_historical()
+        
+        total_stats = {
+            "years_processed": 0,
+            "rounds_created": 0,
+            "sessions_created": 0,
+            "entrants_created": 0,
+            "errors": [],
+        }
+        
+        print(f"\n📅 Importing events for years {start_year}-{end_year}...")
+        
+        for year in range(start_year, end_year + 1):
+            print(f"\n   🏎️  Year {year}...")
+            
+            try:
+                year_stats = self.import_events_for_year(year, options)
+                
+                total_stats["years_processed"] += 1
+                total_stats["rounds_created"] += year_stats["rounds_created"]
+                total_stats["sessions_created"] += year_stats["sessions_created"]
+                total_stats["entrants_created"] += year_stats["entrants_created"]
+                total_stats["errors"].extend(year_stats["errors"])
+                
+                print(f"      ✅ Rounds: {year_stats['rounds_created']} | "
+                      f"Sessions: {year_stats['sessions_created']} | "
+                      f"Entrants: {year_stats['entrants_created']}")
+                
+            except Exception as e:
+                total_stats["errors"].append(f"Year {year}: {e}")
+                logger.error("Failed to import year", year=year, error=str(e))
+        
+        return total_stats
+    
     def verify_ergast_data(self) -> dict[str, Any]:
         """Verify Ergast database connectivity and data counts.
         

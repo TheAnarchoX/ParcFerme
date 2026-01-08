@@ -126,12 +126,19 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
 - [x] Create F1 seasons 1950-2019
   - Created 70 seasons (1950-2019), now 77 total with modern 2020-2026
 
-##### Phase 3: Event Data Import
-- [ ] Import 976 Rounds from Ergast races table
-- [ ] Create Sessions (Race for all, Qualifying for 1994+)
+##### Phase 3: Event Data Import (Completed: Jan 8, 2026)
+- [x] Import 976 Rounds from Ergast races table
+  - All 976 races imported as Rounds
+  - Added `--events` CLI command: `python -m ingestion.ergast_import --events 1950 2017`
+  - Final count: 1,078 rounds (976 historical + 102 modern)
+- [x] Create Sessions (Race for all, Qualifying for 1994+)
+  - 1,315 sessions created (Race sessions for all years, Qualifying for 1994+)
+  - Final count: 1,854 sessions
+- [x] Create Entrants (driver-team-round links)
+  - 23,568 entrants created from Ergast results table
+  - Final count: 25,014 entrants
 
 ##### Phase 4: Results Import
-- [ ] Create Entrants (driver-team-round links)
 - [ ] Import 23,657 race results with status mapping
 - [ ] Import 7,397 qualifying results
 

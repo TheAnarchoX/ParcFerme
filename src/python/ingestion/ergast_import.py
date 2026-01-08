@@ -311,6 +311,13 @@ Examples:
         help="Import reference data only (circuits, drivers, teams, seasons 1950-2019)",
     )
     op_group.add_argument(
+        "--events",
+        type=int,
+        nargs=2,
+        metavar=("START", "END"),
+        help="Import rounds, sessions, and entrants for year range (no results)",
+    )
+    op_group.add_argument(
         "--verify",
         action="store_true",
         help="Verify Ergast database connectivity and data counts",
@@ -372,6 +379,11 @@ def main() -> int:
     # Handle --reference-data command
     if args.reference_data:
         return run_reference_data_import(args.ergast_db, parcferme_db_url, args.skip_existing, args.dry_run)
+
+    # Handle --events command
+    if args.events:
+        start_year, end_year = args.events
+        return run_events_import(args.ergast_db, parcferme_db_url, start_year, end_year, args.skip_existing, args.dry_run)
 
     # Validate year range if provided
     if args.year_range:
@@ -560,6 +572,83 @@ def run_reference_data_import(
         
     except Exception as e:
         log.exception("Reference data import failed", error=str(e))
+        print(f"\n❌ Import failed: {e}")
+        return 1
+
+
+def run_events_import(
+    ergast_db_url: str,
+    parcferme_db_url: str,
+    start_year: int,
+    end_year: int,
+    skip_existing: bool,
+    dry_run: bool,
+) -> int:
+    """Import event data (rounds, sessions, entrants) for a year range."""
+    from ingestion.sources.ergast import ErgastConfig
+    
+    print("=" * 60)
+    print("ERGAST EVENT DATA IMPORT")
+    print("=" * 60)
+    print(f"Years: {start_year} - {end_year}")
+    
+    if dry_run:
+        print("DRY RUN MODE - showing what would be imported\n")
+    
+    try:
+        # Parse ergast URL to create config
+        import urllib.parse
+        parsed = urllib.parse.urlparse(ergast_db_url)
+        ergast_config = ErgastConfig(
+            host=parsed.hostname or "localhost",
+            port=parsed.port or 5432,
+            user=parsed.username or "parcferme",
+            password=parsed.password or "localdev",
+            database=parsed.path.lstrip("/") if parsed.path else "ergastf1",
+        )
+        
+        sync_options = SyncOptions(
+            driver_mode="skip" if skip_existing else "create_only",
+            team_mode="skip" if skip_existing else "create_only",
+            circuit_mode="skip" if skip_existing else "create_only",
+        )
+        
+        # Use context manager for repository
+        with RacingRepository(parcferme_db_url) as repo:
+            sync_service = ErgastSyncService(
+                config=ergast_config,
+                repository=repo,
+            )
+            
+            # Import events for year range
+            stats = sync_service.import_events_for_year_range(
+                start_year,
+                end_year,
+                sync_options,
+            )
+        
+        # Print summary
+        print("\n" + "=" * 60)
+        print("IMPORT SUMMARY")
+        print("=" * 60)
+        print(f"Years processed: {stats['years_processed']}")
+        print(f"Rounds created:  {stats['rounds_created']}")
+        print(f"Sessions created: {stats['sessions_created']}")
+        print(f"Entrants created: {stats['entrants_created']}")
+        
+        if stats["errors"]:
+            print(f"\n⚠️  {len(stats['errors'])} errors occurred:")
+            for err in stats["errors"][:10]:  # Show first 10
+                print(f"   - {err}")
+            if len(stats["errors"]) > 10:
+                print(f"   ... and {len(stats['errors']) - 10} more")
+            return 1
+        
+        print("\n✅ Event data import completed successfully!")
+        return 0
+        
+    except Exception as e:
+        log.exception("Event data import failed", error=str(e))
         print(f"\n❌ Import failed: {e}")
         return 1
 
