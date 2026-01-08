@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { MainLayout, PageHeader, Section } from '../components/layout/MainLayout';
 import { useBreadcrumbs } from '../components/navigation/Breadcrumbs';
 import { ROUTES } from '../types/navigation';
@@ -21,6 +21,13 @@ export function SettingsPage() {
   const [spoilerMode, setSpoilerMode] = useState<SpoilerMode>(user?.spoilerMode || currentSpoilerMode);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  // Sync local state when user's spoilerMode changes (e.g., from header toggle)
+  useEffect(() => {
+    if (user?.spoilerMode) {
+      setSpoilerMode(user.spoilerMode);
+    }
+  }, [user?.spoilerMode]);
   
   useBreadcrumbs([
     { label: 'Home', path: ROUTES.HOME, icon: '🏠' },
