@@ -103,7 +103,15 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
   - Updated CircuitDetailDto, DriverSummaryDto, TeamSummaryDto, ResultDto
   - Updated mappings in SpoilerShieldService and RoundsController
 
-##### Phase 2: Reference Data Import
+##### Phase 2: Reference Data Import [IN PROGRESS]
+- [x] Refactor OpenF1 ingestion to be more generic/reusable (Completed: Jan 8, 2026)
+  - Created `sources/` package with BaseDataSource protocol and SourceXxx dataclasses
+  - Created `OpenF1DataSource` adapter wrapping existing client
+  - Created `ErgastDataSource` reading directly from ergastf1 PostgreSQL database
+  - Created `services/` package with BaseSyncService and ErgastSyncService
+  - CLI script: `python -m ingestion.ergast_import --year-range 1950 2017`
+  - Supports `--dry-run`, `--skip-existing` flags
+  - Maps 134 Ergast status codes to ResultStatus enum
 - [ ] Import/merge 73 Ergast circuits into ParcFerme (with aliases)
 - [ ] Import/merge 840 drivers (with aliases for name variations)
 - [ ] Import/merge 208 teams/constructors (with aliases for rebrands)
