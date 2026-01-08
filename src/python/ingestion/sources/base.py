@@ -111,11 +111,14 @@ class SourceMeeting:
     
     Represents a single race weekend that contains one or more sessions.
     """
+    # Required fields (no default)
     name: str
-    official_name: str | None = None
     year: int
-    round_number: int | None = None  # Can be null for testing events
     date_start: date
+    
+    # Optional fields (with defaults)
+    official_name: str | None = None
+    round_number: int | None = None  # Can be null for testing events
     date_end: date | None = None
     wikipedia_url: str | None = None
     
