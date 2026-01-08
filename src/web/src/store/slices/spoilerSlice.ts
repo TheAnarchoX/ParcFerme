@@ -35,7 +35,7 @@ interface SpoilerSliceState {
 }
 
 const initialState: SpoilerSliceState = {
-  mode: 'None', // Default to 'None' for development (shows all spoilers)
+  mode: 'None', // Default: backend will set actual value via fetchSpoilerStatus
   loggedSessionIds: [],
   tempRevealedIds: [],
   isLoading: false,
@@ -198,14 +198,6 @@ export const selectSpoilerMode = (state: RootState) => state.spoiler.mode;
  */
 export const selectShouldShowSpoilers = (state: RootState, sessionId: string): boolean => {
   const { mode, loggedSessionIds, tempRevealedIds } = state.spoiler;
-  
-  // DEBUG: Log the decision process
-  console.log('🔍 selectShouldShowSpoilers:', { 
-    sessionId, 
-    mode, 
-    hasLoggedSession: loggedSessionIds.includes(sessionId),
-    hasTempReveal: tempRevealedIds.includes(sessionId)
-  });
   
   // SpoilerMode.None shows everything
   if (mode === 'None') {
