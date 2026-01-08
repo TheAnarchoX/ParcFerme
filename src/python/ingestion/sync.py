@@ -5,6 +5,7 @@ Orchestrates fetching data from OpenF1 API and storing it in the database.
 This is the core of the data ingestion pipeline.
 """
 
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -722,6 +723,12 @@ class OpenF1SyncService:
                     round_number=round_number,
                     progress=f"{i}/{len(sorted_meetings)}",
                 )
+                
+                # Rate limiting: small pause between meetings to avoid hammering the API
+                # Skip pause after the last meeting
+                if i < len(sorted_meetings):
+                    time.sleep(0.5)
+                    
             except Exception as e:
                 print(f"      ❌ Error: {e}")
                 logger.error(

@@ -81,37 +81,38 @@ interface RoundCardProps {
  * e.g., "FORMULA 1 ROLEX AUSTRALIAN GRAND PRIX 2023" -> "Rolex Australian Grand Prix"
  */
 function cleanRoundName(name: string, seriesName: string, year: number): string {
+
   let cleaned = name;
   
   //  // Remove common series prefixes (case-insensitive)
-  // const prefixes = [
-  //   `${seriesName} `,
-  //   'FORMULA 1 ',
-  //   'FORMULA ONE ',
-  //   'F1 ',
-  //   'MOTOGP ',
-  //   'MOTO GP ',
-  //   'WEC ',
-  //   'INDYCAR ',
-  // ];
+  const prefixes = [
+    `${seriesName} `,
+    'FORMULA 1 ',
+    'FORMULA ONE ',
+    'F1 ',
+    'MOTOGP ',
+    'MOTO GP ',
+    'WEC ',
+    'INDYCAR ',
+  ];
   
-  // // for (const prefix of prefixes) {
-  //   if (cleaned.toUpperCase().startsWith(prefix.toUpperCase())) {
-  //     cleaned = cleaned.slice(prefix.length);
-  //     break;
-  //   }
-  // }
+  for (const prefix of prefixes) {
+  if (cleaned.toUpperCase().startsWith(prefix.toUpperCase())) {
+      cleaned = cleaned.slice(prefix.length);
+      break;
+    }
+  }
   
-  // // Remove year suffix (e.g., " 2023" at the end)
-  // const yearSuffix = ` ${year}`;
-  // if (cleaned.endsWith(yearSuffix)) {
-  //   cleaned = cleaned.slice(0, -yearSuffix.length);
-  // }
+  // Remove year suffix (e.g., " 2023" at the end)
+  const yearSuffix = ` ${year}`;
+  if (cleaned.endsWith(yearSuffix)) {
+    cleaned = cleaned.slice(0, -yearSuffix.length);
+  }
   
-  // // Convert to title case if all uppercase
-  // if (cleaned === cleaned.toUpperCase()) {
-  //   cleaned = cleaned.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-  // }
+  // Convert to title case if all uppercase
+  if (cleaned === cleaned.toUpperCase()) {
+    cleaned = cleaned.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
   
   return cleaned.trim();
 }

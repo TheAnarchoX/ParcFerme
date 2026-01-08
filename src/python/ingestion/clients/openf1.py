@@ -1,5 +1,6 @@
 """OpenF1 API client for fetching F1 data."""
 
+import logging
 import time
 from datetime import datetime
 from typing import Any
@@ -184,16 +185,16 @@ class OpenF1Client:
 
     @retry(
         retry=retry_if_exception_type((OpenF1RateLimitError, OpenF1ServerError)),
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, min=4, max=60),
-        before_sleep=before_sleep_log(logger, "warning"),
+        stop=stop_after_attempt(8),
+        wait=wait_exponential(multiplier=2, min=4, max=120),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True,
     )
     def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """Make a GET request with exponential backoff retry logic.
         
         Retries on:
-        - 429 Rate Limit: waits 4s, 8s, 16s, 32s, 60s between attempts
+        - 429 Rate Limit: waits 4s, 8s, 16s, 32s, 64s, 120s, 120s, 120s between attempts (8 total attempts)
         - 5xx Server Errors: same backoff pattern
         
         Does NOT retry on:
