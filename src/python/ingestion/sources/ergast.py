@@ -7,7 +7,7 @@ and transforms it to our generic SourceXxx models.
 
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Generator
 
 import psycopg  # type: ignore
@@ -302,9 +302,10 @@ class ErgastDataSource(BaseDataSource):
             quali_count = cur.fetchone()["count"]
             
             if quali_count > 0:
-                # Qualifying typically 1 day before race, around 15:00 UTC
-                quali_date = race_date  # Simplify - use same date
-                quali_start = datetime.combine(quali_date, time(15, 0), tzinfo=timezone.utc)
+                # Qualifying is typically the day before the race
+                # Use day before race at 14:00 UTC to ensure proper session ordering
+                quali_date = race_date - timedelta(days=1)
+                quali_start = datetime.combine(quali_date, time(14, 0), tzinfo=timezone.utc)
                 
                 sessions.append(SourceSession(
                     session_type=SourceSessionType.QUALIFYING,

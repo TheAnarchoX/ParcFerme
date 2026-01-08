@@ -318,6 +318,13 @@ Examples:
         help="Import rounds, sessions, and entrants for year range (no results)",
     )
     op_group.add_argument(
+        "--results",
+        type=int,
+        nargs=2,
+        metavar=("START", "END"),
+        help="Import race and qualifying results for year range (requires events to exist)",
+    )
+    op_group.add_argument(
         "--verify",
         action="store_true",
         help="Verify Ergast database connectivity and data counts",
@@ -333,6 +340,11 @@ Examples:
         "--skip-existing",
         action="store_true",
         help="Skip entities that already exist (don't update)",
+    )
+    parser.add_argument(
+        "--race-only",
+        action="store_true",
+        help="For --results: import race results only, skip qualifying",
     )
     parser.add_argument(
         "-v",
@@ -384,6 +396,12 @@ def main() -> int:
     if args.events:
         start_year, end_year = args.events
         return run_events_import(args.ergast_db, parcferme_db_url, start_year, end_year, args.skip_existing, args.dry_run)
+
+    # Handle --results command
+    if args.results:
+        start_year, end_year = args.results
+        include_qualifying = not args.race_only
+        return run_results_import(args.ergast_db, parcferme_db_url, start_year, end_year, include_qualifying, args.dry_run)
 
     # Validate year range if provided
     if args.year_range:
@@ -649,6 +667,78 @@ def run_events_import(
         
     except Exception as e:
         log.exception("Event data import failed", error=str(e))
+        print(f"\n❌ Import failed: {e}")
+        return 1
+
+
+def run_results_import(
+    ergast_db_url: str,
+    parcferme_db_url: str,
+    start_year: int,
+    end_year: int,
+    include_qualifying: bool,
+    dry_run: bool,
+) -> int:
+    """Import race and qualifying results for a year range."""
+    from ingestion.sources.ergast import ErgastConfig
+    
+    print("=" * 60)
+    print("ERGAST RESULTS IMPORT")
+    print("=" * 60)
+    print(f"Years: {start_year} - {end_year}")
+    print(f"Qualifying: {'Yes' if include_qualifying else 'No (race results only)'}")
+    
+    if dry_run:
+        print("DRY RUN MODE - showing what would be imported\n")
+    
+    try:
+        # Parse ergast URL to create config
+        import urllib.parse
+        parsed = urllib.parse.urlparse(ergast_db_url)
+        ergast_config = ErgastConfig(
+            host=parsed.hostname or "localhost",
+            port=parsed.port or 5432,
+            user=parsed.username or "parcferme",
+            password=parsed.password or "localdev",
+            database=parsed.path.lstrip("/") if parsed.path else "ergastf1",
+        )
+        
+        # Use context manager for repository
+        with RacingRepository(parcferme_db_url) as repo:
+            sync_service = ErgastSyncService(
+                config=ergast_config,
+                repository=repo,
+            )
+            
+            # Import results for year range
+            stats = sync_service.import_results_for_year_range(
+                start_year,
+                end_year,
+                include_qualifying,
+            )
+        
+        # Print summary
+        print("\n" + "=" * 60)
+        print("IMPORT SUMMARY")
+        print("=" * 60)
+        print(f"Years processed:     {stats['years_processed']}")
+        print(f"Rounds processed:    {stats['rounds_processed']}")
+        print(f"Race results:        {stats['race_results']}")
+        print(f"Qualifying results:  {stats['qualifying_results']}")
+        
+        if stats["errors"]:
+            print(f"\n⚠️  {len(stats['errors'])} errors occurred:")
+            for err in stats["errors"][:10]:  # Show first 10
+                print(f"   - {err}")
+            if len(stats["errors"]) > 10:
+                print(f"   ... and {len(stats['errors']) - 10} more")
+            return 1
+        
+        print("\n✅ Results import completed successfully!")
+        return 0
+        
+    except Exception as e:
+        log.exception("Results import failed", error=str(e))
         print(f"\n❌ Import failed: {e}")
         return 1
 

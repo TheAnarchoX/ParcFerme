@@ -267,10 +267,18 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
                 position=sr.position,
                 grid_position=sr.grid_position,
                 status=self._map_result_status(sr.status),
+                status_detail=sr.status_detail,
                 points=sr.points,
                 time_milliseconds=sr.time_milliseconds,
                 laps=sr.laps,
                 fastest_lap=sr.fastest_lap,
+                fastest_lap_number=sr.fastest_lap_number,
+                fastest_lap_rank=sr.fastest_lap_rank,
+                fastest_lap_time=sr.fastest_lap_time,
+                fastest_lap_speed=sr.fastest_lap_speed,
+                q1_time=sr.q1_time,
+                q2_time=sr.q2_time,
+                q3_time=sr.q3_time,
             )
             results.append(result)
         
@@ -607,6 +615,212 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
                 print(f"      ✅ Rounds: {year_stats['rounds_created']} | "
                       f"Sessions: {year_stats['sessions_created']} | "
                       f"Entrants: {year_stats['entrants_created']}")
+                
+            except Exception as e:
+                total_stats["errors"].append(f"Year {year}: {e}")
+                logger.error("Failed to import year", year=year, error=str(e))
+        
+        return total_stats
+    
+    def import_results_for_year(
+        self,
+        year: int,
+        include_qualifying: bool = True,
+    ) -> dict[str, Any]:
+        """Import race and qualifying results for a single year.
+        
+        This requires that rounds, sessions, and entrants already exist for the year.
+        Results are matched to existing sessions by round slug and session type.
+        Entrants are matched by looking up the driver name from Ergast and finding
+        the corresponding entrant in our database.
+        
+        Args:
+            year: The year to import results for
+            include_qualifying: Whether to import qualifying results (default True)
+            
+        Returns:
+            Dict with import statistics.
+        """
+        data_source, repo = self._ensure_clients()
+        
+        stats = {
+            "year": year,
+            "race_results": 0,
+            "qualifying_results": 0,
+            "rounds_processed": 0,
+            "errors": [],
+        }
+        
+        # Get all rounds for the year
+        rounds = repo.get_rounds_by_year(year)
+        if not rounds:
+            stats["errors"].append(f"No rounds found for year {year}")
+            return stats
+        
+        # Get meetings from Ergast to map round_number -> race_id
+        meetings = data_source.get_meetings(year)
+        meeting_by_round_number = {m.round_number: m for m in meetings}
+        
+        for round_ in rounds:
+            try:
+                # Find corresponding Ergast meeting
+                meeting = meeting_by_round_number.get(round_.round_number)
+                if not meeting:
+                    logger.debug(
+                        "No Ergast meeting found for round",
+                        round_number=round_.round_number,
+                        round_name=round_.name,
+                    )
+                    continue
+                
+                # Get sessions for this round
+                sessions = repo.get_sessions_by_round(round_.id)
+                session_by_type = {s.type: s for s in sessions}
+                
+                # Build entrant map from Ergast entrant data
+                # This maps driverRef -> entrant_id
+                entrant_map, driver_number_map = self._build_entrant_maps_for_meeting(
+                    data_source, repo, round_.id, meeting.source_id
+                )
+                
+                # Import race results
+                race_session = session_by_type.get(SessionType.RACE)
+                if race_session:
+                    race_results = data_source.get_results(
+                        f"{meeting.source_id}_race",
+                        SourceSessionType.RACE,
+                    )
+                    
+                    if race_results:
+                        results = self._process_results(
+                            race_results, race_session.id, entrant_map, driver_number_map
+                        )
+                        if results:
+                            repo.bulk_upsert_results(results)
+                            stats["race_results"] += len(results)
+                
+                # Import qualifying results
+                if include_qualifying:
+                    quali_session = session_by_type.get(SessionType.QUALIFYING)
+                    if quali_session:
+                        quali_results = data_source.get_results(
+                            f"{meeting.source_id}_qualifying",
+                            SourceSessionType.QUALIFYING,
+                        )
+                        
+                        if quali_results:
+                            results = self._process_results(
+                                quali_results, quali_session.id, entrant_map, driver_number_map
+                            )
+                            if results:
+                                repo.bulk_upsert_results(results)
+                                stats["qualifying_results"] += len(results)
+                
+                stats["rounds_processed"] += 1
+                
+            except Exception as e:
+                stats["errors"].append(f"Round {round_.name}: {e}")
+                logger.warning("Failed to import results for round", name=round_.name, error=str(e))
+        
+        return stats
+    
+    def _build_entrant_maps_for_meeting(
+        self,
+        data_source: ErgastDataSource,
+        repo: RacingRepository,
+        round_id: UUID,
+        meeting_source_id: str,
+    ) -> tuple[dict[str, UUID], dict[int, UUID]]:
+        """Build entrant maps for a meeting by matching Ergast drivers to our entrants.
+        
+        Returns:
+            Tuple of (driver_source_id -> entrant_id, driver_number -> entrant_id)
+        """
+        entrant_map: dict[str, UUID] = {}
+        driver_number_map: dict[int, UUID] = {}
+        
+        # Get Ergast entrants for this meeting
+        ergast_entrants = data_source.get_entrants(meeting_source_id)
+        
+        # Get our entrants for this round with driver info
+        our_entrants = repo.get_entrants_with_drivers_by_round(round_id)
+        
+        # Build a name-based lookup for our entrants
+        our_entrants_by_name = {
+            f"{e['first_name']} {e['last_name']}".lower(): e
+            for e in our_entrants
+        }
+        
+        for ergast_entrant in ergast_entrants:
+            if not ergast_entrant.driver:
+                continue
+            
+            # Find matching entrant in our database by driver name
+            full_name = ergast_entrant.driver.full_name.lower()
+            our_entrant = our_entrants_by_name.get(full_name)
+            
+            if our_entrant:
+                entrant_id = our_entrant['entrant_id']
+                
+                # Map by driverRef
+                if ergast_entrant.driver_source_id:
+                    entrant_map[ergast_entrant.driver_source_id] = entrant_id
+                
+                # Map by car number
+                if ergast_entrant.car_number:
+                    driver_number_map[ergast_entrant.car_number] = entrant_id
+            else:
+                logger.debug(
+                    "No entrant found for Ergast driver",
+                    driver_name=ergast_entrant.driver.full_name,
+                    round_id=str(round_id),
+                )
+        
+        return entrant_map, driver_number_map
+        
+        return stats
+    
+    def import_results_for_year_range(
+        self,
+        start_year: int,
+        end_year: int,
+        include_qualifying: bool = True,
+    ) -> dict[str, Any]:
+        """Import race and qualifying results for a year range.
+        
+        Args:
+            start_year: First year to import
+            end_year: Last year to import (inclusive)
+            include_qualifying: Whether to import qualifying results
+            
+        Returns:
+            Combined statistics for all years.
+        """
+        total_stats = {
+            "years_processed": 0,
+            "race_results": 0,
+            "qualifying_results": 0,
+            "rounds_processed": 0,
+            "errors": [],
+        }
+        
+        print(f"\n📊 Importing results for years {start_year}-{end_year}...")
+        
+        for year in range(start_year, end_year + 1):
+            print(f"\n   🏎️  Year {year}...")
+            
+            try:
+                year_stats = self.import_results_for_year(year, include_qualifying)
+                
+                total_stats["years_processed"] += 1
+                total_stats["race_results"] += year_stats["race_results"]
+                total_stats["qualifying_results"] += year_stats["qualifying_results"]
+                total_stats["rounds_processed"] += year_stats["rounds_processed"]
+                total_stats["errors"].extend(year_stats["errors"])
+                
+                print(f"      ✅ Race results: {year_stats['race_results']} | "
+                      f"Qualifying results: {year_stats['qualifying_results']} | "
+                      f"Rounds: {year_stats['rounds_processed']}")
                 
             except Exception as e:
                 total_stats["errors"].append(f"Year {year}: {e}")

@@ -214,10 +214,19 @@ class Result(BaseModel):
     position: int | None = None
     grid_position: int | None = None
     status: ResultStatus = ResultStatus.FINISHED
+    status_detail: str | None = None  # e.g., "Engine", "Collision", "+1 Lap"
     points: float | None = None
     time_milliseconds: int | None = None
     laps: int | None = None
     fastest_lap: bool = False
+    fastest_lap_number: int | None = None
+    fastest_lap_rank: int | None = None
+    fastest_lap_time: str | None = None  # e.g., "1:27.452"
+    fastest_lap_speed: str | None = None  # e.g., "218.300" km/h
+    # Qualifying-specific times
+    q1_time: str | None = None
+    q2_time: str | None = None
+    q3_time: str | None = None
 
 
 # =========================

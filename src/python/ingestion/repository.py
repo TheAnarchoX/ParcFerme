@@ -440,6 +440,109 @@ class RacingRepository:
                 for row in rows
             ]
 
+    def get_sessions_by_round(self, round_id: UUID) -> list[Session]:
+        """Get all sessions for a round."""
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT "Id", "RoundId", "Type", "StartTimeUtc", "Status", "OpenF1SessionKey"
+                FROM "Sessions"
+                WHERE "RoundId" = %s
+                ORDER BY "Type"
+                """,
+                (str(round_id),),
+            )
+            rows = cur.fetchall()
+            return [
+                Session(
+                    id=_to_uuid(row["Id"]),
+                    round_id=_to_uuid(row["RoundId"]),
+                    type=SessionType(row["Type"]),
+                    start_time_utc=row["StartTimeUtc"],
+                    status=SessionStatus(row["Status"]),
+                    openf1_session_key=row["OpenF1SessionKey"],
+                )
+                for row in rows
+            ]
+
+    def get_entrants_by_round_with_driver_refs(self, round_id: UUID) -> dict[str, UUID]:
+        """Get all entrants for a round, keyed by driver slug.
+        
+        Returns a dict mapping driver_slug -> entrant_id.
+        Used for Ergast results import where we match by driverRef.
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT e."Id", d."Slug"
+                FROM "Entrants" e
+                JOIN "Drivers" d ON e."DriverId" = d."Id"
+                WHERE e."RoundId" = %s AND d."Slug" IS NOT NULL
+                """,
+                (str(round_id),),
+            )
+            rows = cur.fetchall()
+            return {row["Slug"]: _to_uuid(row["Id"]) for row in rows}
+
+    def get_rounds_by_year(self, year: int, series_slug: str = "formula-1") -> list[Round]:
+        """Get all rounds for a given year.
+        
+        Returns rounds ordered by round number for the specified series.
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT r."Id", r."SeasonId", r."CircuitId", r."Name", r."Slug", 
+                       r."RoundNumber", r."DateStart", r."DateEnd"
+                FROM "Rounds" r
+                JOIN "Seasons" se ON r."SeasonId" = se."Id"
+                JOIN "Series" sr ON se."SeriesId" = sr."Id"
+                WHERE se."Year" = %s AND sr."Slug" = %s
+                ORDER BY r."RoundNumber"
+                """,
+                (year, series_slug),
+            )
+            rows = cur.fetchall()
+            return [
+                Round(
+                    id=_to_uuid(row["Id"]),
+                    season_id=_to_uuid(row["SeasonId"]),
+                    circuit_id=_to_uuid(row["CircuitId"]),
+                    name=row["Name"],
+                    slug=row["Slug"],
+                    round_number=row["RoundNumber"],
+                    date_start=row["DateStart"],
+                    date_end=row["DateEnd"],
+                )
+                for row in rows
+            ]
+
+    def get_entrants_with_drivers_by_round(self, round_id: UUID) -> list[dict]:
+        """Get all entrants for a round with driver info.
+        
+        Returns a list of dicts with entrant_id, first_name, last_name.
+        Used for matching Ergast results to existing entrants by driver name.
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT e."Id" as entrant_id, d."FirstName" as first_name, d."LastName" as last_name
+                FROM "Entrants" e
+                JOIN "Drivers" d ON e."DriverId" = d."Id"
+                WHERE e."RoundId" = %s
+                """,
+                (str(round_id),),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    'entrant_id': _to_uuid(row["entrant_id"]),
+                    'first_name': row["first_name"],
+                    'last_name': row["last_name"],
+                }
+                for row in rows
+            ]
+
     def get_entrants_by_round(self, round_id: UUID) -> dict[int, UUID]:
         """Get all entrants for a round, keyed by driver number.
         
@@ -1270,17 +1373,28 @@ class RacingRepository:
                 cur.execute(
                     """
                     INSERT INTO "Results" ("Id", "SessionId", "EntrantId", "Position",
-                                          "GridPosition", "Status", "Points", "Time",
-                                          "Laps", "FastestLap")
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                          "GridPosition", "Status", "StatusDetail", "Points", "Time",
+                                          "TimeMilliseconds", "Laps", "FastestLap", "FastestLapNumber",
+                                          "FastestLapRank", "FastestLapTime", "FastestLapSpeed",
+                                          "Q1Time", "Q2Time", "Q3Time")
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT ("SessionId", "EntrantId") DO UPDATE SET
                         "Position" = EXCLUDED."Position",
                         "GridPosition" = EXCLUDED."GridPosition",
                         "Status" = EXCLUDED."Status",
+                        "StatusDetail" = EXCLUDED."StatusDetail",
                         "Points" = EXCLUDED."Points",
                         "Time" = EXCLUDED."Time",
+                        "TimeMilliseconds" = EXCLUDED."TimeMilliseconds",
                         "Laps" = EXCLUDED."Laps",
-                        "FastestLap" = EXCLUDED."FastestLap"
+                        "FastestLap" = EXCLUDED."FastestLap",
+                        "FastestLapNumber" = EXCLUDED."FastestLapNumber",
+                        "FastestLapRank" = EXCLUDED."FastestLapRank",
+                        "FastestLapTime" = EXCLUDED."FastestLapTime",
+                        "FastestLapSpeed" = EXCLUDED."FastestLapSpeed",
+                        "Q1Time" = EXCLUDED."Q1Time",
+                        "Q2Time" = EXCLUDED."Q2Time",
+                        "Q3Time" = EXCLUDED."Q3Time"
                     RETURNING "Id"
                     """,
                     (
@@ -1290,14 +1404,23 @@ class RacingRepository:
                         result.position,
                         result.grid_position,
                         result.status.value,
+                        result.status_detail,
                         result.points,
                         (
                             f"{result.time_milliseconds} milliseconds"
                             if result.time_milliseconds
                             else None
                         ),
+                        result.time_milliseconds,
                         result.laps,
                         result.fastest_lap,
+                        result.fastest_lap_number,
+                        result.fastest_lap_rank,
+                        result.fastest_lap_time,
+                        result.fastest_lap_speed,
+                        result.q1_time,
+                        result.q2_time,
+                        result.q3_time,
                     ),
                 )
                 row = cur.fetchone()
