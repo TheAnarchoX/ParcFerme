@@ -1,5 +1,6 @@
 import { useDispatch, useSelector } from 'react-redux';
-import type { AppDispatch, RootState } from '../../store';
+import type { AppDispatch } from '../../store';
+import { updateProfile, selectUser } from '../../store/slices/authSlice';
 import { setSpoilerMode } from '../../store/slices/spoilerSlice';
 import type { SpoilerMode } from '../../types/api';
 
@@ -50,11 +51,17 @@ interface SpoilerModeToggleProps {
  */
 export function SpoilerModeToggle({ variant = 'default', className = '' }: SpoilerModeToggleProps) {
   const dispatch = useDispatch<AppDispatch>();
-  const currentMode = useSelector((state: RootState) => state.spoiler.mode);
+  const user = useSelector(selectUser);
+  const currentMode = user?.spoilerMode ?? 'Strict';
   
-  const handleChange = (mode: SpoilerMode) => {
+  const handleChange = async (mode: SpoilerMode) => {
+    // Update local spoiler slice for immediate UI feedback
     dispatch(setSpoilerMode(mode));
-    // TODO: Persist to user preferences API when authenticated
+    
+    // Persist to backend if user is authenticated
+    if (user) {
+      await dispatch(updateProfile({ spoilerMode: mode }));
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, modes: typeof SPOILER_MODES) => {
