@@ -351,15 +351,18 @@ class ErgastDataSource(BaseDataSource):
             
             entrants = []
             for row in cur.fetchall():
-                # IMPORTANT: Only use driver_permanent_number (for 2014+ drivers)
-                # NOT the race car_number which changes per race and could
-                # accidentally match modern drivers' permanent numbers
+                # IMPORTANT: Do NOT use driver_permanent_number for entrant creation.
+                # The 'number' column in Ergast drivers table stores the driver's
+                # permanent number from 2014+, NOT the number they raced under
+                # in historical seasons. Using it causes false matches with modern
+                # drivers (e.g., Nico Rosberg's permanent #6 matches Isack Hadjar).
+                # Instead, rely on name-based matching for historical driver resolution.
                 driver = SourceDriver(
                     first_name=row["forename"],
                     last_name=row["surname"],
                     abbreviation=row["code"],
                     nationality=row["driver_nationality"],
-                    driver_number=row["driver_permanent_number"],  # Only permanent, not car_number
+                    driver_number=None,  # Don't use permanent numbers for historical matching
                     date_of_birth=row["dob"],
                     wikipedia_url=row["driver_url"],
                     source_id=row["driverRef"],
