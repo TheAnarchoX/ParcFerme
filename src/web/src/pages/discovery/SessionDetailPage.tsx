@@ -168,10 +168,16 @@ function getResultDisplayTime(
     return result.time || '-';
   }
   
-  // For races: P1 shows laps, others show gap to leader
+  // For races: P1 shows laps, others show gap to leader or lapped status
   if (result.position === 1) {
     return result.laps ? `${result.laps} laps` : result.time || '-';
   }
+  
+  // Check for lapped drivers (statusDetail contains "+1 Lap", "+2 Laps", etc.)
+  if (result.statusDetail && result.statusDetail.includes('Lap')) {
+    return result.statusDetail;
+  }
+  
   return result.time || '-';
 }
 
