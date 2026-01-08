@@ -213,7 +213,9 @@ public sealed class RoundsController : BaseApiController
                         Abbreviation: e.Driver.Abbreviation,
                         Nationality: e.Driver.Nationality,
                         HeadshotUrl: e.Driver.HeadshotUrl,
-                        DriverNumber: driverNumber
+                        DriverNumber: driverNumber,
+                        DateOfBirth: e.Driver.DateOfBirth,
+                        WikipediaUrl: e.Driver.WikipediaUrl
                     ),
                     Team: new TeamSummaryDto(
                         Id: e.Team.Id,
@@ -221,7 +223,9 @@ public sealed class RoundsController : BaseApiController
                         Slug: e.Team.Slug,
                         ShortName: e.Team.ShortName,
                         LogoUrl: e.Team.LogoUrl,
-                        PrimaryColor: e.Team.PrimaryColor
+                        PrimaryColor: e.Team.PrimaryColor,
+                        Nationality: e.Team.Nationality,
+                        WikipediaUrl: e.Team.WikipediaUrl
                     )
                 );
             })
@@ -253,7 +257,9 @@ public sealed class RoundsController : BaseApiController
                 LayoutMapUrl: round.Circuit.LayoutMapUrl,
                 Latitude: round.Circuit.Latitude,
                 Longitude: round.Circuit.Longitude,
-                LengthMeters: round.Circuit.LengthMeters
+                LengthMeters: round.Circuit.LengthMeters,
+                Altitude: round.Circuit.Altitude,
+                WikipediaUrl: round.Circuit.WikipediaUrl
             ),
             Sessions: sessionsTimeline,
             Entrants: entrants,

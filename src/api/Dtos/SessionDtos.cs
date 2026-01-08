@@ -55,7 +55,18 @@ public sealed record ResultDto(
     int? Laps,
     bool FastestLap,
     DriverSummaryDto Driver,
-    TeamSummaryDto Team
+    TeamSummaryDto Team,
+    // Ergast detailed timing fields
+    int? TimeMilliseconds,
+    int? FastestLapNumber,
+    int? FastestLapRank,
+    string? FastestLapTime,
+    string? FastestLapSpeed,
+    string? StatusDetail,
+    // Qualifying times (1994+)
+    string? Q1Time,
+    string? Q2Time,
+    string? Q3Time
 );
 
 /// <summary>
@@ -136,7 +147,9 @@ public sealed record CircuitDetailDto(
     string? LayoutMapUrl,
     double? Latitude,
     double? Longitude,
-    int? LengthMeters
+    int? LengthMeters,
+    int? Altitude,
+    string? WikipediaUrl
 );
 
 // =========================
@@ -151,7 +164,9 @@ public sealed record DriverSummaryDto(
     string? Abbreviation,
     string? Nationality,
     string? HeadshotUrl,
-    int? DriverNumber
+    int? DriverNumber,
+    DateOnly? DateOfBirth,
+    string? WikipediaUrl
 );
 
 public sealed record TeamSummaryDto(
@@ -160,7 +175,9 @@ public sealed record TeamSummaryDto(
     string Slug,
     string? ShortName,
     string? LogoUrl,
-    string? PrimaryColor
+    string? PrimaryColor,
+    string? Nationality,
+    string? WikipediaUrl
 );
 
 // =========================

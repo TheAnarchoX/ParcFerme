@@ -347,7 +347,9 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
                 driver.Abbreviation,
                 driver.Nationality,
                 driver.HeadshotUrl,
-                driver.DriverNumber
+                driver.DriverNumber,
+                driver.DateOfBirth,
+                driver.WikipediaUrl
             ),
             Team: new TeamSummaryDto(
                 team.Id,
@@ -355,8 +357,19 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
                 team.Slug,
                 team.ShortName,
                 team.LogoUrl,
-                team.PrimaryColor
-            )
+                team.PrimaryColor,
+                team.Nationality,
+                team.WikipediaUrl
+            ),
+            TimeMilliseconds: result.TimeMilliseconds,
+            FastestLapNumber: result.FastestLapNumber,
+            FastestLapRank: result.FastestLapRank,
+            FastestLapTime: result.FastestLapTime,
+            FastestLapSpeed: result.FastestLapSpeed,
+            StatusDetail: result.StatusDetail,
+            Q1Time: result.Q1Time,
+            Q2Time: result.Q2Time,
+            Q3Time: result.Q3Time
         );
     }
 
@@ -389,7 +402,9 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
                 circuit.LayoutMapUrl,
                 circuit.Latitude,
                 circuit.Longitude,
-                circuit.LengthMeters
+                circuit.LengthMeters,
+                circuit.Altitude,
+                circuit.WikipediaUrl
             ),
             Year: round.Season.Year,
             SeriesSlug: series.Slug,

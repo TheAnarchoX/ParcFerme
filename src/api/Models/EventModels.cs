@@ -59,6 +59,16 @@ public sealed class Round
     /// </summary>
     public int? OpenF1MeetingKey { get; set; }
     
+    /// <summary>
+    /// Ergast raceId for correlation during historical import.
+    /// </summary>
+    public int? ErgastRaceId { get; set; }
+    
+    /// <summary>
+    /// Wikipedia URL for external reference.
+    /// </summary>
+    public string? WikipediaUrl { get; set; }
+    
     public Season Season { get; set; } = null!;
     public Circuit Circuit { get; set; } = null!;
     public ICollection<Session> Sessions { get; set; } = [];
@@ -131,6 +141,16 @@ public sealed class Circuit
     public double? Longitude { get; set; }
     public int? LengthMeters { get; set; }
     
+    /// <summary>
+    /// Altitude in meters above sea level (from Ergast).
+    /// </summary>
+    public int? Altitude { get; set; }
+    
+    /// <summary>
+    /// Wikipedia URL for external reference.
+    /// </summary>
+    public string? WikipediaUrl { get; set; }
+    
     public ICollection<Round> Rounds { get; set; } = [];
     public ICollection<Grandstand> Grandstands { get; set; } = [];
     public ICollection<CircuitAlias> Aliases { get; set; } = [];
@@ -175,6 +195,16 @@ public sealed class Driver
     /// This is the racing number from OpenF1 which is consistent per driver.
     /// </summary>
     public int? OpenF1DriverNumber { get; set; }
+    
+    /// <summary>
+    /// Driver's date of birth (from Ergast).
+    /// </summary>
+    public DateOnly? DateOfBirth { get; set; }
+    
+    /// <summary>
+    /// Wikipedia URL for external reference.
+    /// </summary>
+    public string? WikipediaUrl { get; set; }
     
     public ICollection<Entrant> Entrants { get; set; } = [];
     public ICollection<DriverAlias> Aliases { get; set; } = [];
@@ -242,6 +272,16 @@ public sealed class Team
     public string? ShortName { get; set; }
     public string? LogoUrl { get; set; }
     public string? PrimaryColor { get; set; }
+    
+    /// <summary>
+    /// Team/constructor nationality (from Ergast).
+    /// </summary>
+    public string? Nationality { get; set; }
+    
+    /// <summary>
+    /// Wikipedia URL for external reference.
+    /// </summary>
+    public string? WikipediaUrl { get; set; }
     
     public ICollection<Entrant> Entrants { get; set; } = [];
     public ICollection<TeamAlias> Aliases { get; set; } = [];
@@ -404,6 +444,56 @@ public sealed class Result
     public TimeSpan? Time { get; set; }
     public int? Laps { get; set; }
     public bool FastestLap { get; set; }
+    
+    // Ergast-specific timing fields
+    
+    /// <summary>
+    /// Precise time in milliseconds (from Ergast).
+    /// </summary>
+    public int? TimeMilliseconds { get; set; }
+    
+    /// <summary>
+    /// Which lap was the fastest lap (from Ergast).
+    /// </summary>
+    public int? FastestLapNumber { get; set; }
+    
+    /// <summary>
+    /// Rank among all fastest laps in the session (from Ergast).
+    /// </summary>
+    public int? FastestLapRank { get; set; }
+    
+    /// <summary>
+    /// Fastest lap time as string, e.g., "1:27.452" (from Ergast).
+    /// </summary>
+    public string? FastestLapTime { get; set; }
+    
+    /// <summary>
+    /// Fastest lap speed, e.g., "218.300" km/h (from Ergast).
+    /// </summary>
+    public string? FastestLapSpeed { get; set; }
+    
+    /// <summary>
+    /// Detailed status text, e.g., "Engine", "Collision" (from Ergast).
+    /// Provides more detail than the ResultStatus enum.
+    /// </summary>
+    public string? StatusDetail { get; set; }
+    
+    // Qualifying-specific fields
+    
+    /// <summary>
+    /// Q1 session time, e.g., "1:28.123" (from Ergast, 1994+).
+    /// </summary>
+    public string? Q1Time { get; set; }
+    
+    /// <summary>
+    /// Q2 session time, e.g., "1:27.456" (from Ergast, 2006+).
+    /// </summary>
+    public string? Q2Time { get; set; }
+    
+    /// <summary>
+    /// Q3 session time, e.g., "1:26.789" (from Ergast, 2006+).
+    /// </summary>
+    public string? Q3Time { get; set; }
     
     public Session Session { get; set; } = null!;
     public Entrant Entrant { get; set; } = null!;
