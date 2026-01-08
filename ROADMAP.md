@@ -191,6 +191,172 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
 
 ---
 
+#### 🔧 TECHNICAL DEBT: Robust Entity Matching Framework
+
+**Priority:** High (before adding new data sources)
+**Effort:** Medium-Large
+**Impact:** Enables reliable multi-source data ingestion for any new series/source
+
+##### Problem Statement
+
+During Ergast import and OpenF1 sync, we encountered multiple entity matching failures that caused data integrity issues. These problems will recur with every new data source (MotoGP, IndyCar, WEC, community contributions). We need a robust, score-based matching system that handles real-world data messiness.
+
+##### Lessons Learned from Ergast Import
+
+**Issue 1: Unicode/Diacritics Mismatch**
+- **Root cause:** Ergast stores "Nico Hülkenberg", OpenF1 has "Nico Hulkenberg"
+- **Affected fields:** Driver names, team names, circuit names
+- **Fix applied:** Added `_normalize_name()` with Unicode NFD decomposition
+- **Characters affected:** ü→u, é→e, ö→o, ä→a, ñ→n, ć→c, etc.
+- **Driver examples:** Pérez, Räikkönen, Hülkenberg, Gutiérrez, Grosjean, Bottas
+
+**Issue 2: Driver Number Matching Failures**
+- **Root cause:** Ergast stores *lifetime* permanent numbers (2014+), not historical race numbers
+- **Example:** Nico Rosberg #6 in Ergast matched to Isack Hadjar #6 (2025 driver)
+- **Impact:** 2,341 wrongly-matched entrants in historical races (modern drivers appearing in 1990s-2000s)
+- **Fix applied:** Disabled driver number matching for historical imports; use name-only matching
+
+**Issue 3: Team Name Variations Across Eras**
+- **Examples:**
+  - "Red Bull Racing" vs "Red Bull" vs "Oracle Red Bull Racing" vs "Red Bull Racing Honda"
+  - "Ferrari" vs "Scuderia Ferrari" vs "Scuderia Ferrari Mission Winnow"
+  - "McLaren" vs "McLaren Racing" vs "McLaren Mercedes" vs "McLaren Honda"
+- **Current handling:** TeamAlias table with manual entries in known_aliases.json
+- **Problem:** Doesn't scale to new series/sources
+
+**Issue 4: Circuit Name Variations**
+- **Examples:**
+  - "Circuit de Monaco" vs "Monte Carlo Street Circuit" vs "Monaco"
+  - "Circuit of the Americas" vs "COTA" vs "Austin"
+  - "Autódromo Hermanos Rodríguez" vs "Mexico City" vs "Autodromo Hermanos Rodriguez"
+- **Additional complexity:** Circuits change names (sponsors), get reconfigured, or change countries
+
+**Issue 5: OpenF1 Round Names with Sponsor Clutter**
+- **Raw OpenF1 data:** `meeting_official_name = "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2025"`
+- **We want:** "Chinese Grand Prix"
+- **Current handling:** Using `meeting_name` field (already clean), but inconsistent across sources
+- **Problem:** If we store `meeting_official_name`, we get sponsor clutter; if we don't, we lose official data
+
+##### Proposed Solution: Multi-Signal Confidence Scoring
+
+Replace the current sequential matching strategy with a confidence-score approach:
+
+```
+Match Score = Σ(signal_weight × signal_match_score)
+
+Signals (by entity type):
+├── Drivers
+│   ├── Exact last name match (0.3)
+│   ├── First name match (0.2)
+│   ├── Driver number match (0.15) - only if within date bounds
+│   ├── Abbreviation match (0.15) - VER, HAM, etc.
+│   ├── Nationality match (0.1)
+│   └── Fuzzy name similarity (0.1) - Levenshtein/Jaro-Winkler
+│
+├── Teams
+│   ├── Exact name match (0.4)
+│   ├── Name contains canonical (0.2) - "Oracle Red Bull Racing" contains "Red Bull"
+│   ├── Fuzzy name similarity (0.2)
+│   ├── Primary color match (0.1) - helps with rebrands
+│   └── Year/era overlap (0.1)
+│
+├── Circuits
+│   ├── Exact name match (0.3)
+│   ├── Location/city match (0.25) - "Austin" → COTA
+│   ├── Country match (0.15)
+│   ├── Fuzzy name similarity (0.15)
+│   └── Coordinates proximity (0.15) - within 10km
+│
+└── Rounds/Events
+    ├── Exact name match (0.25)
+    ├── Circuit match (0.25)
+    ├── Date match (0.25) - within 3 days
+    ├── Round number + year (0.15)
+    └── Fuzzy name similarity (0.1)
+```
+
+**Decision thresholds:**
+- Score ≥ 0.9: Auto-match (high confidence)
+- Score 0.7-0.9: Auto-match with alias creation (medium confidence)
+- Score 0.5-0.7: Flag for human review
+- Score < 0.5: Create new entity
+
+##### Implementation Tasks
+
+**Phase 1: Core Matching Engine** (Agentic)
+- [ ] Create `matching/` module in ingestion package
+- [ ] Implement `MatchResult` dataclass with score, confidence level, signals used
+- [ ] Implement base `EntityMatcher` class with pluggable signal functions
+- [ ] Implement `DriverMatcher` with all signals
+- [ ] Implement `TeamMatcher` with all signals  
+- [ ] Implement `CircuitMatcher` with all signals (including geo-distance)
+- [ ] Implement `RoundMatcher` for event deduplication
+- [ ] Add Levenshtein and Jaro-Winkler distance utilities
+- [ ] Unit tests for each matcher (edge cases from Ergast import)
+
+**Phase 2: Name Normalization Pipeline** (Agentic)
+- [ ] Centralize `_normalize_name()` into matching module
+- [ ] Add sponsor/branding strip functions for Round names
+  - Strip "FORMULA 1", "FORMULA ONE", sponsor names (HEINEKEN, ARAMCO, etc.)
+  - Normalize "Grand Prix" / "GP" / "Gran Premio"
+  - Handle language variants (GRAND PRIX DE MONACO → Monaco Grand Prix)
+- [ ] Add team name normalization (strip "Racing", "F1 Team", sponsor suffixes)
+- [ ] Add circuit name normalization (strip "Circuit", "Autódromo", etc.)
+- [ ] Create canonical name extraction pipeline
+
+**Phase 3: Review Queue System** (Agentic)
+- [ ] Create `PendingMatch` database table for uncertain matches
+- [ ] Create CLI tool to review and resolve pending matches: `python -m ingestion.review_matches`
+- [ ] Add bulk approve/reject functionality
+- [ ] Auto-learn from resolved matches (update known_aliases.json)
+
+**Phase 4: Integration & Migration** (Agentic)
+- [ ] Integrate new matchers into `EntityResolver`
+- [ ] Update `sync.py` (OpenF1) to use new matching framework
+- [ ] Update `services/ergast.py` to use new matching framework
+- [ ] Migrate existing `known_aliases.json` data to database aliases
+- [ ] Add ingestion audit log table for traceability
+
+**Phase 5: Clean Existing Data** (Agentic, depends on Phase 4)
+- [ ] Run matching on existing Rounds to normalize names (remove sponsor clutter)
+- [ ] Identify and merge duplicate circuits with different names
+- [ ] Identify and merge duplicate teams across eras
+- [ ] Validate all aliases have proper date bounds
+
+##### Known Problematic Entities (Reference for Testing)
+
+**Drivers with diacritics:**
+- Nico Hülkenberg (ü)
+- Sergio Pérez (é)  
+- Kimi Räikkönen (ä)
+- Esteban Gutiérrez (é)
+- Jean-Éric Vergne (É)
+- Carlos Sainz Sr/Jr (disambiguation needed)
+- Max/Jos Verstappen (disambiguation needed)
+
+**Teams with rebrand history:**
+- Minardi → Toro Rosso → AlphaTauri → Racing Bulls
+- Jordan → Midland → Spyker → Force India → Racing Point → Aston Martin
+- Lotus (multiple: Team Lotus, Lotus Racing, Lotus F1 Team, Lotus-Renault)
+- Sauber → Alfa Romeo → Stake → Audi (upcoming)
+
+**Circuits with name/config changes:**
+- Silverstone (multiple configurations)
+- Spa-Francorchamps (multiple configurations)
+- Monza (with/without chicanes)
+- Paul Ricard (multiple configurations)
+- Bahrain (GP layout vs Outer layout vs Endurance layout)
+
+##### Success Criteria
+
+1. New data source integration should require <1 hour of manual alias work
+2. Matching accuracy >99% for drivers/teams, >95% for circuits/rounds
+3. All uncertain matches flagged for review (no silent failures)
+4. Audit trail for all entity matches/merges
+5. OpenF1 Round names display as "Japanese Grand Prix" not "FORMULA 1 LENOVO JAPANESE GRAND PRIX 2025"
+
+---
+
 #### 0. Chores
 There are 2 types of chores: "Agentic" and "Manual". "Manual" tasks are only to be done by humans, while "Agentic" chores can be completed by AI agents following the [AI Coding Guidelines](./AGENTS.md).
 
