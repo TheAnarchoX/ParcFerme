@@ -727,7 +727,7 @@ class OpenF1SyncService:
                 # Rate limiting: small pause between meetings to avoid hammering the API
                 # Skip pause after the last meeting
                 if i < len(sorted_meetings):
-                    time.sleep(0.5)
+                    time.sleep(1.0)
                     
             except Exception as e:
                 print(f"      ❌ Error: {e}")
