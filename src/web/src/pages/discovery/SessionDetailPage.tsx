@@ -203,16 +203,46 @@ function ResultRow({ result, primaryColor, sessionType, leaderTime, leaderLaps }
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, statusDetail?: string) => {
     switch (status) {
       case 'Finished':
         return null;
       case 'DNF':
-        return <span className="text-xs text-pf-red font-medium">DNF</span>;
+        return (
+          <div className="text-right">
+            <span className="text-xs text-pf-red font-medium">DNF</span>
+            {statusDetail && !statusDetail.includes('Lap') && (
+              <p className="text-xs text-neutral-500 mt-0.5">{statusDetail}</p>
+            )}
+          </div>
+        );
       case 'DNS':
-        return <span className="text-xs text-neutral-500 font-medium">DNS</span>;
+        return (
+          <div className="text-right">
+            <span className="text-xs text-neutral-500 font-medium">DNS</span>
+            {statusDetail && (
+              <p className="text-xs text-neutral-600 mt-0.5">{statusDetail}</p>
+            )}
+          </div>
+        );
       case 'DSQ':
-        return <span className="text-xs text-orange-500 font-medium">DSQ</span>;
+        return (
+          <div className="text-right">
+            <span className="text-xs text-orange-500 font-medium">DSQ</span>
+            {statusDetail && statusDetail !== 'Disqualified' && (
+              <p className="text-xs text-neutral-500 mt-0.5">{statusDetail}</p>
+            )}
+          </div>
+        );
+      case 'NC':
+        return (
+          <div className="text-right">
+            <span className="text-xs text-neutral-500 font-medium">NC</span>
+            {statusDetail && (
+              <p className="text-xs text-neutral-600 mt-0.5">{statusDetail}</p>
+            )}
+          </div>
+        );
       default:
         return <span className="text-xs text-neutral-500 font-medium">{status}</span>;
     }
@@ -288,7 +318,7 @@ function ResultRow({ result, primaryColor, sessionType, leaderTime, leaderLaps }
             {getResultDisplayTime(result, sessionType, leaderTime, leaderLaps)}
           </span>
         ) : (
-          getStatusBadge(result.status)
+          getStatusBadge(result.status, result.statusDetail)
         )}
         {result.points !== undefined && result.points > 0 && (
           <p 
