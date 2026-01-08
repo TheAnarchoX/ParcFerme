@@ -24,7 +24,11 @@ public interface ISpoilerShieldService
     /// <summary>
     /// Gets session detail with appropriate spoiler masking.
     /// </summary>
-    Task<SessionDetailDto?> GetSessionWithSpoilerShieldAsync(Guid sessionId, Guid? userId, CancellationToken ct = default);
+    /// <param name="sessionId">The session ID.</param>
+    /// <param name="userId">The current user's ID (null if anonymous).</param>
+    /// <param name="forceReveal">If true, forces results to be revealed regardless of user state.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<SessionDetailDto?> GetSessionWithSpoilerShieldAsync(Guid sessionId, Guid? userId, bool forceReveal = false, CancellationToken ct = default);
     
     /// <summary>
     /// Gets multiple sessions with appropriate spoiler masking.
@@ -105,6 +109,7 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
     public async Task<SessionDetailDto?> GetSessionWithSpoilerShieldAsync(
         Guid sessionId, 
         Guid? userId, 
+        bool forceReveal = false,
         CancellationToken ct = default)
     {
         var session = await _db.Sessions
@@ -135,7 +140,7 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
             .Select(s => s.Id)
             .ToListAsync(ct);
 
-        var shouldReveal = await ShouldRevealSpoilersAsync(userId, sessionId, ct);
+        var shouldReveal = forceReveal || await ShouldRevealSpoilersAsync(userId, sessionId, ct);
         var isLogged = userId.HasValue && session.Logs.Any(l => l.UserId == userId);
 
         // Get logged sessions for sibling session status

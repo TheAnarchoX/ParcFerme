@@ -13,9 +13,11 @@ import type {
 export const spoilerApi = {
   /**
    * Get a session by ID with spoiler-protected results.
+   * @param id - The session ID.
+   * @param forceReveal - If true, forces results to be revealed regardless of server-side spoiler settings.
    */
-  getSession: (id: string): Promise<SessionDetailDto> =>
-    apiClient.get<SessionDetailDto>(`/sessions/${id}`),
+  getSession: (id: string, forceReveal: boolean = false): Promise<SessionDetailDto> =>
+    apiClient.get<SessionDetailDto>(`/sessions/${id}${forceReveal ? '?forceReveal=true' : ''}`),
 
   /**
    * Get sessions for a round (race weekend).

@@ -31,14 +31,17 @@ public sealed class SessionsController : BaseApiController
 
     /// <summary>
     /// Get a session by ID with spoiler-protected results.
-    /// Results are hidden unless user has logged the session or has SpoilerMode.None.
+    /// Results are hidden unless user has logged the session, has SpoilerMode.None, or forceReveal is true.
     /// </summary>
+    /// <param name="id">The session ID.</param>
+    /// <param name="forceReveal">If true, forces results to be revealed regardless of user spoiler settings.</param>
+    /// <param name="ct">Cancellation token.</param>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(SessionDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetSession(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetSession(Guid id, [FromQuery] bool forceReveal = false, CancellationToken ct = default)
     {
-        var session = await _spoilerShield.GetSessionWithSpoilerShieldAsync(id, CurrentUserId, ct);
+        var session = await _spoilerShield.GetSessionWithSpoilerShieldAsync(id, CurrentUserId, forceReveal, ct);
 
         if (session is null)
         {

@@ -469,17 +469,19 @@ export function SessionDetailPage() {
   const yearNum = year ? parseInt(year, 10) : NaN;
   
   // Spoiler visibility based on Redux state + API data
-  const { visibility, isLogged } = useSpoilerVisibility(sessionId || '');
+  const { visibility, isLogged, shouldShow } = useSpoilerVisibility(sessionId || '');
   const { markLogged } = useSpoilerShield();
   
   // Fetch session data
+  // Pass forceReveal=true when local state says spoilers should be shown
+  // This ensures results are returned even for anonymous users with mode="None"
   const fetchSession = useCallback(async () => {
     if (!sessionId) return;
     
     try {
       setIsLoading(true);
       setError(null);
-      const data = await spoilerApi.getSession(sessionId);
+      const data = await spoilerApi.getSession(sessionId, shouldShow);
       setSession(data);
       
       // Sync logged status to Redux
@@ -492,7 +494,7 @@ export function SessionDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId, markLogged]);
+  }, [sessionId, markLogged, shouldShow]);
   
   useEffect(() => {
     fetchSession();
