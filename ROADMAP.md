@@ -1,6 +1,6 @@
 # Parc Fermé - Development Roadmap
 
-> Last updated: January 7, 2026
+> Last updated: January 8, 2026
 
 ## 🏁 Current Sprint: Core Discovery & Logging
 
@@ -77,6 +77,53 @@
 _No active tasks_
 
 ### 📋 Up Next (Priority Order)
+
+#### 🔥 CRITICAL: Ergast Historical F1 Data Import (1950-2017)
+
+Import historical F1 data from the Ergast archive to enable the full "Letterboxd for motorsport" experience with 68 years of racing history. This is the foundation for Phase 2 (Historical Archive) but prioritized now due to database availability.
+
+**Documentation:** [docs/ERGAST_MIGRATION.md](./docs/ERGAST_MIGRATION.md)
+
+**Data Volume:**
+- 68 seasons (1950-2017)
+- 976 race weekends
+- 23,657 race results
+- 7,397 qualifying results (1994+)
+- 840 drivers, 208 teams, 73 circuits
+
+##### Phase 1: Schema Migration
+- [ ] Add new columns to domain models:
+  - Circuit: `Altitude`, `WikipediaUrl`
+  - Driver: `DateOfBirth`, `WikipediaUrl`
+  - Team: `Nationality`, `WikipediaUrl`
+  - Round: `ErgastRaceId`, `WikipediaUrl`
+  - Entrant: `CarNumber`
+  - Result: `TimeMilliseconds`, `FastestLapNumber`, `FastestLapRank`, `FastestLapTime`, `FastestLapSpeed`, `StatusDetail`, `Q1Time`, `Q2Time`, `Q3Time`
+- [ ] Create EF Core migration
+- [ ] Update DTOs and API responses where applicable
+
+##### Phase 2: Reference Data Import
+- [ ] Import/merge 73 Ergast circuits into ParcFerme (with aliases)
+- [ ] Import/merge 840 drivers (with aliases for name variations)
+- [ ] Import/merge 208 teams/constructors (with aliases for rebrands)
+- [ ] Create F1 seasons 1950-2019
+
+##### Phase 3: Event Data Import
+- [ ] Import 976 Rounds from Ergast races table
+- [ ] Create Sessions (Race for all, Qualifying for 1994+)
+
+##### Phase 4: Results Import
+- [ ] Create Entrants (driver-team-round links)
+- [ ] Import 23,657 race results with status mapping
+- [ ] Import 7,397 qualifying results
+
+##### Phase 5: Validation & Cleanup
+- [ ] Verify row counts and data integrity
+- [ ] Spot-check famous races (1950 British GP, 1976 Japan, 1994 San Marino, 2008 Brazil)
+- [ ] Verify championship points calculations possible
+- [ ] Remove temporary correlation IDs if not needed
+
+---
 
 #### 0. Chores
 There are 2 types of chores: "Agentic" and "Manual". "Manual" tasks are only to be done by humans, while "Agentic" chores can be completed by AI agents following the [AI Coding Guidelines](./AGENTS.md).
@@ -232,7 +279,9 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 **Goal:** Historical archive, social features, lists, search
 
 ### Historical Data
-- [ ] Historical F1 data import (1950-2023 from Ergast archive)
+- [x] Historical F1 data import (1950-2017 from Ergast archive) → **MOVED TO CURRENT SPRINT** (database now available)
+  - See [ERGAST_MIGRATION.md](./docs/ERGAST_MIGRATION.md) for full strategy
+- [ ] Extend historical data to 2018-2022 (OpenF1 or alternative sources)
 - [ ] Historical season browser UI
 
 ### Social & Discovery
@@ -352,7 +401,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 ### External Dependencies
 - **OpenF1 API** — Unofficial, may change; fallback to SportMonks (~€55/mo) if needed
-- **Ergast archive** — Deprecated but archived; needed for 1950-2023 historical import
+- **Ergast archive** — Deprecated but archived; loaded into `ergastf1` database (1950-2017)
 - **Community contributors** — Required for MotoGP/IndyCar/WEC data
 - **Legal review** — Historical data usage rights
 
@@ -369,3 +418,4 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [AI Coding Guidelines](./AGENTS.md)
 - [API Documentation](http://localhost:5000/swagger) (local dev)
 - [Bulk Sync Guide](./docs/BULK_SYNC.md)
+- [Ergast Migration Strategy](./docs/ERGAST_MIGRATION.md)
