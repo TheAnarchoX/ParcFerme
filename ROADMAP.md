@@ -138,9 +138,24 @@ Import historical F1 data from the Ergast archive to enable the full "Letterboxd
   - 23,568 entrants created from Ergast results table
   - Final count: 25,014 entrants
 
-##### Phase 4: Results Import
-- [ ] Import 23,657 race results with status mapping
-- [ ] Import 7,397 qualifying results
+##### Phase 4: Results Import (Completed: Jan 8, 2026)
+- [x] Import 22,001 race results with status mapping
+  - Added `--results` CLI command: `python -m ingestion.ergast_import --results 1950 2017`
+  - Maps 134 Ergast status codes to ResultStatus enum (Finished, DNF, DNS, DSQ, NC)
+  - Status detail field preserves original status text (e.g., "Engine", "Gearbox", "Collision")
+  - Fastest lap data: lap number, rank, time (string), speed
+  - Points preserved from original Ergast data
+- [x] Import 6,043 qualifying results
+  - Q1/Q2/Q3 time fields populated for qualifying sessions
+  - Qualifying session times fixed to be day before race (was incorrectly after race)
+  - Final count: 28,051 total results in database
+
+##### Bug Fixes During Results Import
+- [x] Fixed corrupted driver aliases causing wrong names in UI
+  - Bad aliases like "Juan Fangio" for Max Verstappen were overriding correct names
+  - Deleted 36 garbage aliases that had no date bounds
+- [x] Fixed qualifying session ordering (qualifying was appearing after race)
+  - Qualifying sessions now correctly placed day before race at 14:00 UTC
 
 ##### Phase 5: Validation & Cleanup
 - [ ] Verify row counts and data integrity
