@@ -52,7 +52,7 @@ patterns:
     - Javscript to get all series names, URLs, and GoverningBody as json:
     ```javascript
     // On: https://thethirdturn.com/wiki/Series_Database:Index
-    // Goal: extract [{ name, href, governingBody }, ...] robustly (avoid brittle childNodes indexing)
+    // Goal: extract [{ name, href }, ...] robustly (avoid brittle childNodes indexing)
 
     // Each non-header row in the main series table
     const seriesRows = document.querySelectorAll(
