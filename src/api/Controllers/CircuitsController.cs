@@ -32,8 +32,10 @@ public class CircuitsController : ControllerBase
     /// <param name="country">Optional country filter</param>
     /// <param name="region">Optional region filter: "europe", "americas", "asia", "oceania", "middle-east"</param>
     /// <param name="search">Optional search query (searches name, location, country)</param>
+    /// <param name="sortBy">Sort field: "name" (default), "country", "races"</param>
+    /// <param name="sortOrder">Sort direction: "asc" (default) or "desc"</param>
     [HttpGet]
-    [CacheResponse(DurationSeconds = 300)]
+    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["page", "pageSize", "series", "country", "region", "search", "sortBy", "sortOrder"])]
     [ProducesResponseType<CircuitListResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CircuitListResponse>> GetCircuits(
         [FromQuery] int page = 1,
@@ -41,7 +43,9 @@ public class CircuitsController : ControllerBase
         [FromQuery] string? series = null,
         [FromQuery] string? country = null,
         [FromQuery] string? region = null,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortOrder = null)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -90,8 +94,24 @@ public class CircuitsController : ControllerBase
 
         var totalCount = await query.CountAsync();
 
-        var circuits = await query
-            .OrderBy(c => c.Name)
+        // Apply sorting
+        var sortByLower = (sortBy ?? "name").ToLowerInvariant();
+        var isDescending = (sortOrder ?? "asc").Equals("desc", StringComparison.OrdinalIgnoreCase);
+
+        IOrderedQueryable<Models.Circuit> orderedQuery = sortByLower switch
+        {
+            "country" => isDescending 
+                ? query.OrderByDescending(c => c.Country).ThenBy(c => c.Name)
+                : query.OrderBy(c => c.Country).ThenBy(c => c.Name),
+            "races" => isDescending
+                ? query.OrderByDescending(c => c.Rounds.Count).ThenBy(c => c.Name)
+                : query.OrderBy(c => c.Rounds.Count).ThenBy(c => c.Name),
+            _ => isDescending // "name" or default
+                ? query.OrderByDescending(c => c.Name)
+                : query.OrderBy(c => c.Name)
+        };
+
+        var circuits = await orderedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(c => new CircuitListItemDto(

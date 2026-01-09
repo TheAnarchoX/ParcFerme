@@ -32,10 +32,14 @@ const SERIES_NAMES: Record<string, string> = {
 };
 
 const SORT_OPTIONS: FilterOption[] = [
-  { value: 'name', label: 'Name (A-Z)' },
-  { value: 'name_desc', label: 'Name (Z-A)' },
-  { value: 'seasons', label: 'Most Seasons' },
-  { value: 'recent', label: 'Most Recent' },
+  { value: 'lastName_asc', label: 'Last Name (A-Z)' },
+  { value: 'lastName_desc', label: 'Last Name (Z-A)' },
+  { value: 'firstName_asc', label: 'First Name (A-Z)' },
+  { value: 'firstName_desc', label: 'First Name (Z-A)' },
+  { value: 'seasons_desc', label: 'Most Seasons' },
+  { value: 'seasons_asc', label: 'Fewest Seasons' },
+  { value: 'recent_desc', label: 'Most Recent' },
+  { value: 'recent_asc', label: 'Oldest Active' },
 ];
 
 // =========================
@@ -126,7 +130,7 @@ export function DriversPage() {
   const nationalityFilter = searchParams.get('nationality') || '';
   const statusFilter = searchParams.get('status') || '';
   const searchParam = searchParams.get('search') || '';
-  const sortParam = searchParams.get('sort') || 'name';
+  const sortParam = searchParams.get('sort') || 'lastName_asc';
   const pageParam = searchParams.get('page');
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
   
@@ -154,10 +158,15 @@ export function DriversPage() {
     setSearchParams(params);
   }, [searchParams, setSearchParams]);
   
-  // Fetch drivers (server-side search & filtering)
+  // Fetch drivers (server-side search, filtering & sorting)
   const fetchDrivers = useCallback(async () => {
     setLoading(true);
     setError(null);
+    
+    // Parse sort param (format: "field_order", e.g., "lastName_asc")
+    const [sortBy, sortOrder] = sortParam.includes('_') 
+      ? sortParam.split('_') 
+      : [sortParam, 'asc'];
     
     try {
       const data = await driversApi.getDrivers({
@@ -167,6 +176,8 @@ export function DriversPage() {
         nationality: nationalityFilter || undefined,
         status: (statusFilter as 'active' | 'legend') || undefined,
         search: searchParam || undefined,
+        sortBy,
+        sortOrder: sortOrder as 'asc' | 'desc',
       });
       setDriversData(data);
     } catch (err) {
@@ -175,7 +186,7 @@ export function DriversPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, seriesFilter, nationalityFilter, statusFilter, searchParam]);
+  }, [currentPage, seriesFilter, nationalityFilter, statusFilter, searchParam, sortParam]);
   
   useEffect(() => {
     fetchDrivers();
@@ -198,25 +209,6 @@ export function DriversPage() {
   const handlePageChange = (page: number) => {
     updateParams({ page: page > 1 ? page.toString() : null });
   };
-  
-  // Sort drivers client-side (server returns filtered, sorted by default)
-  const sortedDrivers = useMemo(() => {
-    const items = driversData?.items || [];
-    return [...items].sort((a, b) => {
-      switch (sortParam) {
-        case 'name':
-          return getDriverFullName(a).localeCompare(getDriverFullName(b));
-        case 'name_desc':
-          return getDriverFullName(b).localeCompare(getDriverFullName(a));
-        case 'seasons':
-          return b.seasonsCount - a.seasonsCount;
-        case 'recent':
-          return b.seasonsCount - a.seasonsCount; // Approximation
-        default:
-          return 0;
-      }
-    });
-  }, [driversData?.items, sortParam]);
   
   // Build filter configs
   const filters: FilterConfig[] = useMemo(() => [
@@ -298,9 +290,9 @@ export function DriversPage() {
         {/* Drivers grid */}
         {!loading && !error && driversData && (
           <>
-            {sortedDrivers.length > 0 ? (
+            {driversData.items.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sortedDrivers.map(driver => (
+                {driversData.items.map(driver => (
                   <DriverCard key={driver.id} driver={driver} />
                 ))}
               </div>

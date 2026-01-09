@@ -16,6 +16,8 @@ export interface GetCircuitsOptions {
   country?: string;
   region?: 'europe' | 'americas' | 'asia' | 'oceania' | 'middle-east';
   search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 /**
@@ -30,6 +32,8 @@ export async function getCircuits(options?: GetCircuitsOptions): Promise<Circuit
   if (options?.country) params.append('country', options.country);
   if (options?.region) params.append('region', options.region);
   if (options?.search) params.append('search', options.search);
+  if (options?.sortBy) params.append('sortBy', options.sortBy);
+  if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
   
   const queryString = params.toString();
   const url = queryString ? `/circuits?${queryString}` : '/circuits';

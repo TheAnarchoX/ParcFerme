@@ -31,10 +31,12 @@ const SERIES_NAMES: Record<string, string> = {
 };
 
 const SORT_OPTIONS: FilterOption[] = [
-  { value: 'name', label: 'Name (A-Z)' },
+  { value: 'name_asc', label: 'Name (A-Z)' },
   { value: 'name_desc', label: 'Name (Z-A)' },
-  { value: 'seasons', label: 'Most Seasons' },
-  { value: 'drivers', label: 'Most Drivers' },
+  { value: 'seasons_desc', label: 'Most Seasons' },
+  { value: 'seasons_asc', label: 'Fewest Seasons' },
+  { value: 'drivers_desc', label: 'Most Drivers' },
+  { value: 'drivers_asc', label: 'Fewest Drivers' },
 ];
 
 // =========================
@@ -124,7 +126,7 @@ export function TeamsPage() {
   const seriesFilter = searchParams.get('series') || '';
   const nationalityFilter = searchParams.get('nationality') || '';
   const searchParam = searchParams.get('search') || '';
-  const sortParam = searchParams.get('sort') || 'name';
+  const sortParam = searchParams.get('sort') || 'name_asc';
   const pageParam = searchParams.get('page');
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
   
@@ -152,10 +154,15 @@ export function TeamsPage() {
     setSearchParams(params);
   }, [searchParams, setSearchParams]);
   
-  // Fetch teams (server-side search & filtering)
+  // Fetch teams (server-side search, filtering & sorting)
   const fetchTeams = useCallback(async () => {
     setLoading(true);
     setError(null);
+    
+    // Parse sort param (format: "field_order", e.g., "name_asc")
+    const [sortBy, sortOrder] = sortParam.includes('_') 
+      ? sortParam.split('_') 
+      : [sortParam, 'asc'];
     
     try {
       const data = await teamsApi.getTeams({
@@ -164,6 +171,8 @@ export function TeamsPage() {
         series: seriesFilter || undefined,
         nationality: nationalityFilter || undefined,
         search: searchParam || undefined,
+        sortBy,
+        sortOrder: sortOrder as 'asc' | 'desc',
       });
       setTeamsData(data);
     } catch (err) {
@@ -172,7 +181,7 @@ export function TeamsPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, seriesFilter, nationalityFilter, searchParam]);
+  }, [currentPage, seriesFilter, nationalityFilter, searchParam, sortParam]);
   
   useEffect(() => {
     fetchTeams();
@@ -195,25 +204,6 @@ export function TeamsPage() {
   const handlePageChange = (page: number) => {
     updateParams({ page: page > 1 ? page.toString() : null });
   };
-  
-  // Sort teams client-side (server returns filtered, sorted by default)
-  const sortedTeams = useMemo(() => {
-    const items = teamsData?.items || [];
-    return [...items].sort((a, b) => {
-      switch (sortParam) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'name_desc':
-          return b.name.localeCompare(a.name);
-        case 'seasons':
-          return b.seasonsCount - a.seasonsCount;
-        case 'drivers':
-          return b.driversCount - a.driversCount;
-        default:
-          return 0;
-      }
-    });
-  }, [teamsData?.items, sortParam]);
   
   // Build filter configs
   const filters: FilterConfig[] = useMemo(() => [
@@ -288,9 +278,9 @@ export function TeamsPage() {
         {/* Teams grid */}
         {!loading && !error && teamsData && (
           <>
-            {sortedTeams.length > 0 ? (
+            {teamsData.items.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sortedTeams.map(team => (
+                {teamsData.items.map(team => (
                   <TeamCard key={team.id} team={team} />
                 ))}
               </div>

@@ -32,17 +32,21 @@ public sealed class TeamsController : BaseApiController
     /// <param name="search">Optional search query (searches name, short name, nationality).</param>
     /// <param name="nationality">Optional nationality filter (exact match, case-insensitive).</param>
     /// <param name="status">Optional status filter: "active" (competed 2024+), "historical" (pre-2024 only).</param>
+    /// <param name="sortBy">Sort field: "name" (default), "seasons", "recent".</param>
+    /// <param name="sortOrder">Sort direction: "asc" (default) or "desc".</param>
     /// <param name="page">Page number (1-indexed).</param>
     /// <param name="pageSize">Number of items per page (default 50, max 100).</param>
     /// <param name="ct">Cancellation token.</param>
     [HttpGet]
-    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "search", "nationality", "status", "page", "pageSize"])]
+    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "search", "nationality", "status", "sortBy", "sortOrder", "page", "pageSize"])]
     [ProducesResponseType(typeof(TeamListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTeams(
         [FromQuery] string? series,
         [FromQuery] string? search,
         [FromQuery] string? nationality,
         [FromQuery] string? status,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortOrder,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
@@ -124,12 +128,60 @@ public sealed class TeamsController : BaseApiController
         // Get total count
         var totalCount = await baseQuery.CountAsync(ct);
 
-        // Get teams with pagination
-        var teams = await baseQuery
-            .OrderBy(t => t.Name)
-            .Skip(skip)
-            .Take(pageSize)
-            .ToListAsync(ct);
+        // For sort options that need entrant data (seasons, recent), we need to compute those first
+        var sortByLower = (sortBy ?? "name").ToLowerInvariant();
+        var isDescending = (sortOrder ?? "asc").Equals("desc", StringComparison.OrdinalIgnoreCase);
+        
+        List<Models.Team> teams;
+        
+        if (sortByLower == "seasons" || sortByLower == "recent")
+        {
+            // Need to compute season stats for sorting
+            var teamIdsForStats = await baseQuery.Select(t => t.Id).ToListAsync(ct);
+            
+            // Get season data for all filtered teams
+            var teamSeasonStats = await _db.Entrants
+                .Where(e => teamIdsForStats.Contains(e.TeamId))
+                .GroupBy(e => e.TeamId)
+                .Select(g => new 
+                {
+                    TeamId = g.Key,
+                    SeasonCount = g.Select(e => e.Round.SeasonId).Distinct().Count(),
+                    LatestYear = g.Max(e => e.Round.Season.Year)
+                })
+                .ToListAsync(ct);
+            
+            var statsDict = teamSeasonStats.ToDictionary(s => s.TeamId);
+            
+            // Get all teams first (we need to sort in memory for these fields)
+            var allTeams = await baseQuery.ToListAsync(ct);
+            
+            IEnumerable<Models.Team> sortedTeams = sortByLower == "seasons"
+                ? (isDescending
+                    ? allTeams.OrderByDescending(t => statsDict.GetValueOrDefault(t.Id)?.SeasonCount ?? 0)
+                              .ThenBy(t => t.Name)
+                    : allTeams.OrderBy(t => statsDict.GetValueOrDefault(t.Id)?.SeasonCount ?? 0)
+                              .ThenBy(t => t.Name))
+                : (isDescending
+                    ? allTeams.OrderByDescending(t => statsDict.GetValueOrDefault(t.Id)?.LatestYear ?? 0)
+                              .ThenBy(t => t.Name)
+                    : allTeams.OrderBy(t => statsDict.GetValueOrDefault(t.Id)?.LatestYear ?? 0)
+                              .ThenBy(t => t.Name));
+            
+            teams = sortedTeams.Skip(skip).Take(pageSize).ToList();
+        }
+        else
+        {
+            // Name sorting can be done in SQL
+            IOrderedQueryable<Models.Team> orderedQuery = isDescending
+                ? baseQuery.OrderByDescending(t => t.Name)
+                : baseQuery.OrderBy(t => t.Name);
+            
+            teams = await orderedQuery
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync(ct);
+        }
 
         // Get entrant data for these teams to determine stats
         var teamIdList = teams.Select(t => t.Id).ToList();

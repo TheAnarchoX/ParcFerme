@@ -19,6 +19,8 @@ export const driversApi = {
     search?: string;
     nationality?: string;
     status?: 'active' | 'legend';
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
     page?: number;
     pageSize?: number;
   }): Promise<DriverListResponse> => {
@@ -27,6 +29,8 @@ export const driversApi = {
     if (options?.search) params.append('search', options.search);
     if (options?.nationality) params.append('nationality', options.nationality);
     if (options?.status) params.append('status', options.status);
+    if (options?.sortBy) params.append('sortBy', options.sortBy);
+    if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
     if (options?.page) params.append('page', options.page.toString());
     if (options?.pageSize) params.append('pageSize', options.pageSize.toString());
     const queryString = params.toString();

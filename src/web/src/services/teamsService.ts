@@ -16,6 +16,8 @@ export interface GetTeamsOptions {
   search?: string;
   nationality?: string;
   status?: 'active' | 'historical';
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 /**
@@ -30,6 +32,8 @@ export async function getTeams(options?: GetTeamsOptions): Promise<TeamListRespo
   if (options?.search) params.append('search', options.search);
   if (options?.nationality) params.append('nationality', options.nationality);
   if (options?.status) params.append('status', options.status);
+  if (options?.sortBy) params.append('sortBy', options.sortBy);
+  if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
   
   const queryString = params.toString();
   const url = queryString ? `/teams?${queryString}` : '/teams';

@@ -32,17 +32,21 @@ public sealed class DriversController : BaseApiController
     /// <param name="search">Optional search query (searches name, nationality, abbreviation).</param>
     /// <param name="nationality">Optional nationality filter (exact match, case-insensitive).</param>
     /// <param name="status">Optional status filter: "active" (competed 2024+), "legend" (pre-2024 only).</param>
+    /// <param name="sortBy">Sort field: "lastName" (default), "firstName", "seasons", "recent".</param>
+    /// <param name="sortOrder">Sort direction: "asc" (default) or "desc".</param>
     /// <param name="page">Page number (1-indexed).</param>
     /// <param name="pageSize">Number of items per page (default 50, max 100).</param>
     /// <param name="ct">Cancellation token.</param>
     [HttpGet]
-    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "search", "nationality", "status", "page", "pageSize"])]
+    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "search", "nationality", "status", "sortBy", "sortOrder", "page", "pageSize"])]
     [ProducesResponseType(typeof(DriverListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDrivers(
         [FromQuery] string? series,
         [FromQuery] string? search,
         [FromQuery] string? nationality,
         [FromQuery] string? status,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortOrder,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
@@ -126,13 +130,67 @@ public sealed class DriversController : BaseApiController
         // Get total count
         var totalCount = await baseQuery.CountAsync(ct);
 
-        // Get drivers with pagination
-        var drivers = await baseQuery
-            .OrderBy(d => d.LastName)
-            .ThenBy(d => d.FirstName)
-            .Skip(skip)
-            .Take(pageSize)
-            .ToListAsync(ct);
+        // For sort options that need entrant data (seasons, recent), we need to compute those first
+        var sortByLower = (sortBy ?? "lastName").ToLowerInvariant();
+        var isDescending = (sortOrder ?? "asc").Equals("desc", StringComparison.OrdinalIgnoreCase);
+        
+        // Get driver IDs from base query for entrant data lookup (needed for seasons/recent sort)
+        List<Models.Driver> drivers;
+        
+        if (sortByLower == "seasons" || sortByLower == "recent")
+        {
+            // Need to compute season stats for sorting
+            var driverIdsForStats = await baseQuery.Select(d => d.Id).ToListAsync(ct);
+            
+            // Get season data for all filtered drivers
+            var driverSeasonStats = await _db.Entrants
+                .Where(e => driverIdsForStats.Contains(e.DriverId))
+                .GroupBy(e => e.DriverId)
+                .Select(g => new 
+                {
+                    DriverId = g.Key,
+                    SeasonCount = g.Select(e => e.Round.SeasonId).Distinct().Count(),
+                    LatestYear = g.Max(e => e.Round.Season.Year)
+                })
+                .ToListAsync(ct);
+            
+            var statsDict = driverSeasonStats.ToDictionary(s => s.DriverId);
+            
+            // Get all drivers first (we need to sort in memory for these fields)
+            var allDrivers = await baseQuery.ToListAsync(ct);
+            
+            IEnumerable<Models.Driver> sortedDrivers = sortByLower == "seasons"
+                ? (isDescending
+                    ? allDrivers.OrderByDescending(d => statsDict.GetValueOrDefault(d.Id)?.SeasonCount ?? 0)
+                                .ThenBy(d => d.LastName).ThenBy(d => d.FirstName)
+                    : allDrivers.OrderBy(d => statsDict.GetValueOrDefault(d.Id)?.SeasonCount ?? 0)
+                                .ThenBy(d => d.LastName).ThenBy(d => d.FirstName))
+                : (isDescending
+                    ? allDrivers.OrderByDescending(d => statsDict.GetValueOrDefault(d.Id)?.LatestYear ?? 0)
+                                .ThenBy(d => d.LastName).ThenBy(d => d.FirstName)
+                    : allDrivers.OrderBy(d => statsDict.GetValueOrDefault(d.Id)?.LatestYear ?? 0)
+                                .ThenBy(d => d.LastName).ThenBy(d => d.FirstName));
+            
+            drivers = sortedDrivers.Skip(skip).Take(pageSize).ToList();
+        }
+        else
+        {
+            // Name-based sorting can be done in SQL
+            IOrderedQueryable<Models.Driver> orderedQuery = sortByLower switch
+            {
+                "firstname" => isDescending 
+                    ? baseQuery.OrderByDescending(d => d.FirstName).ThenByDescending(d => d.LastName)
+                    : baseQuery.OrderBy(d => d.FirstName).ThenBy(d => d.LastName),
+                _ => isDescending // "lastname" or default
+                    ? baseQuery.OrderByDescending(d => d.LastName).ThenByDescending(d => d.FirstName)
+                    : baseQuery.OrderBy(d => d.LastName).ThenBy(d => d.FirstName)
+            };
+            
+            drivers = await orderedQuery
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync(ct);
+        }
 
         // Get entrant data for these drivers to determine current team and stats
         var driverIdList = drivers.Select(d => d.Id).ToList();

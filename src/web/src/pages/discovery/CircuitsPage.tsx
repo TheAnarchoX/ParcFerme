@@ -31,10 +31,12 @@ const SERIES_NAMES: Record<string, string> = {
 };
 
 const SORT_OPTIONS: FilterOption[] = [
-  { value: 'name', label: 'Name (A-Z)' },
+  { value: 'name_asc', label: 'Name (A-Z)' },
   { value: 'name_desc', label: 'Name (Z-A)' },
-  { value: 'rounds', label: 'Most Rounds Hosted' },
-  { value: 'country', label: 'Country (A-Z)' },
+  { value: 'rounds_desc', label: 'Most Rounds Hosted' },
+  { value: 'rounds_asc', label: 'Fewest Rounds Hosted' },
+  { value: 'country_asc', label: 'Country (A-Z)' },
+  { value: 'country_desc', label: 'Country (Z-A)' },
 ];
 
 // =========================
@@ -133,7 +135,7 @@ export function CircuitsPage() {
   const seriesFilter = searchParams.get('series') || '';
   const regionFilter = searchParams.get('region') || '';
   const searchParam = searchParams.get('search') || '';
-  const sortParam = searchParams.get('sort') || 'name';
+  const sortParam = searchParams.get('sort') || 'name_asc';
   const pageParam = searchParams.get('page');
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
   
@@ -161,10 +163,15 @@ export function CircuitsPage() {
     setSearchParams(params);
   }, [searchParams, setSearchParams]);
   
-  // Fetch circuits (server-side search & filtering)
+  // Fetch circuits (server-side search, filtering & sorting)
   const fetchCircuits = useCallback(async () => {
     setLoading(true);
     setError(null);
+    
+    // Parse sort param (format: "field_order", e.g., "name_asc")
+    const [sortBy, sortOrder] = sortParam.includes('_') 
+      ? sortParam.split('_') 
+      : [sortParam, 'asc'];
     
     try {
       const data = await circuitsApi.getCircuits({
@@ -173,6 +180,8 @@ export function CircuitsPage() {
         series: seriesFilter || undefined,
         region: regionFilter as 'europe' | 'americas' | 'asia' | 'oceania' | 'middle-east' || undefined,
         search: searchParam || undefined,
+        sortBy,
+        sortOrder: sortOrder as 'asc' | 'desc',
       });
       setCircuitsData(data);
     } catch (err) {
@@ -181,7 +190,7 @@ export function CircuitsPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, seriesFilter, regionFilter, searchParam]);
+  }, [currentPage, seriesFilter, regionFilter, searchParam, sortParam]);
   
   useEffect(() => {
     fetchCircuits();
@@ -204,25 +213,6 @@ export function CircuitsPage() {
   const handlePageChange = (page: number) => {
     updateParams({ page: page > 1 ? page.toString() : null });
   };
-  
-  // Sort circuits client-side (server returns filtered, sorted by default)
-  const sortedCircuits = useMemo(() => {
-    const items = circuitsData?.items || [];
-    return [...items].sort((a, b) => {
-      switch (sortParam) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'name_desc':
-          return b.name.localeCompare(a.name);
-        case 'rounds':
-          return b.roundsHosted - a.roundsHosted;
-        case 'country':
-          return a.country.localeCompare(b.country);
-        default:
-          return 0;
-      }
-    });
-  }, [circuitsData?.items, sortParam]);
   
   // Build filter configs
   const filters: FilterConfig[] = useMemo(() => [
@@ -297,9 +287,9 @@ export function CircuitsPage() {
         {/* Circuits grid */}
         {!loading && !error && circuitsData && (
           <>
-            {sortedCircuits.length > 0 ? (
+            {circuitsData.items.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sortedCircuits.map(circuit => (
+                {circuitsData.items.map(circuit => (
                   <CircuitCard key={circuit.id} circuit={circuit} />
                 ))}
               </div>
