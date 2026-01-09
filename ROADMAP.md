@@ -14,63 +14,7 @@ _No active tasks_
 
 ### 📋 Up Next (Priority Order)
 
-#### 1. Supporting Discovery Pages (Full Entity Discovery)
-
-**Current State:** DriversPage, TeamsPage, CircuitsPage and their detail pages exist with mock data. Routes configured. Need to wire up real API endpoints and replace mock data.
-
-##### 1.1 Driver Discovery + Detail Pages + API
-- [ ] **Backend: DriversController + DTOs**
-  - Create `DriverDtos.cs` with: `DriverSummaryDto`, `DriverDetailDto`, `DriverCareerDto`
-  - Create `DriversController.cs` with endpoints:
-    - `GET /api/v1/drivers` - paginated list with optional `?series=slug` filter
-    - `GET /api/v1/drivers/{slug}` - full profile with career history
-    - `GET /api/v1/drivers/{slug}/seasons` - seasons participated in
-  - Include nationality, driver number, headshot URL in responses
-- [ ] **Frontend: Wire up real API**
-  - Create `driversService.ts` with API client methods
-  - Create `types/driver.ts` with TypeScript interfaces matching DTOs
-  - Update `DriversPage.tsx` to fetch from API (replace mock data)
-  - Update `DriverDetailPage.tsx` to fetch from API
-  - Add loading skeletons and error states
-
-##### 1.2 Team Discovery + Detail Pages + API
-- [ ] **Backend: TeamsController + DTOs**
-  - Create `TeamDtos.cs` with: `TeamSummaryDto`, `TeamDetailDto`, `TeamHistoryDto`
-  - Create `TeamsController.cs` with endpoints:
-    - `GET /api/v1/teams` - paginated list with optional `?series=slug` filter
-    - `GET /api/v1/teams/{slug}` - full profile with driver roster
-    - `GET /api/v1/teams/{slug}/seasons` - seasons competed in
-- [ ] **Frontend: Wire up real API**
-  - Create `teamsService.ts` with API client methods
-  - Create `types/team.ts` with TypeScript interfaces
-  - Update pages to fetch from API
-
-##### 1.3 Circuit Discovery + Detail Pages + API
-- [ ] **Backend: CircuitsController + DTOs**
-  - Create `CircuitDtos.cs` with: `CircuitSummaryDto`, `CircuitDetailDto`, `CircuitVenueDto`
-  - Create `CircuitsController.cs` with endpoints:
-    - `GET /api/v1/circuits` - paginated list with optional `?series=slug` filter
-    - `GET /api/v1/circuits/{slug}` - full profile with venue info
-    - `GET /api/v1/circuits/{slug}/rounds` - races hosted at this circuit
-- [ ] **Frontend: Wire up real API**
-  - Create `circuitsService.ts` with API client methods
-  - Create `types/circuit.ts` with TypeScript interfaces
-  - Update pages to fetch from API
-
-##### 1.4 Navigation Flow Verification
-- [ ] **Cross-link entities throughout the app**
-  - Driver detail → link to teams they've driven for
-  - Team detail → link to drivers on roster
-  - Circuit detail → link to rounds held there
-  - Round detail → link to circuit, drivers, teams competing
-- [ ] **Breadcrumb verification** across all new pages
-
-##### 1.5 Global Search (Deferred)
-- [ ] **Deferred:** Global search UI + API (requires Elasticsearch setup)
-
----
-
-#### 2. Core Logging Flow (The MVP Feature)
+#### 1. Core Logging Flow (The MVP Feature)
 
 - [ ] **"Log a Race" flow**
   - Multi-step modal or dedicated page
@@ -89,7 +33,7 @@ _No active tasks_
 
 ---
 
-#### 3. User Experience Polish
+#### 2. User Experience Polish
 
 - [ ] User profiles API + page (favorites, stats, logs, reviews)
 - [ ] User settings page (spoiler mode, preferences, theming)
@@ -101,7 +45,7 @@ _No active tasks_
 
 ---
 
-#### 4. Standings Module
+#### 3. Standings Module
 
 - [ ] Develop "Standings" module to calculate championship points
 - [ ] Retroactively calculate standings for past seasons
@@ -110,7 +54,7 @@ _No active tasks_
 
 ---
 
-#### 5. Chores
+#### 4. Chores
 
 ##### Agentic (Priority Order)
 - [ ] Add UIOrder to Series for consistent ordering in dropdowns/lists

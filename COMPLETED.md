@@ -121,6 +121,61 @@
 
 ---
 
+### Supporting Discovery Pages - Full Implementation (Completed: Jan 9, 2026)
+
+#### DriversPage + DriverDetailPage + API
+- [x] **Backend: DriversController + DTOs**
+  - Created `DriverDtos.cs` with DriverSummaryDto, DriverDetailDto, DriverCareerDto
+  - Created `DriversController.cs` with endpoints:
+    - `GET /api/v1/drivers` - paginated list with series/nationality/status filters, search, sort
+    - `GET /api/v1/drivers/{slug}` - full profile with career history
+  - Includes nationality, driver number, headshot URL, date of birth, Wikipedia link
+- [x] **Frontend: Real API integration**
+  - Created `driversService.ts` with API client methods
+  - Created `types/driver.ts` with TypeScript interfaces
+  - Updated `DriversPage.tsx` with FilterBar, server-side filtering/search/sort
+  - Updated `DriverDetailPage.tsx` with real API data
+  - Loading skeletons, error states, retry functionality
+
+#### TeamsPage + TeamDetailPage + API
+- [x] **Backend: TeamsController + DTOs**
+  - Created `TeamDtos.cs` with TeamSummaryDto, TeamDetailDto, TeamHistoryDto
+  - Created `TeamsController.cs` with endpoints:
+    - `GET /api/v1/teams` - paginated list with series/nationality filters, search, sort
+    - `GET /api/v1/teams/{slug}` - full profile with driver roster, season history
+  - Includes nationality, primary color, logo URL, Wikipedia link
+- [x] **Frontend: Real API integration**
+  - Created `teamsService.ts` with API client methods
+  - Created `types/team.ts` with TypeScript interfaces
+  - Updated `TeamsPage.tsx` with FilterBar, server-side filtering/search/sort
+  - Updated `TeamDetailPage.tsx` with real API data, season history, current drivers
+  - SVG placeholders with team colors, loading skeletons, error states
+
+#### CircuitsPage + CircuitDetailPage + API
+- [x] **Backend: CircuitsController + DTOs**
+  - Created `CircuitDtos.cs` with CircuitSummaryDto, CircuitDetailDto
+  - Created `CircuitsController.cs` with endpoints:
+    - `GET /api/v1/circuits` - paginated list with series/region filters, search, sort
+    - `GET /api/v1/circuits/{slug}` - full profile with venue info, rounds hosted
+  - Includes location, country, coordinates, length, altitude, Wikipedia link
+- [x] **Frontend: Real API integration**
+  - Created `circuitsService.ts` with API client methods
+  - Created `types/circuit.ts` with TypeScript interfaces
+  - Updated `CircuitsPage.tsx` with FilterBar, server-side filtering/search/sort
+  - Updated `CircuitDetailPage.tsx` with real API data, rounds history
+  - Circuit map placeholders, loading skeletons, error states
+
+#### Navigation Flow & Cross-linking
+- [x] **Entity cross-linking throughout the app**
+  - Driver detail → links to teams they've driven for
+  - Team detail → links to drivers on roster (current + historical)
+  - Circuit detail → links to rounds held there
+  - Round detail → links to circuit, drivers, teams competing
+- [x] **Breadcrumb verification** - all discovery pages have correct breadcrumbs
+- [x] **Filter state in URL** - all filters sync to URL params for shareable links
+
+---
+
 ## 🗃️ Ergast Historical F1 Data Import (1950-2017)
 
 > **Documentation:** [docs/ERGAST_MIGRATION.md](./docs/ERGAST_MIGRATION.md)
