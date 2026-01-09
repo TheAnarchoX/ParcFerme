@@ -654,12 +654,12 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 ### Phase 3A: Build The Third Turn Scraper
 - [ ] Build scraper in `src/python/ingestion/sources/thethirdturn/` following THETHIRDTURN.md patterns
-- [ ] Scrape series index, series pages, season pages, race pages (see doc for extraction logic)
+- [ ] Scrape series index, series, season, race, driver and circuit (see doc for extraction details)
 - [ ] Use existing entity matchers, respect CC BY-NC-SA 4.0 license by using the Source fields in models (and adding them if missing) and documenting attribution in the UI
 
 ### Phase 3B: Import Major Series
 - [ ] MotoGP (2020-2025 calendars + results, historical backfill later)
-- [ ] IndyCar (1996-present, handle CART/IRL split if data source warrants, handle speed based qualifying)
+- [ ] IndyCar (1996-present, handle CART/IRL split if data source warrants)
 - [ ] WEC (multi-class + multi-driver complexity)
 - [ ] Formula
 - [ ] NASCAR 
@@ -825,3 +825,4 @@ Traditional motorsport calendars are static files you download once per year. We
 - [API Documentation](http://localhost:5000/swagger) (local dev)
 - [Bulk Sync Guide](./docs/BULK_SYNC.md)
 - [Ergast Migration Strategy](./docs/ERGAST_MIGRATION.md)
+- [The Third Turn Integration](./docs/THETHIRDTURN.md)

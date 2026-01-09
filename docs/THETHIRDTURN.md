@@ -1,4 +1,4 @@
-# The Third Turn Data Source
+# The Third Turn Integration 
 
 This document describes the data source integration for The Third Turn
 within the Parc Ferme project. The Third Turn is a comprehensive database
@@ -172,12 +172,58 @@ patterns:
     // 1. Select all rows matching race listings (excluding title and header row)
     // Note: I removed specific indices from div, tr, and td to get everything.
     const racesRows = document.querySelectorAll("#mw-content-text > div > table.pointtable.sortable.resultdiv.jquery-tablesorter");
+    
+    // TODO: Finish this function
+    ```
 
 
-// TODO: Outline data ingestion for these pages
+- **Individual Race Page**:
+    - URL Pattern: `https://thethirdturn.com/wiki/{Race_Name}`
+    - Description: Contains detailed information about a specific race event,
+      including session results, classification, and race-specific details.
+    - Data Points:
+        - Round
+            - (Additional race-specific fields)
+        - Session[]
+            - (Session details for this race)
+        - Result[]
+            - (Driver results and classifications)
+    - Example: (TBD)
+    - Useful Links:
+        - (TBD)
+    - Useful Javascript:
+    ```javascript
+    // TODO: Implement race page scraping
+    ```
 
-- ** Individual Race Page**:
+- **Driver Page**:
+    - URL Pattern: `https://thethirdturn.com/wiki/{Driver_Name}`
+    - Description: Contains comprehensive information about a specific driver,
+      including career statistics, race history, and biographical details.
+    - Data Points:
+        - Driver
+            - (Driver biographical and career fields)
+        - DriverAlias[]
+            - (Alternative names and spelling variations)
+    - Example: (TBD)
+    - Useful Links:
+        - (TBD)
+    - Useful Javascript:
+    ```javascript
+    // TODO: Implement driver page scraping
+    ```
 
-- ** Driver Page**:
-
-- ** Circuit Page**: 
+- **Circuit Page**:
+    - URL Pattern: `https://thethirdturn.com/wiki/{Circuit_Name}`
+    - Description: Contains information about a specific racing circuit or venue,
+      including location, layout variations, and historical usage.
+    - Data Points:
+        - Circuit
+            - (Circuit details and specifications)
+    - Example: (TBD)
+    - Useful Links:
+        - (TBD)
+    - Useful Javascript:
+    ```javascript
+    // TODO: Implement circuit page scraping
+    ``` 
