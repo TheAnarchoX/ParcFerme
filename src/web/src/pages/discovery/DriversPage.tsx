@@ -1,15 +1,18 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { MainLayout, PageHeader, Section } from '../../components/layout/MainLayout';
 import { useBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
 import { driversApi } from '../../services/driversService';
 import type { DriverListItemDto, DriverListResponse } from '../../types/driver';
 import { getNationalityFlag, getDriverFullName } from '../../types/driver';
+import { Pagination, DriverPlaceholder } from '../../components/ui';
 
 // =========================
-// Series name mapping (temporary until API provides this)
+// Constants
 // =========================
+
+const PAGE_SIZE = 24;
 
 const SERIES_NAMES: Record<string, string> = {
   'f1': 'Formula 1',
@@ -19,13 +22,22 @@ const SERIES_NAMES: Record<string, string> = {
   'formula-e': 'Formula E',
 };
 
+const SORT_OPTIONS = [
+  { value: 'name', label: 'Name (A-Z)' },
+  { value: 'name_desc', label: 'Name (Z-A)' },
+  { value: 'seasons', label: 'Most Seasons' },
+  { value: 'recent', label: 'Most Recent' },
+] as const;
+
+type SortOption = typeof SORT_OPTIONS[number]['value'];
+
 // =========================
 // Loading Skeleton
 // =========================
 
 function DriverCardSkeleton() {
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 animate-pulse">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 bg-neutral-800 rounded-lg" />
         <div className="flex-1 min-w-0">
@@ -38,11 +50,22 @@ function DriverCardSkeleton() {
   );
 }
 
-function StatsCardSkeleton() {
+// =========================
+// Stats Card Component
+// =========================
+
+interface StatsCardProps {
+  icon: string;
+  value: number | string;
+  label: string;
+}
+
+function StatsCard({ icon, value, label }: StatsCardProps) {
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
-      <div className="h-8 bg-neutral-800 rounded w-12 mb-2" />
-      <div className="h-4 bg-neutral-800 rounded w-24" />
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-center">
+      <div className="text-2xl mb-1">{icon}</div>
+      <div className="text-2xl font-bold text-neutral-100">{value}</div>
+      <div className="text-sm text-neutral-500">{label}</div>
     </div>
   );
 }
@@ -62,41 +85,38 @@ function DriverCard({ driver }: DriverCardProps) {
   return (
     <Link
       to={ROUTES.DRIVER_DETAIL(driver.slug)}
-      className="group block bg-neutral-900/50 border border-neutral-800 rounded-lg overflow-hidden hover:border-neutral-700 transition-all"
+      className="group bg-neutral-900/50 border border-neutral-800 rounded-xl p-6 hover:border-neutral-700 hover:bg-neutral-900/80 transition-all"
     >
-      <div className="p-4">
-        <div className="flex items-center gap-4">
-          {/* Number */}
+      <div className="flex items-center gap-4 mb-4">
+        {/* Driver Number or Placeholder */}
+        {driver.driverNumber ? (
           <div className="w-12 h-12 bg-neutral-800 rounded-lg flex items-center justify-center">
-            {driver.driverNumber ? (
-              <span className="text-xl font-bold text-neutral-300 font-racing">
-                {driver.driverNumber}
-              </span>
-            ) : (
-              <span className="text-xl text-neutral-600">—</span>
-            )}
+            <span className="text-xl font-bold text-neutral-200 font-racing">
+              {driver.driverNumber}
+            </span>
           </div>
-          
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-neutral-100 group-hover:text-accent-green transition-colors truncate">
-              {fullName}
-            </h3>
-            <p className="text-sm text-neutral-400 truncate">
-              {driver.currentTeam?.name ?? 'No current team'}
-            </p>
-            {driver.seasonsCount > 0 && (
-              <p className="text-xs text-neutral-500 mt-1">
-                {driver.seasonsCount} season{driver.seasonsCount !== 1 ? 's' : ''} • {driver.teamsCount} team{driver.teamsCount !== 1 ? 's' : ''}
-              </p>
-            )}
-          </div>
-          
-          {/* Flag */}
-          <span className="text-xl" title={driver.nationality ?? 'Unknown'}>
-            {flag}
-          </span>
+        ) : (
+          <DriverPlaceholder size={48} secondaryColor="#262626" primaryColor="#525252" />
+        )}
+        
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold text-neutral-100 group-hover:text-accent-green transition-colors truncate">
+            {fullName}
+          </h3>
+          <p className="text-sm text-neutral-500">
+            {flag} {driver.nationality || 'Unknown'}
+          </p>
         </div>
+      </div>
+      
+      <div className="flex items-center gap-4 text-sm text-neutral-500">
+        <span title="Current team">
+          🏎️ {driver.currentTeam?.name ?? 'No team'}
+        </span>
+        <span title="Seasons competed">
+          📅 {driver.seasonsCount} {driver.seasonsCount === 1 ? 'season' : 'seasons'}
+        </span>
       </div>
     </Link>
   );
@@ -129,74 +149,59 @@ function FilterBadge({ label, onClear }: FilterBadgeProps) {
 }
 
 // =========================
-// Stats Card Component
+// Search Input Component
 // =========================
 
-interface StatsCardProps {
-  label: string;
-  value: number | string;
-  icon: string;
+interface SearchInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
 }
 
-function StatsCard({ label, value, icon }: StatsCardProps) {
+function SearchInput({ value, onChange, placeholder = 'Search...' }: SearchInputProps) {
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-      <div className="flex items-center gap-3">
-        <span className="text-2xl">{icon}</span>
-        <div>
-          <p className="text-2xl font-bold text-neutral-100">{value}</p>
-          <p className="text-sm text-neutral-500">{label}</p>
-        </div>
-      </div>
+    <div className="relative">
+      <svg 
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-accent-green transition-colors"
+      />
     </div>
   );
 }
 
 // =========================
-// Pagination Controls
+// Sort Select Component
 // =========================
 
-interface PaginationProps {
-  page: number;
-  totalCount: number;
-  pageSize: number;
-  hasMore: boolean;
-  onPageChange: (newPage: number) => void;
-  isLoading: boolean;
+interface SortSelectProps {
+  value: SortOption;
+  onChange: (value: SortOption) => void;
 }
 
-function Pagination({ page, totalCount, pageSize, hasMore, onPageChange, isLoading }: PaginationProps) {
-  const totalPages = Math.ceil(totalCount / pageSize);
-  const startItem = (page - 1) * pageSize + 1;
-  const endItem = Math.min(page * pageSize, totalCount);
-  
-  if (totalCount <= pageSize) return null;
-  
+function SortSelect({ value, onChange }: SortSelectProps) {
   return (
-    <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-800">
-      <p className="text-sm text-neutral-500">
-        Showing {startItem}-{endItem} of {totalCount} drivers
-      </p>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onPageChange(page - 1)}
-          disabled={page <= 1 || isLoading}
-          className="px-3 py-1.5 text-sm bg-neutral-800 text-neutral-300 rounded hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          Previous
-        </button>
-        <span className="px-3 py-1.5 text-sm text-neutral-400">
-          Page {page} of {totalPages}
-        </span>
-        <button
-          onClick={() => onPageChange(page + 1)}
-          disabled={!hasMore || isLoading}
-          className="px-3 py-1.5 text-sm bg-neutral-800 text-neutral-300 rounded hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          Next
-        </button>
-      </div>
-    </div>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as SortOption)}
+      className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:outline-none focus:border-accent-green transition-colors cursor-pointer"
+    >
+      {SORT_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -211,42 +216,41 @@ function Pagination({ page, totalCount, pageSize, hasMore, onPageChange, isLoadi
 export function DriversPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const seriesFilter = searchParams.get('series');
-  const seriesName = seriesFilter ? SERIES_NAMES[seriesFilter] : null;
+  const pageParam = searchParams.get('page');
+  const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
+  
+  const seriesName = seriesFilter ? SERIES_NAMES[seriesFilter] || seriesFilter : null;
   
   // State
-  const [data, setData] = useState<DriverListResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [driversData, setDriversData] = useState<DriverListResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('name');
   
   // Fetch drivers
-  useEffect(() => {
-    async function fetchDrivers() {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const response = await driversApi.getDrivers({
-          series: seriesFilter ?? undefined,
-          page: currentPage,
-          pageSize: 50,
-        });
-        setData(response);
-      } catch (err) {
-        console.error('Failed to fetch drivers:', err);
-        setError('Failed to load drivers. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const fetchDrivers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     
-    fetchDrivers();
-  }, [seriesFilter, currentPage]);
+    try {
+      const data = await driversApi.getDrivers({
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        series: seriesFilter || undefined,
+      });
+      setDriversData(data);
+    } catch (err) {
+      console.error('Failed to fetch drivers:', err);
+      setError('Failed to load drivers. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, seriesFilter]);
   
-  // Reset page when filter changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [seriesFilter]);
+    fetchDrivers();
+  }, [fetchDrivers]);
   
   // Build breadcrumbs - include series if filtered
   const breadcrumbItems = seriesFilter && seriesName
@@ -266,43 +270,60 @@ export function DriversPage() {
     setSearchParams({});
   };
   
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-    // Scroll to top of list
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    if (page > 1) {
+      params.set('page', page.toString());
+    } else {
+      params.delete('page');
+    }
+    setSearchParams(params);
   };
+  
+  // Calculate pagination
+  const totalPages = driversData ? Math.ceil(driversData.totalCount / driversData.pageSize) : 0;
+  
+  // Filter and sort drivers client-side (for search)
+  const filteredDrivers = useMemo(() => {
+    if (!driversData?.items) return [];
+    
+    let result = [...driversData.items];
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(driver => {
+        const fullName = getDriverFullName(driver).toLowerCase();
+        const nationality = (driver.nationality || '').toLowerCase();
+        const team = (driver.currentTeam?.name || '').toLowerCase();
+        return fullName.includes(query) || nationality.includes(query) || team.includes(query);
+      });
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return getDriverFullName(a).localeCompare(getDriverFullName(b));
+        case 'name_desc':
+          return getDriverFullName(b).localeCompare(getDriverFullName(a));
+        case 'seasons':
+          return b.seasonsCount - a.seasonsCount;
+        case 'recent':
+          return b.seasonsCount - a.seasonsCount; // Approximation
+        default:
+          return 0;
+      }
+    });
+    
+    return result;
+  }, [driversData?.items, searchQuery, sortBy]);
   
   // Generate page title and subtitle based on filter
   const pageTitle = seriesName ? `${seriesName} Drivers` : 'Drivers';
   const pageSubtitle = seriesName
     ? `All drivers who have competed in ${seriesName}`
-    : 'Discover drivers across all racing series';
-  
-  // Error state
-  if (error && !isLoading) {
-    return (
-      <MainLayout showBreadcrumbs>
-        <PageHeader
-          icon="👤"
-          title={pageTitle}
-          subtitle={pageSubtitle}
-        />
-        <EmptyState
-          icon="⚠️"
-          title="Error loading drivers"
-          description={error}
-          action={
-            <button
-              onClick={() => window.location.reload()}
-              className="text-accent-green hover:underline"
-            >
-              Try again
-            </button>
-          }
-        />
-      </MainLayout>
-    );
-  }
+    : 'Explore racing drivers across all series';
   
   return (
     <MainLayout showBreadcrumbs>
@@ -312,6 +333,32 @@ export function DriversPage() {
         subtitle={pageSubtitle}
       />
       
+      {/* Stats row */}
+      {driversData && !loading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatsCard icon="👤" value={driversData.totalCount} label="Total Drivers" />
+          <StatsCard icon="📄" value={currentPage} label="Current Page" />
+          <StatsCard icon="📚" value={totalPages} label="Total Pages" />
+          <StatsCard 
+            icon="🔍" 
+            value={seriesFilter ? seriesName || seriesFilter : 'All'} 
+            label="Series Filter" 
+          />
+        </div>
+      )}
+      
+      {/* Search and Sort Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search drivers by name, nationality, or team..."
+          />
+        </div>
+        <SortSelect value={sortBy} onChange={setSortBy} />
+      </div>
+      
       {/* Active filter indicator */}
       {seriesFilter && seriesName && (
         <div className="mb-6 flex items-center gap-3">
@@ -320,61 +367,76 @@ export function DriversPage() {
         </div>
       )}
       
-      {/* Stats summary */}
-      {!isLoading && data && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatsCard icon="👤" label="Total Drivers" value={data.totalCount} />
-        </div>
-      )}
-      {isLoading && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatsCardSkeleton />
-        </div>
-      )}
-      
       <Section>
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Loading state */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
               <DriverCardSkeleton key={i} />
             ))}
           </div>
-        ) : data && data.items.length > 0 ? (
+        )}
+        
+        {/* Error state */}
+        {error && !loading && (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">⚠️</div>
+            <p className="text-lg text-red-400 mb-4">{error}</p>
+            <button
+              onClick={fetchDrivers}
+              className="px-4 py-2 bg-accent-green text-neutral-900 rounded-lg font-semibold hover:bg-accent-green/90 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+        
+        {/* Drivers grid */}
+        {!loading && !error && driversData && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {data.items.map((driver) => (
-                <DriverCard key={driver.id} driver={driver} />
-              ))}
-            </div>
-            <Pagination
-              page={data.page}
-              totalCount={data.totalCount}
-              pageSize={data.pageSize}
-              hasMore={data.hasMore}
-              onPageChange={handlePageChange}
-              isLoading={isLoading}
-            />
+            {filteredDrivers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredDrivers.map(driver => (
+                  <DriverCard key={driver.id} driver={driver} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-neutral-500">
+                <div className="text-4xl mb-4">👤</div>
+                <p className="text-lg mb-2">No drivers found</p>
+                <p className="text-sm">
+                  {searchQuery 
+                    ? `No drivers match "${searchQuery}".`
+                    : seriesFilter 
+                      ? `No drivers have been added for ${seriesName || seriesFilter} yet.`
+                      : 'No drivers available.'}
+                </p>
+                {(seriesFilter || searchQuery) && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      if (seriesFilter) handleClearFilter();
+                    }}
+                    className="mt-4 text-accent-green hover:underline"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            )}
+            
+            {/* Only show pagination if not filtering client-side */}
+            {!searchQuery && (
+              <Pagination
+                currentPage={currentPage}
+                totalCount={driversData.totalCount}
+                pageSize={driversData.pageSize}
+                onPageChange={handlePageChange}
+                isLoading={loading}
+                itemLabel="drivers"
+              />
+            )}
           </>
-        ) : (
-          <EmptyState
-            icon="🔍"
-            title="No drivers found"
-            description={
-              seriesFilter 
-                ? `No drivers have been added for ${seriesName || seriesFilter} yet.`
-                : 'No drivers available in the database.'
-            }
-            action={
-              seriesFilter ? (
-                <button
-                  onClick={handleClearFilter}
-                  className="text-accent-green hover:underline"
-                >
-                  View all drivers
-                </button>
-              ) : undefined
-            }
-          />
         )}
       </Section>
     </MainLayout>
