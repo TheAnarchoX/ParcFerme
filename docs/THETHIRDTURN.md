@@ -49,24 +49,31 @@ patterns:
         - Series
             - Name: From data {link.name} in the series list.
             - Slug : Slugify from Name
+            - GoverningBody _new field needed_: Always "Various" as this data source does not provide governing body information. 
             - SeriesAlias[] (Model: SeriesAlias, this is a child collection of Series):
                 - AliasName : See the `getAlternativeNames` function below for extracting alternative names from series pages.
                 - AliasSlug : Slugify from AliasName
                 - ValidFrom : Also, see `getAlternativeNames` for date extraction.
                 - ValidTo : Also, see `getAlternativeNames` for date extraction.
                 - Source : "The Third Turn"
-    - Javscript to get all series names and URLS as json:
+    - Javscript to get all series names, URLs, and GoverningBody as json:
     ```javascript
-    // 1. Select all matching links
-    const seriesLinks = document.querySelectorAll("#mw-content-text > div > table > tbody > tr > td > p > a");
+    // On: https://thethirdturn.com/wiki/Series_Database:Index
 
-    // 2. Convert the NodeList to an array and map it to a structured object
-    const data = Array.from(seriesLinks).map(link => {
-    return {
-        name: link.textContent.trim(), // The visible text of the link
-        href: link.href                // The URL the link points to
-    };
-    }); 
+    // 1. Select all matching links (series list, each rows contains a th with the governing body and a td > p > a with the series link)
+    const seriesRows = document.querySelectorAll(
+      "#mw-content-text > div > table > tbody > tr:not(:first-child)"
+    );
+
+    const seriesLinks = Array.from(seriesRows).map((row) => {
+      const governingBody = row.querySelector("th").textContent.trim();
+      const linkElement = row.querySelector("td > p > a");
+      return {
+        name: linkElement.textContent.trim(),
+        href: linkElement.href,
+        governingBody: governingBody,
+      };
+    });
     ```
 
     `getAlternativeNames` function referenced above, they are found like this for example:
@@ -133,3 +140,8 @@ patterns:
             - Name : "{Season.Series.Year} {Season.Series.Name} Round {raceListings[].round_number}" # This is going to be objectively wrong for some series but it's the best we can do with the data available.
             - DateStart : {raceListings[].date}
     - Example: `https://thethirdturn.com/wiki/1949_NASCAR_Strictly_Stock_Central`
+    - Useful Javascript to get all Races as json:
+    ```javascript
+    // 1. Select all rows matching race listings (excluding title and header row)
+    // Note: I removed specific indices from div, tr, and td to get everything.
+    const racesRows = document.querySelectorAll("#mw-content-text > div > table.pointtable.sortable.resultdiv.jquery-tablesorter");

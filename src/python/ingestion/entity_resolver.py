@@ -1239,3 +1239,492 @@ class EntityResolver:
                     return circuit
 
         return None
+
+    # =========================
+    # Scoring-Based Matching (Phase 3-4 Integration)
+    # =========================
+
+    def resolve_driver_with_scoring(
+        self,
+        full_name: str,
+        first_name: str | None,
+        last_name: str | None,
+        driver_number: int | None,
+        abbreviation: str | None = None,
+        nationality: str | None = None,
+        headshot_url: str | None = None,
+        source: str = "unknown",
+        date_context: "date | None" = None,
+    ) -> "ScoringResult":
+        """Resolve a driver using the scoring-based matching engine.
+        
+        Unlike resolve_driver(), this method uses the multi-signal scoring
+        system and returns match confidence levels. When confidence is LOW
+        (0.5-0.7), it creates a PendingMatch for human review.
+        
+        Args:
+            full_name: Full driver name from source
+            first_name: First name (may be None)
+            last_name: Last name (may be None)
+            driver_number: Racing number
+            abbreviation: Three-letter code (e.g., VER, HAM)
+            nationality: Country code
+            headshot_url: URL to headshot image
+            source: Data source identifier (e.g., "openf1", "ergast")
+            date_context: Date for time-bounded number matching
+            
+        Returns:
+            ScoringResult with match info and whether it needs review
+        """
+        from datetime import date
+        from ingestion.matching import ConfidenceLevel
+        from ingestion.matching.drivers import DriverMatcher, DriverData, DriverCandidate
+        
+        self._init_cache()
+        
+        # Build incoming data
+        incoming = DriverData(
+            full_name=full_name,
+            first_name=first_name,
+            last_name=last_name,
+            driver_number=driver_number,
+            abbreviation=abbreviation,
+            nationality=nationality,
+            date_context=date_context,
+        )
+        
+        # Build candidates from cache
+        candidates = []
+        for slug, driver in self._driver_cache.items():
+            candidates.append(DriverCandidate(
+                id=driver.id,
+                first_name=driver.first_name,
+                last_name=driver.last_name,
+                slug=driver.slug,
+                driver_number=driver.openf1_driver_number or driver.driver_number,
+                abbreviation=driver.abbreviation,
+                nationality=driver.nationality,
+            ))
+        
+        if not candidates:
+            # No candidates, return as new
+            return ScoringResult(
+                matched=False,
+                entity_id=None,
+                entity_name=None,
+                confidence=ConfidenceLevel.NO_MATCH,
+                score=0.0,
+                signals=[],
+                needs_review=False,
+                pending_match_id=None,
+            )
+        
+        # Run matcher
+        matcher = DriverMatcher(candidates)
+        result = matcher.match(incoming)
+        
+        # Build signals dict for storage
+        signals = [
+            {
+                "name": s.name,
+                "weight": s.weight,
+                "score": s.score,
+                "matched": s.matched,
+                "raw_score": s.raw_score,
+                "details": s.details,
+            }
+            for s in result.signals
+        ]
+        
+        # Handle based on confidence
+        if result.confidence in (ConfidenceLevel.HIGH, ConfidenceLevel.MEDIUM):
+            # Auto-match
+            return ScoringResult(
+                matched=True,
+                entity_id=result.matched_entity_id,
+                entity_name=f"{result.matched_entity.first_name} {result.matched_entity.last_name}" if result.matched_entity else None,
+                confidence=result.confidence,
+                score=result.score,
+                signals=signals,
+                needs_review=False,
+                pending_match_id=None,
+                create_alias=(result.confidence == ConfidenceLevel.MEDIUM),
+            )
+        
+        elif result.confidence == ConfidenceLevel.LOW:
+            # Flag for review
+            pending_match_id = self._create_pending_match(
+                entity_type="driver",
+                incoming_name=full_name,
+                incoming_data={
+                    "full_name": full_name,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "driver_number": driver_number,
+                    "abbreviation": abbreviation,
+                    "nationality": nationality,
+                },
+                candidate_id=result.matched_entity_id,
+                candidate_name=f"{result.matched_entity.first_name} {result.matched_entity.last_name}" if result.matched_entity else None,
+                score=result.score,
+                signals=signals,
+                source=source,
+            )
+            
+            return ScoringResult(
+                matched=False,
+                entity_id=result.matched_entity_id,
+                entity_name=f"{result.matched_entity.first_name} {result.matched_entity.last_name}" if result.matched_entity else None,
+                confidence=result.confidence,
+                score=result.score,
+                signals=signals,
+                needs_review=True,
+                pending_match_id=pending_match_id,
+            )
+        
+        else:
+            # No match - create new
+            return ScoringResult(
+                matched=False,
+                entity_id=None,
+                entity_name=None,
+                confidence=ConfidenceLevel.NO_MATCH,
+                score=result.score,
+                signals=signals,
+                needs_review=False,
+                pending_match_id=None,
+            )
+
+    def resolve_team_with_scoring(
+        self,
+        name: str,
+        primary_color: str | None = None,
+        logo_url: str | None = None,
+        source: str = "unknown",
+    ) -> "ScoringResult":
+        """Resolve a team using the scoring-based matching engine.
+        
+        Args:
+            name: Team name from source
+            primary_color: Team color (hex)
+            logo_url: URL to team logo
+            source: Data source identifier
+            
+        Returns:
+            ScoringResult with match info
+        """
+        from ingestion.matching import ConfidenceLevel
+        from ingestion.matching.teams import TeamMatcher, TeamData, TeamCandidate
+        
+        self._init_cache()
+        
+        # Build incoming data
+        incoming = TeamData(
+            name=name,
+            primary_color=primary_color,
+        )
+        
+        # Build candidates from cache
+        candidates = []
+        for slug, team in self._team_cache.items():
+            candidates.append(TeamCandidate(
+                id=team.id,
+                name=team.name,
+                slug=team.slug,
+                short_name=team.short_name,
+                primary_color=team.primary_color,
+            ))
+        
+        if not candidates:
+            return ScoringResult(
+                matched=False,
+                entity_id=None,
+                entity_name=None,
+                confidence=ConfidenceLevel.NO_MATCH,
+                score=0.0,
+                signals=[],
+                needs_review=False,
+                pending_match_id=None,
+            )
+        
+        # Run matcher
+        matcher = TeamMatcher(candidates)
+        result = matcher.match(incoming)
+        
+        # Build signals dict
+        signals = [
+            {
+                "name": s.name,
+                "weight": s.weight,
+                "score": s.score,
+                "matched": s.matched,
+                "raw_score": s.raw_score,
+                "details": s.details,
+            }
+            for s in result.signals
+        ]
+        
+        # Handle based on confidence
+        if result.confidence in (ConfidenceLevel.HIGH, ConfidenceLevel.MEDIUM):
+            return ScoringResult(
+                matched=True,
+                entity_id=result.matched_entity_id,
+                entity_name=result.matched_entity.name if result.matched_entity else None,
+                confidence=result.confidence,
+                score=result.score,
+                signals=signals,
+                needs_review=False,
+                pending_match_id=None,
+                create_alias=(result.confidence == ConfidenceLevel.MEDIUM),
+            )
+        
+        elif result.confidence == ConfidenceLevel.LOW:
+            pending_match_id = self._create_pending_match(
+                entity_type="team",
+                incoming_name=name,
+                incoming_data={
+                    "name": name,
+                    "primary_color": primary_color,
+                },
+                candidate_id=result.matched_entity_id,
+                candidate_name=result.matched_entity.name if result.matched_entity else None,
+                score=result.score,
+                signals=signals,
+                source=source,
+            )
+            
+            return ScoringResult(
+                matched=False,
+                entity_id=result.matched_entity_id,
+                entity_name=result.matched_entity.name if result.matched_entity else None,
+                confidence=result.confidence,
+                score=result.score,
+                signals=signals,
+                needs_review=True,
+                pending_match_id=pending_match_id,
+            )
+        
+        else:
+            return ScoringResult(
+                matched=False,
+                entity_id=None,
+                entity_name=None,
+                confidence=ConfidenceLevel.NO_MATCH,
+                score=result.score,
+                signals=signals,
+                needs_review=False,
+                pending_match_id=None,
+            )
+
+    def resolve_circuit_with_scoring(
+        self,
+        name: str,
+        location: str | None = None,
+        country: str | None = None,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        source: str = "unknown",
+    ) -> "ScoringResult":
+        """Resolve a circuit using the scoring-based matching engine.
+        
+        Args:
+            name: Circuit name from source
+            location: City/location name
+            country: Country name
+            latitude: GPS latitude
+            longitude: GPS longitude
+            source: Data source identifier
+            
+        Returns:
+            ScoringResult with match info
+        """
+        from ingestion.matching import ConfidenceLevel
+        from ingestion.matching.circuits import CircuitMatcher, CircuitData, CircuitCandidate
+        
+        self._init_cache()
+        
+        # Build incoming data
+        incoming = CircuitData(
+            name=name,
+            location=location,
+            country=country,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        
+        # Build candidates from cache
+        candidates = []
+        for slug, circuit in self._circuit_cache.items():
+            candidates.append(CircuitCandidate(
+                id=circuit.id,
+                name=circuit.name,
+                slug=circuit.slug,
+                location=circuit.location,
+                country=circuit.country,
+                country_code=circuit.country_code,
+                latitude=circuit.latitude,
+                longitude=circuit.longitude,
+            ))
+        
+        if not candidates:
+            return ScoringResult(
+                matched=False,
+                entity_id=None,
+                entity_name=None,
+                confidence=ConfidenceLevel.NO_MATCH,
+                score=0.0,
+                signals=[],
+                needs_review=False,
+                pending_match_id=None,
+            )
+        
+        # Run matcher
+        matcher = CircuitMatcher(candidates)
+        result = matcher.match(incoming)
+        
+        # Build signals dict
+        signals = [
+            {
+                "name": s.name,
+                "weight": s.weight,
+                "score": s.score,
+                "matched": s.matched,
+                "raw_score": s.raw_score,
+                "details": s.details,
+            }
+            for s in result.signals
+        ]
+        
+        # Handle based on confidence
+        if result.confidence in (ConfidenceLevel.HIGH, ConfidenceLevel.MEDIUM):
+            return ScoringResult(
+                matched=True,
+                entity_id=result.matched_entity_id,
+                entity_name=result.matched_entity.name if result.matched_entity else None,
+                confidence=result.confidence,
+                score=result.score,
+                signals=signals,
+                needs_review=False,
+                pending_match_id=None,
+                create_alias=(result.confidence == ConfidenceLevel.MEDIUM),
+            )
+        
+        elif result.confidence == ConfidenceLevel.LOW:
+            pending_match_id = self._create_pending_match(
+                entity_type="circuit",
+                incoming_name=name,
+                incoming_data={
+                    "name": name,
+                    "location": location,
+                    "country": country,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                },
+                candidate_id=result.matched_entity_id,
+                candidate_name=result.matched_entity.name if result.matched_entity else None,
+                score=result.score,
+                signals=signals,
+                source=source,
+            )
+            
+            return ScoringResult(
+                matched=False,
+                entity_id=result.matched_entity_id,
+                entity_name=result.matched_entity.name if result.matched_entity else None,
+                confidence=result.confidence,
+                score=result.score,
+                signals=signals,
+                needs_review=True,
+                pending_match_id=pending_match_id,
+            )
+        
+        else:
+            return ScoringResult(
+                matched=False,
+                entity_id=None,
+                entity_name=None,
+                confidence=ConfidenceLevel.NO_MATCH,
+                score=result.score,
+                signals=signals,
+                needs_review=False,
+                pending_match_id=None,
+            )
+
+    def _create_pending_match(
+        self,
+        entity_type: str,
+        incoming_name: str,
+        incoming_data: dict,
+        candidate_id: "UUID | None",
+        candidate_name: str | None,
+        score: float,
+        signals: list[dict],
+        source: str,
+    ) -> "UUID | None":
+        """Create a pending match entry for human review.
+        
+        Returns the ID of the created PendingMatch, or None if creation fails.
+        """
+        import json
+        from ingestion.models import (
+            PendingMatch,
+            PendingMatchEntityType,
+            PendingMatchStatus,
+        )
+        
+        entity_type_map = {
+            "driver": PendingMatchEntityType.DRIVER,
+            "team": PendingMatchEntityType.TEAM,
+            "circuit": PendingMatchEntityType.CIRCUIT,
+            "round": PendingMatchEntityType.ROUND,
+        }
+        
+        try:
+            pending = PendingMatch(
+                entity_type=entity_type_map[entity_type],
+                incoming_name=incoming_name,
+                incoming_data_json=json.dumps(incoming_data),
+                candidate_entity_id=candidate_id,
+                candidate_entity_name=candidate_name,
+                match_score=score,
+                signals_json=json.dumps(signals),
+                source=source,
+                status=PendingMatchStatus.PENDING,
+            )
+            
+            return self.repository.insert_pending_match(pending)
+            
+        except Exception as e:
+            logger.warning(
+                "Failed to create pending match",
+                entity_type=entity_type,
+                incoming_name=incoming_name,
+                error=str(e),
+            )
+            return None
+
+
+@dataclass
+class ScoringResult:
+    """Result from scoring-based entity matching.
+    
+    Attributes:
+        matched: Whether a confident match was found
+        entity_id: ID of matched entity (may be set even for uncertain matches)
+        entity_name: Name of matched entity
+        confidence: Confidence level (HIGH, MEDIUM, LOW, NO_MATCH)
+        score: Raw confidence score (0.0-1.0)
+        signals: List of signal results
+        needs_review: Whether this needs human review (LOW confidence)
+        pending_match_id: ID of created PendingMatch if needs_review
+        create_alias: Whether an alias should be created (MEDIUM confidence)
+    """
+    matched: bool
+    entity_id: "UUID | None"
+    entity_name: str | None
+    confidence: "ConfidenceLevel"
+    score: float
+    signals: list[dict]
+    needs_review: bool
+    pending_match_id: "UUID | None"
+    create_alias: bool = False

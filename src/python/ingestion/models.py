@@ -230,6 +230,59 @@ class Result(BaseModel):
 
 
 # =========================
+# Ingestion Support Models
+# =========================
+
+
+class PendingMatchEntityType(str, Enum):
+    """Entity types that can have pending matches."""
+    DRIVER = "driver"
+    TEAM = "team"
+    CIRCUIT = "circuit"
+    ROUND = "round"
+
+
+class PendingMatchStatus(str, Enum):
+    """Resolution status for pending matches."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    MERGED = "merged"
+
+
+class PendingMatchResolution(str, Enum):
+    """Resolution action taken for a pending match."""
+    MATCH_EXISTING = "match_existing"
+    CREATE_NEW = "create_new"
+    SKIP = "skip"
+
+
+class PendingMatch(BaseModel):
+    """
+    A pending entity match that needs human review.
+    
+    Used when the matching engine has medium-low confidence (0.5-0.7)
+    about whether incoming data matches an existing entity.
+    """
+
+    id: UUID = Field(default_factory=uuid4)
+    entity_type: PendingMatchEntityType
+    incoming_name: str
+    incoming_data_json: str | None = None
+    candidate_entity_id: UUID | None = None
+    candidate_entity_name: str | None = None
+    match_score: float
+    signals_json: str | None = None
+    source: str
+    status: PendingMatchStatus = PendingMatchStatus.PENDING
+    resolved_at: datetime | None = None
+    resolved_by: str | None = None
+    resolution: PendingMatchResolution | None = None
+    resolution_notes: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now())
+
+
+# =========================
 # OpenF1 -> Domain Mappings
 # =========================
 

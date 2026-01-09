@@ -34,6 +34,9 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
     public DbSet<UserList> UserLists => Set<UserList>();
     public DbSet<ListItem> ListItems => Set<ListItem>();
     public DbSet<UserFollow> UserFollows => Set<UserFollow>();
+    
+    // Ingestion Support
+    public DbSet<PendingMatch> PendingMatches => Set<PendingMatch>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -283,6 +286,22 @@ public sealed class ParcFermeDbContext : IdentityDbContext<ApplicationUser, Iden
                   .WithMany(u => u.Followers)
                   .HasForeignKey(e => e.FollowingId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // =========================
+        // Ingestion Support Configuration
+        // =========================
+        
+        modelBuilder.Entity<PendingMatch>(entity =>
+        {
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.EntityType);
+            entity.HasIndex(e => e.Source);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.EntityType, e.Status });
+            entity.Property(e => e.MatchScore).HasPrecision(5, 4);
+            entity.Property(e => e.IncomingDataJson).HasColumnType("jsonb");
+            entity.Property(e => e.SignalsJson).HasColumnType("jsonb");
         });
     }
 }

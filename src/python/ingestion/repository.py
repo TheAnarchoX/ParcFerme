@@ -1537,3 +1537,310 @@ class RacingRepository:
             )
             row = cur.fetchone()
             return row[0] if row else 0
+
+    # =========================
+    # Pending Match Operations (Review Queue)
+    # =========================
+
+    def insert_pending_match(self, pending_match: "PendingMatch") -> UUID:
+        """Insert a pending match for human review.
+        
+        Args:
+            pending_match: The pending match to insert
+            
+        Returns:
+            The ID of the inserted pending match
+        """
+        from ingestion.models import PendingMatch as PendingMatchModel
+        
+        with self._get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO "PendingMatches" (
+                    "Id", "EntityType", "IncomingName", "IncomingDataJson",
+                    "CandidateEntityId", "CandidateEntityName", "MatchScore",
+                    "SignalsJson", "Source", "Status", "CreatedAt"
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING "Id"
+                """,
+                (
+                    str(pending_match.id),
+                    pending_match.entity_type.value,
+                    pending_match.incoming_name,
+                    pending_match.incoming_data_json,
+                    str(pending_match.candidate_entity_id) if pending_match.candidate_entity_id else None,
+                    pending_match.candidate_entity_name,
+                    pending_match.match_score,
+                    pending_match.signals_json,
+                    pending_match.source,
+                    pending_match.status.value,
+                    pending_match.created_at,
+                ),
+            )
+            result = cur.fetchone()
+            conn.commit()
+            return _to_uuid(result[0]) if result else pending_match.id
+
+    def get_pending_matches(
+        self,
+        entity_type: str | None = None,
+        status: str = "pending",
+        min_score: float | None = None,
+        max_score: float | None = None,
+        source: str | None = None,
+        limit: int = 100,
+    ) -> list[dict]:
+        """Get pending matches with optional filtering.
+        
+        Args:
+            entity_type: Filter by entity type (driver, team, circuit, round)
+            status: Filter by status (default: pending)
+            min_score: Minimum match score
+            max_score: Maximum match score
+            source: Filter by data source
+            limit: Maximum results to return
+            
+        Returns:
+            List of pending match dictionaries
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            query = """
+                SELECT 
+                    "Id" as id,
+                    "EntityType" as entity_type,
+                    "IncomingName" as incoming_name,
+                    "IncomingDataJson" as incoming_data_json,
+                    "CandidateEntityId" as candidate_entity_id,
+                    "CandidateEntityName" as candidate_entity_name,
+                    "MatchScore" as match_score,
+                    "SignalsJson" as signals_json,
+                    "Source" as source,
+                    "Status" as status,
+                    "ResolvedAt" as resolved_at,
+                    "ResolvedBy" as resolved_by,
+                    "Resolution" as resolution,
+                    "ResolutionNotes" as resolution_notes,
+                    "CreatedAt" as created_at
+                FROM "PendingMatches"
+                WHERE "Status" = %s
+            """
+            params: list = [status]
+            
+            if entity_type:
+                query += ' AND "EntityType" = %s'
+                params.append(entity_type)
+            if min_score is not None:
+                query += ' AND "MatchScore" >= %s'
+                params.append(min_score)
+            if max_score is not None:
+                query += ' AND "MatchScore" <= %s'
+                params.append(max_score)
+            if source:
+                query += ' AND "Source" = %s'
+                params.append(source)
+                
+            query += ' ORDER BY "MatchScore" DESC, "CreatedAt" ASC LIMIT %s'
+            params.append(limit)
+            
+            cur.execute(query, params)
+            return list(cur.fetchall())
+
+    def get_pending_match_by_id(self, match_id: UUID) -> dict | None:
+        """Get a single pending match by ID.
+        
+        Args:
+            match_id: The ID of the pending match
+            
+        Returns:
+            Pending match dictionary or None if not found
+        """
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT 
+                    "Id" as id,
+                    "EntityType" as entity_type,
+                    "IncomingName" as incoming_name,
+                    "IncomingDataJson" as incoming_data_json,
+                    "CandidateEntityId" as candidate_entity_id,
+                    "CandidateEntityName" as candidate_entity_name,
+                    "MatchScore" as match_score,
+                    "SignalsJson" as signals_json,
+                    "Source" as source,
+                    "Status" as status,
+                    "ResolvedAt" as resolved_at,
+                    "ResolvedBy" as resolved_by,
+                    "Resolution" as resolution,
+                    "ResolutionNotes" as resolution_notes,
+                    "CreatedAt" as created_at
+                FROM "PendingMatches"
+                WHERE "Id" = %s
+                """,
+                (str(match_id),),
+            )
+            return cur.fetchone()
+
+    def update_pending_match_status(
+        self,
+        match_id: UUID,
+        status: str,
+        resolution: str | None = None,
+        resolved_by: str | None = None,
+        resolution_notes: str | None = None,
+    ) -> bool:
+        """Update the status of a pending match.
+        
+        Args:
+            match_id: The ID of the pending match
+            status: New status (approved, rejected, merged)
+            resolution: Resolution action (match_existing, create_new, skip)
+            resolved_by: Who resolved the match
+            resolution_notes: Optional notes about the resolution
+            
+        Returns:
+            True if the match was updated, False if not found
+        """
+        from datetime import datetime, UTC
+        
+        with self._get_connection() as conn, conn.cursor() as cur:
+            # Map the status enum values to database integers
+            status_map = {
+                "pending": 0,
+                "approved": 1,
+                "rejected": 2,
+                "merged": 3,
+            }
+            resolution_map = {
+                "match_existing": 0,
+                "create_new": 1,
+                "skip": 2,
+            }
+            
+            cur.execute(
+                """
+                UPDATE "PendingMatches"
+                SET "Status" = %s,
+                    "Resolution" = %s,
+                    "ResolvedAt" = %s,
+                    "ResolvedBy" = %s,
+                    "ResolutionNotes" = %s
+                WHERE "Id" = %s
+                """,
+                (
+                    status_map.get(status, 0),
+                    resolution_map.get(resolution) if resolution else None,
+                    datetime.now(UTC),
+                    resolved_by,
+                    resolution_notes,
+                    str(match_id),
+                ),
+            )
+            updated = cur.rowcount > 0
+            conn.commit()
+            return updated
+
+    def bulk_approve_pending_matches(
+        self,
+        min_score: float,
+        entity_type: str | None = None,
+        resolved_by: str = "bulk_approve",
+    ) -> int:
+        """Bulk approve all pending matches above a score threshold.
+        
+        Args:
+            min_score: Minimum match score to approve
+            entity_type: Optionally filter by entity type
+            resolved_by: Who is approving the matches
+            
+        Returns:
+            Number of matches approved
+        """
+        from datetime import datetime, UTC
+        
+        with self._get_connection() as conn, conn.cursor() as cur:
+            query = """
+                UPDATE "PendingMatches"
+                SET "Status" = 1,
+                    "Resolution" = 0,
+                    "ResolvedAt" = %s,
+                    "ResolvedBy" = %s
+                WHERE "Status" = 0
+                  AND "MatchScore" >= %s
+                  AND "CandidateEntityId" IS NOT NULL
+            """
+            params: list = [datetime.now(UTC), resolved_by, min_score]
+            
+            if entity_type:
+                query += ' AND "EntityType" = %s'
+                params.append(entity_type)
+                
+            cur.execute(query, params)
+            approved_count = cur.rowcount
+            conn.commit()
+            
+        logger.info(
+            "Bulk approved pending matches",
+            min_score=min_score,
+            entity_type=entity_type,
+            count=approved_count,
+        )
+        return approved_count
+
+    def count_pending_matches(self, status: str = "pending") -> dict[str, int]:
+        """Count pending matches by entity type.
+        
+        Args:
+            status: Filter by status (default: pending)
+            
+        Returns:
+            Dictionary with counts by entity type
+        """
+        status_map = {
+            "pending": 0,
+            "approved": 1,
+            "rejected": 2,
+            "merged": 3,
+        }
+        
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT 
+                    "EntityType" as entity_type,
+                    COUNT(*) as count
+                FROM "PendingMatches"
+                WHERE "Status" = %s
+                GROUP BY "EntityType"
+                """,
+                (status_map.get(status, 0),),
+            )
+            rows = cur.fetchall()
+            
+            # Map integer entity types back to strings
+            entity_type_map = {
+                0: "driver",
+                1: "team",
+                2: "circuit",
+                3: "round",
+            }
+            return {entity_type_map.get(row["entity_type"], str(row["entity_type"])): row["count"] for row in rows}
+
+    def delete_pending_match(self, match_id: UUID) -> bool:
+        """Delete a pending match.
+        
+        Args:
+            match_id: The ID of the pending match to delete
+            
+        Returns:
+            True if deleted, False if not found
+        """
+        with self._get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                'DELETE FROM "PendingMatches" WHERE "Id" = %s',
+                (str(match_id),),
+            )
+            deleted = cur.rowcount > 0
+            conn.commit()
+            return deleted
+

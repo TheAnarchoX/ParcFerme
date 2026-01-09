@@ -460,6 +460,13 @@ Examples:
                 Essential for syncing world champion seasons where #1 was used.""",
     )
     parser.add_argument(
+        "--use-scoring",
+        action="store_true",
+        help="""Use the multi-signal scoring-based matching engine for entity resolution.
+                Matches with confidence 0.5-0.7 are flagged for human review.
+                Use `python -m ingestion.review_matches --list` to see pending matches.""",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Log what would be done without making database changes (not yet implemented)",
@@ -532,11 +539,13 @@ Examples:
             session_mode="full",  # Sessions can still be updated
             preserve_canonical_names=args.preserve_names,
             preserve_canonical_numbers=args.preserve_numbers,
+            use_scoring=args.use_scoring,
         )
     else:
         sync_options = SyncOptions(
             preserve_canonical_names=args.preserve_names,
             preserve_canonical_numbers=args.preserve_numbers,
+            use_scoring=args.use_scoring,
         )
     
     # Log safety settings
@@ -546,6 +555,8 @@ Examples:
         print("🛡️  Safety: --preserve-names enabled (canonical names preserved)")
     if args.preserve_numbers:
         print("🛡️  Safety: --preserve-numbers enabled (canonical driver numbers preserved)")
+    if args.use_scoring:
+        print("🎯 Matching: --use-scoring enabled (multi-signal confidence scoring)")
     if args.dry_run:
         print("🧪 DRY RUN: Not yet implemented - changes WILL be made")
 

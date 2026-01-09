@@ -5,7 +5,6 @@ Imports historical F1 data (1950-2017) from the Ergast PostgreSQL database
 into the ParcFerme database.
 """
 
-import unicodedata
 from datetime import timedelta
 from typing import Any
 from uuid import UUID
@@ -13,6 +12,7 @@ from uuid import UUID
 import structlog  # type: ignore
 
 from ingestion.entity_resolver import EntityResolver
+from ingestion.matching.normalization import normalize_name
 from ingestion.models import (
     Circuit,
     Driver,
@@ -50,17 +50,7 @@ from ingestion.sync import SyncOptions
 logger = structlog.get_logger()
 
 
-def _normalize_name(name: str) -> str:
-    """Normalize a name for comparison.
-    
-    Removes accents/diacritics and converts to lowercase for matching
-    names with special characters (e.g., Hülkenberg vs Hulkenberg, Pérez vs Perez).
-    """
-    # NFD normalization decomposes characters (é → e + combining accent)
-    normalized = unicodedata.normalize('NFD', name)
-    # Remove combining diacritical marks (category 'Mn')
-    ascii_name = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
-    return ascii_name.lower().strip()
+# Use normalize_name from matching module (imported above) instead of local function
 
 
 class ErgastSyncService(BaseSyncService[ErgastDataSource]):
@@ -770,7 +760,7 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
         for e in our_entrants:
             full_name = f"{e['first_name']} {e['last_name']}"
             exact_key = full_name.lower()
-            normalized_key = _normalize_name(full_name)
+            normalized_key = normalize_name(full_name)
             
             our_entrants_by_exact_name[exact_key] = e
             our_entrants_by_normalized_name[normalized_key] = e
@@ -789,7 +779,7 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
             
             # Fall back to normalized match (handles Hülkenberg→Hulkenberg, etc.)
             if not our_entrant:
-                normalized_ergast_name = _normalize_name(ergast_full_name)
+                normalized_ergast_name = normalize_name(ergast_full_name)
                 our_entrant = our_entrants_by_normalized_name.get(normalized_ergast_name)
             
             if our_entrant:

@@ -54,6 +54,7 @@ from ingestion.matching.distance import (
 from ingestion.matching.drivers import DriverMatcher
 from ingestion.matching.teams import TeamMatcher
 from ingestion.matching.circuits import CircuitMatcher
+from ingestion.matching.rounds import RoundMatcher
 
 __all__ = [
     # Core types
@@ -75,4 +76,5 @@ __all__ = [
     "DriverMatcher",
     "TeamMatcher",
     "CircuitMatcher",
+    "RoundMatcher",
 ]

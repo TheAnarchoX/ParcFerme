@@ -66,6 +66,10 @@ class SyncOptions:
     - auto_create_team_aliases: When a team name differs from existing, create alias
     - preserve_canonical_numbers: Keep existing driver.driver_number, only add as alias
     
+    Scoring-Based Matching:
+    - use_scoring: Use multi-signal confidence scoring for entity matching
+    - Matches with confidence 0.5-0.7 are flagged for human review
+    
     Example safe historical sync:
         SyncOptions(
             driver_mode="create_only",      # Don't update existing drivers
@@ -86,6 +90,9 @@ class SyncOptions:
     auto_create_team_aliases: bool = True     # Create alias when team name differs
     preserve_canonical_numbers: bool = False  # Don't update driver.driver_number
     preserve_canonical_names: bool = False    # Don't update first_name/last_name
+    
+    # Matching strategy
+    use_scoring: bool = False  # Use multi-signal scoring-based matching
     
     # What to sync
     include_results: bool = True
