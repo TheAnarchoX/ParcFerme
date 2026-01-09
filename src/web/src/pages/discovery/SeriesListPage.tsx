@@ -78,7 +78,7 @@ function SeriesCard({ series }: SeriesCardProps) {
           <img 
             src={series.logoUrl} 
             alt={`${series.name} logo`}
-            className="w-16 h-16 object-contain mb-4"
+            className="w-16 h-16 object-contain mb-4 bg-white rounded-lg p-2"
           />
         ) : (
           <div 

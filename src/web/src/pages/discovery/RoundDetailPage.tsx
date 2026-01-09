@@ -536,7 +536,7 @@ export function RoundDetailPage() {
                     <img 
                       src={entrant.team.logoUrl} 
                       alt={entrant.team.name}
-                      className="w-full h-full object-contain opacity-70"
+                      className="w-full h-full object-contain opacity-70 bg-white rounded p-1"
                     />
                   </div>
                 )}

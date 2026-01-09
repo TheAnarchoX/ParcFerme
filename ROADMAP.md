@@ -460,7 +460,12 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [x] About page content creation (mission, team, FAQs)
 - [x] SEO optimization for public pages (meta tags, Open Graph, structured data)
 - [x] Accessibility audit and fixes for UI components (WCAG 2.1 AA)
-- [ ] Ensure Series Logo's are always readable (take the transparent motogp logo as an example, mainly black with red text. Not readable at all) by adding a white background or border around them where necessary.
+- [x] Ensure Series Logo's are always readable (Completed: Jan 9, 2026)
+  - Added white background with rounded corners and padding to all logo images
+  - Applied to PageHeader component (series/season detail pages)
+  - Applied to SeriesListPage cards
+  - Applied to RoundDetailPage team logos
+  - Ensures logos with transparent backgrounds or dark text (e.g., MotoGP) remain readable on dark UI
 
 **Data & Ingestion**
 - [x] Add results-only sync mode for historical data (Completed: Jan 7, 2026)
@@ -474,7 +479,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - Added `--preserve-numbers` flag: Keeps canonical driver numbers, creates aliases for historical numbers
   - SyncOptions dataclass with modes: "full", "create_only", "skip"
   - Enables safe syncing while preserving curated canonical data
-- [ ] Complete 2024-2025 results sync (run with `--pause 5` to avoid rate limits)
+- [x] Complete 2024-2025 results sync (run with `--pause 5` to avoid rate limits)
 
 **Lower Priority — Future Prep**
 - [x] Frontend e2e tests for critical flows (Playwright setup with homepage, auth, discovery, spoiler-shield tests)

@@ -145,3 +145,25 @@ patterns:
     // 1. Select all rows matching race listings (excluding title and header row)
     // Note: I removed specific indices from div, tr, and td to get everything.
     const racesRows = document.querySelectorAll("#mw-content-text > div > table.pointtable.sortable.resultdiv.jquery-tablesorter");
+
+
+
+
+
+
+
+
+
+
+
+
+    for (let i = 0; i < seriesRows.length; i++) {
+
+    var link = {
+        name: row.childNodes[1].firstChild.firstChild.textContent.trim(),
+        href: seriesRows[i].childNodes[3].childNodes[1].childNodes[0].href,
+        governingBody: row.firstChild.textContent.trim()
+    };
+
+    links.push(link);
+}
