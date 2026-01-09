@@ -78,7 +78,16 @@ def normalize_for_slug(name: str) -> str:
 
 
 # Common F1 sponsor names to strip from round names
+# Order matters - multi-word sponsors should come before single words
 F1_SPONSORS = [
+    # Multi-word sponsors (order first)
+    "qatar airways",
+    "singapore airlines",
+    "etihad airways",
+    "gulf air",
+    "red bull",  # Only strip when sponsor, not team context
+    "crypto.com",
+    # Single-word sponsors
     "heineken",
     "aramco",
     "emirates",
@@ -87,15 +96,13 @@ F1_SPONSORS = [
     "aws",
     "pirelli",
     "dhl",
-    "crypto.com",
-    "qatar airways",
-    "singapore airlines",
     "etihad",
     "petronas",
-    "gulf air",
     "shell",
-    "red bull",  # Only strip when sponsor, not team context
     "oracle",
+    "sakhir",  # Sometimes added to Bahrain GP
+    "jeddah",  # Sometimes added to Saudi GP
+    "airways",  # Catch remaining "airways" after specific airline removal
 ]
 
 # F1 branding patterns to strip
