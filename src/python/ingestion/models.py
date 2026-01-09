@@ -53,6 +53,15 @@ class ResultStatus(IntEnum):
     NC = 4  # Not Classified
 
 
+class DriverRole(IntEnum):
+    """Role of a driver within a team for a specific round."""
+
+    REGULAR = 0  # Regular race driver - part of the official lineup
+    RESERVE = 1  # Reserve/test driver filling in for an injured or unavailable driver
+    FP1_ONLY = 2  # FP1-only driver - typically a rookie getting mandatory practice time
+    TEST = 3  # Test driver participating in a test session
+
+
 # =========================
 # Domain Models
 # =========================
@@ -199,6 +208,7 @@ class Entrant(BaseModel):
     round_id: UUID
     driver_id: UUID
     team_id: UUID
+    role: DriverRole = DriverRole.REGULAR  # Default to regular driver
 
 
 class Result(BaseModel):

@@ -591,7 +591,7 @@ class RacingRepository:
             # First try direct driver number match
             cur.execute(
                 """
-                SELECT e."Id", e."RoundId", e."DriverId", e."TeamId"
+                SELECT e."Id", e."RoundId", e."DriverId", e."TeamId", e."Role"
                 FROM "Entrants" e
                 JOIN "Drivers" d ON e."DriverId" = d."Id"
                 WHERE e."RoundId" = %s AND d."DriverNumber" = %s
@@ -600,17 +600,19 @@ class RacingRepository:
             )
             row = cur.fetchone()
             if row:
+                from .models import DriverRole
                 return Entrant(
                     id=_to_uuid(row["Id"]),
                     round_id=_to_uuid(row["RoundId"]),
                     driver_id=_to_uuid(row["DriverId"]),
                     team_id=_to_uuid(row["TeamId"]),
+                    role=DriverRole(row["Role"]) if row.get("Role") is not None else DriverRole.REGULAR,
                 )
             
             # Fall back to driver alias lookup (historical driver numbers)
             cur.execute(
                 """
-                SELECT e."Id", e."RoundId", e."DriverId", e."TeamId"
+                SELECT e."Id", e."RoundId", e."DriverId", e."TeamId", e."Role"
                 FROM "Entrants" e
                 JOIN "DriverAliases" da ON e."DriverId" = da."DriverId"
                 WHERE e."RoundId" = %s AND da."DriverNumber" = %s
@@ -619,11 +621,13 @@ class RacingRepository:
             )
             row = cur.fetchone()
             if row:
+                from .models import DriverRole
                 return Entrant(
                     id=_to_uuid(row["Id"]),
                     round_id=_to_uuid(row["RoundId"]),
                     driver_id=_to_uuid(row["DriverId"]),
                     team_id=_to_uuid(row["TeamId"]),
+                    role=DriverRole(row["Role"]) if row.get("Role") is not None else DriverRole.REGULAR,
                 )
             
             return None
@@ -1244,10 +1248,11 @@ class RacingRepository:
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 """
-                    INSERT INTO "Entrants" ("Id", "RoundId", "DriverId", "TeamId")
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO "Entrants" ("Id", "RoundId", "DriverId", "TeamId", "Role")
+                    VALUES (%s, %s, %s, %s, %s)
                     ON CONFLICT ("RoundId", "DriverId") DO UPDATE SET
-                        "TeamId" = EXCLUDED."TeamId"
+                        "TeamId" = EXCLUDED."TeamId",
+                        "Role" = EXCLUDED."Role"
                     RETURNING "Id"
                     """,
                 (
@@ -1255,6 +1260,7 @@ class RacingRepository:
                     str(entrant.round_id),
                     str(entrant.driver_id),
                     str(entrant.team_id),
+                    int(entrant.role),
                 ),
             )
             row = cur.fetchone()
@@ -1265,17 +1271,19 @@ class RacingRepository:
         """Get an entrant by round and driver."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
-                """SELECT "Id", "RoundId", "DriverId", "TeamId"
+                """SELECT "Id", "RoundId", "DriverId", "TeamId", "Role"
                        FROM "Entrants" WHERE "RoundId" = %s AND "DriverId" = %s""",
                 (str(round_id), str(driver_id)),
             )
             row = cur.fetchone()
             if row:
+                from .models import DriverRole
                 return Entrant(
                     id=_to_uuid(row["Id"]),
                     round_id=_to_uuid(row["RoundId"]),
                     driver_id=_to_uuid(row["DriverId"]),
                     team_id=_to_uuid(row["TeamId"]),
+                    role=DriverRole(row["Role"]) if row.get("Role") is not None else DriverRole.REGULAR,
                 )
             return None
 
