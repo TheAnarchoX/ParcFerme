@@ -20,6 +20,12 @@ public sealed class Series
     /// </summary>
     public List<string> BrandColors { get; set; } = [];
     
+    /// <summary>
+    /// Governing body of the series (e.g., "FIA", "NASCAR", "AMA").
+    /// From The Third Turn Series Index page.
+    /// </summary>
+    public string? GoverningBody { get; set; }
+    
     public ICollection<Season> Seasons { get; set; } = [];
     public ICollection<SeriesAlias> Aliases { get; set; } = [];
 }
@@ -151,6 +157,25 @@ public sealed class Circuit
     /// </summary>
     public string? WikipediaUrl { get; set; }
     
+    /// <summary>
+    /// Type of track layout (e.g., "Road Course", "Oval", "Street Circuit").
+    /// From The Third Turn circuit pages.
+    /// </summary>
+    public string? TrackType { get; set; }
+    
+    /// <summary>
+    /// Current operational status of the track.
+    /// Human-readable values: "Still In Operation", "Closed", "Demolished".
+    /// From The Third Turn circuit pages.
+    /// </summary>
+    public string? TrackStatus { get; set; }
+    
+    /// <summary>
+    /// Year the track first opened.
+    /// From The Third Turn circuit pages.
+    /// </summary>
+    public int? OpenedYear { get; set; }
+    
     public ICollection<Round> Rounds { get; set; } = [];
     public ICollection<Grandstand> Grandstands { get; set; } = [];
     public ICollection<CircuitAlias> Aliases { get; set; } = [];
@@ -205,6 +230,18 @@ public sealed class Driver
     /// Wikipedia URL for external reference.
     /// </summary>
     public string? WikipediaUrl { get; set; }
+    
+    /// <summary>
+    /// Driver's nickname (e.g., "Teflonso", "The Iceman").
+    /// From The Third Turn driver pages.
+    /// </summary>
+    public string? Nickname { get; set; }
+    
+    /// <summary>
+    /// Driver's place of birth (e.g., "Oviedo, Spain").
+    /// From The Third Turn driver pages.
+    /// </summary>
+    public string? PlaceOfBirth { get; set; }
     
     public ICollection<Entrant> Entrants { get; set; } = [];
     public ICollection<DriverAlias> Aliases { get; set; } = [];
@@ -494,6 +531,19 @@ public sealed class Result
     /// Q3 session time, e.g., "1:26.789" (from Ergast, 2006+).
     /// </summary>
     public string? Q3Time { get; set; }
+    
+    /// <summary>
+    /// Number of laps led during the session.
+    /// From The Third Turn (common in NASCAR/IndyCar).
+    /// </summary>
+    public int? LapsLed { get; set; }
+    
+    /// <summary>
+    /// Car number as displayed during the session.
+    /// String to support alphanumeric numbers (e.g., "34", "T11", "12B").
+    /// From both Ergast and The Third Turn.
+    /// </summary>
+    public string? CarNumber { get; set; }
     
     public Session Session { get; set; } = null!;
     public Entrant Entrant { get; set; } = null!;
