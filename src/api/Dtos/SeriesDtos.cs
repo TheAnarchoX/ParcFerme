@@ -94,6 +94,7 @@ public sealed record SeasonStatsDto(
 
 /// <summary>
 /// Round summary shown in season context.
+/// When a driver/team filter is applied, FeaturingSessions shows which sessions they participated in.
 /// </summary>
 public sealed record RoundSummaryForSeasonDto(
     Guid Id,
@@ -106,7 +107,8 @@ public sealed record RoundSummaryForSeasonDto(
     int SessionCount,
     bool IsCompleted,
     bool IsCurrent,
-    bool IsUpcoming
+    bool IsUpcoming,
+    IReadOnlyList<string>? FeaturingSessions = null
 );
 
 /// <summary>

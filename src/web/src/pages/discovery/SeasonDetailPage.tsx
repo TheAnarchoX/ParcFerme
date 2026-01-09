@@ -133,6 +133,24 @@ function RoundCard({ seriesSlug, seriesName, year, round, primaryColor }: RoundC
   };
   
   const displayName = cleanRoundName(round.name, seriesName, year);
+  
+  // Format session type for display (e.g., "FP1" stays "FP1", "SprintQualifying" → "Sprint Qual")
+  const formatSessionType = (type: string): string => {
+    const map: Record<string, string> = {
+      'FP1': 'FP1',
+      'FP2': 'FP2',
+      'FP3': 'FP3',
+      'Qualifying': 'Quali',
+      'SprintQualifying': 'Sprint Qual',
+      'Sprint': 'Sprint',
+      'Race': 'Race',
+      'Warmup': 'Warmup',
+      'Moto3Race': 'Moto3',
+      'Moto2Race': 'Moto2',
+      'MotoGPRace': 'MotoGP',
+    };
+    return map[type] || type;
+  };
 
   return (
     <Link
@@ -173,6 +191,24 @@ function RoundCard({ seriesSlug, seriesName, year, round, primaryColor }: RoundC
           <span>🗺️</span>
           <span>{round.circuit.name}</span>
         </div>
+        
+        {/* Session participation badges (only shown when filtering by driver/team) */}
+        {round.featuringSessions && round.featuringSessions.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {round.featuringSessions.map((session) => (
+              <span
+                key={session}
+                className="px-2 py-0.5 text-xs rounded font-medium"
+                style={{
+                  backgroundColor: primaryColor ? `${primaryColor}20` : 'rgba(74, 222, 128, 0.1)',
+                  color: primaryColor || '#4ade80'
+                }}
+              >
+                {formatSessionType(session)}
+              </span>
+            ))}
+          </div>
+        )}
         
         <div className="flex items-center justify-between text-xs text-neutral-500">
           <span>{formatDateRange(round.dateStart, round.dateEnd)}</span>

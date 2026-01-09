@@ -85,6 +85,8 @@ export interface RoundSummaryForSeasonDto {
   isCompleted: boolean;
   isCurrent: boolean;
   isUpcoming: boolean;
+  /** When a driver/team filter is applied, shows which sessions they participated in. */
+  featuringSessions?: string[];
 }
 
 export interface CircuitSummaryForRoundDto {

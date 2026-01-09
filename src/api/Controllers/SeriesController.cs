@@ -211,7 +211,9 @@ public sealed class SeriesController : BaseApiController
         }
 
         // Get round IDs where the driver/team participated (if filter is provided)
+        // Also track which sessions they participated in per round (for badges like "FP1 only")
         HashSet<Guid>? filteredRoundIds = null;
+        Dictionary<Guid, List<SessionType>>? sessionsByRound = null;
         var seasonRoundIds = season.Rounds.Select(r => r.Id).ToList();
         
         if (!string.IsNullOrEmpty(driverSlug))
@@ -219,12 +221,30 @@ public sealed class SeriesController : BaseApiController
             var driver = await _db.Drivers.FirstOrDefaultAsync(d => d.Slug == driverSlug.ToLowerInvariant(), ct);
             if (driver != null)
             {
-                filteredRoundIds = (await _db.Entrants
+                // Get entrant IDs for this driver in this season
+                var driverEntrants = await _db.Entrants
                     .Where(e => e.DriverId == driver.Id && seasonRoundIds.Contains(e.RoundId))
-                    .Select(e => e.RoundId)
-                    .Distinct()
-                    .ToListAsync(ct))
-                    .ToHashSet();
+                    .Select(e => new { e.Id, e.RoundId })
+                    .ToListAsync(ct);
+                
+                filteredRoundIds = driverEntrants.Select(e => e.RoundId).Distinct().ToHashSet();
+                
+                // Get session types per round from Results
+                // Query directly by joining Results → Sessions to get RoundId and Type
+                var entrantIds = driverEntrants.Select(e => e.Id).ToList();
+                var driverSessionResults = await (
+                    from res in _db.Results
+                    join sess in _db.Set<Session>() on res.SessionId equals sess.Id
+                    where entrantIds.Contains(res.EntrantId)
+                    select new { sess.RoundId, sess.Type }
+                ).Distinct().ToListAsync(ct);
+                
+                sessionsByRound = driverSessionResults
+                    .GroupBy(r => r.RoundId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(x => x.Type).Distinct().OrderBy(t => t).ToList()
+                    );
             }
             else
             {
@@ -237,12 +257,30 @@ public sealed class SeriesController : BaseApiController
             var team = await _db.Teams.FirstOrDefaultAsync(t => t.Slug == teamSlug.ToLowerInvariant(), ct);
             if (team != null)
             {
-                filteredRoundIds = (await _db.Entrants
+                // Get entrant IDs for this team in this season
+                var teamEntrants = await _db.Entrants
                     .Where(e => e.TeamId == team.Id && seasonRoundIds.Contains(e.RoundId))
-                    .Select(e => e.RoundId)
-                    .Distinct()
-                    .ToListAsync(ct))
-                    .ToHashSet();
+                    .Select(e => new { e.Id, e.RoundId })
+                    .ToListAsync(ct);
+                
+                filteredRoundIds = teamEntrants.Select(e => e.RoundId).Distinct().ToHashSet();
+                
+                // Get session types per round from Results
+                // Query directly by joining Results → Sessions to get RoundId and Type
+                var entrantIds = teamEntrants.Select(e => e.Id).ToList();
+                var teamSessionResults = await (
+                    from res in _db.Results
+                    join sess in _db.Set<Session>() on res.SessionId equals sess.Id
+                    where entrantIds.Contains(res.EntrantId)
+                    select new { sess.RoundId, sess.Type }
+                ).Distinct().ToListAsync(ct);
+                
+                sessionsByRound = teamSessionResults
+                    .GroupBy(r => r.RoundId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(x => x.Type).Distinct().OrderBy(t => t).ToList()
+                    );
             }
             else
             {
@@ -280,7 +318,10 @@ public sealed class SeriesController : BaseApiController
                 SessionCount: r.Sessions.Count,
                 IsCompleted: r.DateEnd < now,
                 IsCurrent: r.DateStart <= now && r.DateEnd >= now,
-                IsUpcoming: r.DateStart > now
+                IsUpcoming: r.DateStart > now,
+                FeaturingSessions: sessionsByRound != null && sessionsByRound.TryGetValue(r.Id, out var sessions)
+                    ? sessions.Select(s => s.ToString()).ToList()
+                    : null
             ))
             .ToList();
 
