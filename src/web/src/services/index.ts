@@ -4,3 +4,6 @@ export { statusApi, type StatusResponse, type DetailedHealthResponse, type Depen
 export { spoilerApi, sessionsApi } from './spoilerService';
 export { seriesApi, seasonsApi } from './seriesService';
 export { roundsApi } from './roundsService';
+export { driversApi } from './driversService';
+export { teamsApi } from './teamsService';
+export { circuitsApi } from './circuitsService';

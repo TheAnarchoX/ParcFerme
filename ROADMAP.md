@@ -527,7 +527,76 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - Breadcrumbs update dynamically when filtering by series (include series in trail)
   - Added ROUTES.DRIVERS_FILTERED, TEAMS_FILTERED, CIRCUITS_FILTERED route helpers
   
-#### 2. Core Logging Flow (The MVP Feature)
+#### 2. Supporting Discovery Pages (Full Entity Discovery)
+
+**Current State:** DriversPage, TeamsPage, CircuitsPage and their detail pages exist with mock data. Routes are configured in App.tsx. Need to wire up real API endpoints and replace mock data.
+
+##### 2.1 Driver Discovery + Detail Pages + API
+- [ ] **Backend: DriversController + DTOs**
+  - Create `DriverDtos.cs` with: `DriverSummaryDto`, `DriverDetailDto`, `DriverCareerDto` (teams over time)
+  - Create `DriversController.cs` with endpoints:
+    - `GET /api/v1/drivers` - paginated list with optional `?series=slug` filter
+    - `GET /api/v1/drivers/{slug}` - full profile with career history
+    - `GET /api/v1/drivers/{slug}/seasons` - seasons participated in
+  - Include nationality, driver number, headshot URL in responses
+  - Spoiler-safe by default (no result data exposed)
+- [ ] **Frontend: Wire up real API**
+  - Create `driversService.ts` with API client methods
+  - Create `types/driver.ts` with TypeScript interfaces matching DTOs
+  - Update `DriversPage.tsx` to fetch from API (replace mock `DRIVERS_DATA`)
+  - Update `DriverDetailPage.tsx` to fetch from API (replace mock data)
+  - Add loading skeletons and error states (follow RoundDetailPage patterns)
+  - Show career history: seasons participated, teams driven for
+
+##### 2.2 Team Discovery + Detail Pages + API
+- [ ] **Backend: TeamsController + DTOs**
+  - Create `TeamDtos.cs` with: `TeamSummaryDto`, `TeamDetailDto`, `TeamHistoryDto`
+  - Create `TeamsController.cs` with endpoints:
+    - `GET /api/v1/teams` - paginated list with optional `?series=slug` filter
+    - `GET /api/v1/teams/{slug}` - full profile with driver roster
+    - `GET /api/v1/teams/{slug}/seasons` - seasons competed in
+  - Include nationality, primary color, logo URL in responses
+- [ ] **Frontend: Wire up real API**
+  - Create `teamsService.ts` with API client methods
+  - Create `types/team.ts` with TypeScript interfaces matching DTOs
+  - Update `TeamsPage.tsx` to fetch from API (replace mock `MOCK_TEAMS`)
+  - Update `TeamDetailPage.tsx` to fetch from API (replace mock data)
+  - Add loading skeletons and error states
+  - Show team roster: current and historical drivers
+
+##### 2.3 Circuit Discovery + Detail Pages + API
+- [ ] **Backend: CircuitsController + DTOs**
+  - Create `CircuitDtos.cs` with: `CircuitSummaryDto`, `CircuitDetailDto`, `CircuitVenueDto`
+  - Create `CircuitsController.cs` with endpoints:
+    - `GET /api/v1/circuits` - paginated list with optional `?series=slug` filter
+    - `GET /api/v1/circuits/{slug}` - full profile with venue info
+    - `GET /api/v1/circuits/{slug}/rounds` - races hosted at this circuit
+  - Include location, country, coordinates, length in responses
+  - Future: "Attended" venue aggregates (grandstand ratings)
+- [ ] **Frontend: Wire up real API**
+  - Create `circuitsService.ts` with API client methods
+  - Create `types/circuit.ts` with TypeScript interfaces matching DTOs
+  - Update `CircuitsPage.tsx` to fetch from API (replace mock `MOCK_CIRCUITS`)
+  - Update `CircuitDetailPage.tsx` to fetch from API (replace mock data)
+  - Add loading skeletons and error states
+  - Show upcoming/past races at this circuit
+
+##### 2.4 Navigation Flow Verification
+- [ ] **Cross-link entities throughout the app**
+  - Driver detail → link to teams they've driven for
+  - Team detail → link to drivers on roster
+  - Circuit detail → link to rounds held there
+  - Round detail → link to circuit, drivers, teams competing
+  - Session detail → link to entrants (driver + team)
+- [ ] **Breadcrumb verification**
+  - Verify breadcrumbs work correctly on all new pages
+  - Ensure filtered views (e.g., `/drivers?series=f1`) show series in breadcrumb trail
+
+##### 2.5 Global Search (Deferred)
+- [ ] **Deferred to later:** Global search UI + API (requires Elasticsearch setup)
+  - Will cover: sessions, drivers, teams, circuits, users, logs
+
+#### 3. Core Logging Flow (The MVP Feature)
 - [ ] "Log a Race" flow
   - Multi-step modal or dedicated page
   - Session selection
@@ -551,21 +620,6 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Password reset flow (email + token) + Remember Me option
 - [ ] Email verification flow
 - [ ] Google OAuth integration (login/register)
-
-#### 4. Supporting Discovery Pages
-- [ ] Driver discovery + detail pages + API
-  - Profile, teams over time, seasons participated
-  - Spoiler-safe by default
-- [ ] Team discovery + detail pages + API
-  - Overview, seasons, drivers roster over time
-- [ ] Circuit discovery + detail pages + API
-  - Overview, location/map, sessions hosted
-  - "Attended" venue aggregates when available
-- [ ] Global search UI + API
-  - Covers sessions, drivers, teams, circuits, users, logs
-- [ ] Navigation flow between Entities (Driver, Team, Circuit) → Seasons → Rounds → Sessions
-  - Check that all links/buttons work correctly and that all things that are a reference is a link to the correct page.
-  - Ensure breadcrumb navigation works correctly across all new pages.
 
 ##### 5. Miscellaneous
 - [ ] Develop "Standings" module in the backend to calculate championship points based on the official points system for each series taking historical changes into account.

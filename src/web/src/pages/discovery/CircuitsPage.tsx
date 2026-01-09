@@ -1,7 +1,11 @@
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { MainLayout, PageHeader, Section } from '../../components/layout/MainLayout';
 import { useBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
+import { circuitsApi } from '../../services/circuitsService';
+import type { CircuitListItemDto, CircuitListResponse } from '../../types/circuit';
+import { getCountryFlag, formatCircuitLength } from '../../types/circuit';
 
 // =========================
 // Series name mapping (temporary until API provides this)
@@ -9,6 +13,7 @@ import { ROUTES } from '../../types/navigation';
 
 const SERIES_NAMES: Record<string, string> = {
   'f1': 'Formula 1',
+  'formula-1': 'Formula 1',
   'motogp': 'MotoGP',
   'wec': 'WEC',
   'indycar': 'IndyCar',
@@ -17,83 +22,101 @@ const SERIES_NAMES: Record<string, string> = {
 };
 
 // =========================
-// Mock Data
+// Loading Skeleton
 // =========================
 
-interface Circuit {
-  id: number;
-  name: string;
-  slug: string;
-  location: string;
-  country: string;
-  length: number; // km
-  turns: number;
-  series: string[]; // Series slugs
+function CircuitCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6 animate-pulse">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="h-5 bg-neutral-800 rounded w-3/4 mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-1/2" />
+        </div>
+        <div className="w-8 h-8 bg-neutral-800 rounded" />
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <div className="h-3 bg-neutral-800 rounded w-1/2 mb-1" />
+          <div className="h-4 bg-neutral-800 rounded w-3/4" />
+        </div>
+        <div>
+          <div className="h-3 bg-neutral-800 rounded w-1/2 mb-1" />
+          <div className="h-4 bg-neutral-800 rounded w-1/2" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
-const MOCK_CIRCUITS: Circuit[] = [
-  { id: 1, name: 'Silverstone Circuit', slug: 'silverstone', location: 'Northamptonshire', country: 'United Kingdom', length: 5.891, turns: 18, series: ['f1', 'wec'] },
-  { id: 2, name: 'Circuit de Monaco', slug: 'monaco', location: 'Monte Carlo', country: 'Monaco', length: 3.337, turns: 19, series: ['f1', 'formula-e'] },
-  { id: 3, name: 'Circuit de Spa-Francorchamps', slug: 'spa', location: 'Stavelot', country: 'Belgium', length: 7.004, turns: 19, series: ['f1', 'wec'] },
-  { id: 4, name: 'Suzuka International Racing Course', slug: 'suzuka', location: 'Suzuka', country: 'Japan', length: 5.807, turns: 18, series: ['f1'] },
-  { id: 5, name: 'Autodromo Nazionale di Monza', slug: 'monza', location: 'Monza', country: 'Italy', length: 5.793, turns: 11, series: ['f1'] },
-  { id: 6, name: 'Indianapolis Motor Speedway', slug: 'indianapolis', location: 'Indianapolis', country: 'United States', length: 4.023, turns: 4, series: ['indycar', 'nascar'] },
-  { id: 7, name: 'Circuit de la Sarthe', slug: 'le-mans', location: 'Le Mans', country: 'France', length: 13.626, turns: 38, series: ['wec'] },
-  { id: 8, name: 'Nürburgring Nordschleife', slug: 'nordschleife', location: 'Nürburg', country: 'Germany', length: 20.832, turns: 154, series: ['wec'] },
-  { id: 9, name: 'Circuit of the Americas', slug: 'cota', location: 'Austin', country: 'United States', length: 5.513, turns: 20, series: ['f1', 'motogp', 'wec'] },
-  { id: 10, name: 'Interlagos', slug: 'interlagos', location: 'São Paulo', country: 'Brazil', length: 4.309, turns: 15, series: ['f1'] },
-];
+// =========================
+// Stats Card Component
+// =========================
+
+interface StatsCardProps {
+  icon: string;
+  value: number | string;
+  label: string;
+}
+
+function StatsCard({ icon, value, label }: StatsCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-center">
+      <div className="text-2xl mb-1">{icon}</div>
+      <div className="text-2xl font-bold text-neutral-100">{value}</div>
+      <div className="text-sm text-neutral-500">{label}</div>
+    </div>
+  );
+}
 
 // =========================
-// Components
+// Circuit Card Component
 // =========================
 
 interface CircuitCardProps {
-  circuit: Circuit;
-  showSeries?: boolean;
+  circuit: CircuitListItemDto;
 }
 
-function CircuitCard({ circuit, showSeries = true }: CircuitCardProps) {
+function CircuitCard({ circuit }: CircuitCardProps) {
+  const flag = getCountryFlag(circuit.country, circuit.countryCode);
+  
   return (
     <Link
       to={ROUTES.CIRCUIT_DETAIL(circuit.slug)}
       className="group bg-neutral-900/50 border border-neutral-800 rounded-xl p-6 hover:border-neutral-700 hover:bg-neutral-900/80 transition-all"
     >
       <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3 className="text-lg font-semibold text-neutral-100 group-hover:text-accent-green transition-colors">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold text-neutral-100 group-hover:text-accent-green transition-colors truncate">
             {circuit.name}
           </h3>
-          <p className="text-sm text-neutral-500">
-            {circuit.location}, {circuit.country}
+          <p className="text-sm text-neutral-500 truncate">
+            {flag} {circuit.location}, {circuit.country}
           </p>
         </div>
-        <span className="text-2xl">🗺️</span>
+        {circuit.layoutMapUrl ? (
+          <img
+            src={circuit.layoutMapUrl}
+            alt={`${circuit.name} layout`}
+            className="w-10 h-10 rounded object-contain bg-neutral-800"
+          />
+        ) : (
+          <span className="text-2xl">🗺️</span>
+        )}
       </div>
       
-      <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+      <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <span className="text-neutral-500">Length</span>
-          <p className="text-neutral-200 font-medium">{circuit.length.toFixed(3)} km</p>
+          <p className="text-neutral-200 font-medium">
+            {circuit.lengthMeters ? formatCircuitLength(circuit.lengthMeters) : 'N/A'}
+          </p>
         </div>
         <div>
-          <span className="text-neutral-500">Turns</span>
-          <p className="text-neutral-200 font-medium">{circuit.turns}</p>
+          <span className="text-neutral-500">Rounds Hosted</span>
+          <p className="text-neutral-200 font-medium">{circuit.roundsHosted}</p>
         </div>
       </div>
-      
-      {showSeries && (
-        <div className="flex flex-wrap gap-2">
-          {circuit.series.map(seriesSlug => (
-            <span
-              key={seriesSlug}
-              className="px-2 py-1 text-xs font-medium bg-neutral-800 text-neutral-400 rounded"
-            >
-              {SERIES_NAMES[seriesSlug] || seriesSlug}
-            </span>
-          ))}
-        </div>
-      )}
     </Link>
   );
 }
@@ -125,6 +148,42 @@ function FilterBadge({ label, onClear }: FilterBadgeProps) {
 }
 
 // =========================
+// Pagination Component
+// =========================
+
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
+
+function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+  if (totalPages <= 1) return null;
+  
+  return (
+    <div className="flex items-center justify-center gap-2 mt-8">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage <= 1}
+        className="px-3 py-2 rounded-lg bg-neutral-800 text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700 transition-colors"
+      >
+        ← Previous
+      </button>
+      <span className="px-4 py-2 text-neutral-400">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage >= totalPages}
+        className="px-3 py-2 rounded-lg bg-neutral-800 text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-700 transition-colors"
+      >
+        Next →
+      </button>
+    </div>
+  );
+}
+
+// =========================
 // Page Component
 // =========================
 
@@ -135,12 +194,39 @@ function FilterBadge({ label, onClear }: FilterBadgeProps) {
 export function CircuitsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const seriesFilter = searchParams.get('series');
-  const seriesName = seriesFilter ? SERIES_NAMES[seriesFilter] : null;
+  const pageParam = searchParams.get('page');
+  const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
   
-  // Filter circuits based on series
-  const filteredCircuits = seriesFilter
-    ? MOCK_CIRCUITS.filter(circuit => circuit.series.includes(seriesFilter))
-    : MOCK_CIRCUITS;
+  const seriesName = seriesFilter ? SERIES_NAMES[seriesFilter] || seriesFilter : null;
+  
+  // State
+  const [circuitsData, setCircuitsData] = useState<CircuitListResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch circuits
+  const fetchCircuits = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const data = await circuitsApi.getCircuits({
+        page: currentPage,
+        pageSize: 24,
+        series: seriesFilter || undefined,
+      });
+      setCircuitsData(data);
+    } catch (err) {
+      console.error('Failed to fetch circuits:', err);
+      setError('Failed to load circuits. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, seriesFilter]);
+  
+  useEffect(() => {
+    fetchCircuits();
+  }, [fetchCircuits]);
   
   // Build breadcrumbs - include series if filtered
   const breadcrumbItems = seriesFilter && seriesName
@@ -160,6 +246,19 @@ export function CircuitsPage() {
     setSearchParams({});
   };
   
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    if (page > 1) {
+      params.set('page', page.toString());
+    } else {
+      params.delete('page');
+    }
+    setSearchParams(params);
+  };
+  
+  // Calculate pagination
+  const totalPages = circuitsData ? Math.ceil(circuitsData.totalCount / circuitsData.pageSize) : 0;
+  
   // Generate page title and subtitle based on filter
   const pageTitle = seriesName ? `${seriesName} Circuits` : 'Circuits';
   const pageSubtitle = seriesName
@@ -174,6 +273,20 @@ export function CircuitsPage() {
         subtitle={pageSubtitle}
       />
       
+      {/* Stats row */}
+      {circuitsData && !loading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatsCard icon="🗺️" value={circuitsData.totalCount} label="Total Circuits" />
+          <StatsCard icon="📄" value={currentPage} label="Current Page" />
+          <StatsCard icon="📚" value={totalPages} label="Total Pages" />
+          <StatsCard 
+            icon="🔍" 
+            value={seriesFilter ? seriesName || seriesFilter : 'All'} 
+            label="Series Filter" 
+          />
+        </div>
+      )}
+      
       {/* Active filter indicator */}
       {seriesFilter && seriesName && (
         <div className="mb-6 flex items-center gap-3">
@@ -183,29 +296,64 @@ export function CircuitsPage() {
       )}
       
       <Section>
-        {filteredCircuits.length > 0 ? (
+        {/* Loading state */}
+        {loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCircuits.map(circuit => (
-              <CircuitCard key={circuit.id} circuit={circuit} showSeries={!seriesFilter} />
+            {Array.from({ length: 12 }).map((_, i) => (
+              <CircuitCardSkeleton key={i} />
             ))}
           </div>
-        ) : (
-          <div className="text-center py-12 text-neutral-500">
-            <p className="text-lg mb-2">No circuits found</p>
-            <p className="text-sm">
-              {seriesFilter 
-                ? `No circuits have been added for ${seriesName || seriesFilter} yet.`
-                : 'No circuits available.'}
-            </p>
-            {seriesFilter && (
-              <button
-                onClick={handleClearFilter}
-                className="mt-4 text-accent-green hover:underline"
-              >
-                View all circuits
-              </button>
-            )}
+        )}
+        
+        {/* Error state */}
+        {error && !loading && (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">⚠️</div>
+            <p className="text-lg text-red-400 mb-4">{error}</p>
+            <button
+              onClick={fetchCircuits}
+              className="px-4 py-2 bg-accent-green text-neutral-900 rounded-lg font-semibold hover:bg-accent-green/90 transition-colors"
+            >
+              Try Again
+            </button>
           </div>
+        )}
+        
+        {/* Circuits grid */}
+        {!loading && !error && circuitsData && (
+          <>
+            {circuitsData.items.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {circuitsData.items.map(circuit => (
+                  <CircuitCard key={circuit.id} circuit={circuit} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-neutral-500">
+                <div className="text-4xl mb-4">🗺️</div>
+                <p className="text-lg mb-2">No circuits found</p>
+                <p className="text-sm">
+                  {seriesFilter 
+                    ? `No circuits have been added for ${seriesName || seriesFilter} yet.`
+                    : 'No circuits available.'}
+                </p>
+                {seriesFilter && (
+                  <button
+                    onClick={handleClearFilter}
+                    className="mt-4 text-accent-green hover:underline"
+                  >
+                    View all circuits
+                  </button>
+                )}
+              </div>
+            )}
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </>
         )}
       </Section>
     </MainLayout>

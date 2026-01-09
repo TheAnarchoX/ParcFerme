@@ -1,61 +1,123 @@
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs, buildCircuitBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
+import { circuitsApi } from '../../services/circuitsService';
+import type { CircuitDiscoveryDetailDto, GrandstandDto } from '../../types/circuit';
+import { getCountryFlag, formatCircuitLength, formatAltitude, getGoogleMapsUrl } from '../../types/circuit';
 
 // =========================
-// Mock Data
+// Loading Skeleton Components
 // =========================
 
-const CIRCUITS_DATA: Record<string, {
-  name: string;
-  location: string;
-  country: string;
-  length: number;
-  turns: number;
-  lapRecord: string;
-  lapRecordHolder: string;
-  lapRecordYear: number;
-  firstGP: number;
-  description: string;
-}> = {
-  silverstone: {
-    name: 'Silverstone Circuit',
-    location: 'Northamptonshire',
-    country: 'United Kingdom',
-    length: 5.891,
-    turns: 18,
-    lapRecord: '1:27.097',
-    lapRecordHolder: 'Max Verstappen',
-    lapRecordYear: 2020,
-    firstGP: 1950,
-    description: 'Silverstone Circuit is a motor racing circuit in Northamptonshire, England. The circuit, which was originally laid out on the site of a World War II airfield, hosted the first Formula One World Championship race.',
-  },
-  monaco: {
-    name: 'Circuit de Monaco',
-    location: 'Monte Carlo',
-    country: 'Monaco',
-    length: 3.337,
-    turns: 19,
-    lapRecord: '1:12.909',
-    lapRecordHolder: 'Lewis Hamilton',
-    lapRecordYear: 2021,
-    firstGP: 1950,
-    description: 'The Circuit de Monaco is a street circuit laid out on the city streets of Monte Carlo and La Condamine around the harbour of the Principality of Monaco.',
-  },
-  spa: {
-    name: 'Circuit de Spa-Francorchamps',
-    location: 'Stavelot',
-    country: 'Belgium',
-    length: 7.004,
-    turns: 19,
-    lapRecord: '1:46.286',
-    lapRecordHolder: 'Valtteri Bottas',
-    lapRecordYear: 2018,
-    firstGP: 1950,
-    description: 'The Circuit de Spa-Francorchamps is a motor racing circuit located in Stavelot, Belgium. It is the current venue of the Formula One Belgian Grand Prix.',
-  },
-};
+function ProfileSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6 animate-pulse">
+      <div className="flex items-start gap-6 mb-6">
+        <div className="w-32 h-32 rounded-xl bg-neutral-800" />
+        <div className="flex-1">
+          <div className="h-6 bg-neutral-800 rounded w-3/4 mb-4" />
+          <div className="h-4 bg-neutral-800 rounded w-1/2 mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-1/3" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i}>
+            <div className="h-4 bg-neutral-800 rounded w-1/2 mb-1" />
+            <div className="h-6 bg-neutral-800 rounded w-3/4" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 animate-pulse">
+          <div className="h-8 bg-neutral-800 rounded w-1/2 mx-auto mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-3/4 mx-auto" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// =========================
+// Stats Card Component
+// =========================
+
+interface StatsCardProps {
+  icon: string;
+  value: number | string;
+  label: string;
+}
+
+function StatsCard({ icon, value, label }: StatsCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-center">
+      <div className="text-2xl mb-1">{icon}</div>
+      <div className="text-2xl font-bold text-neutral-100">{value}</div>
+      <div className="text-sm text-neutral-500">{label}</div>
+    </div>
+  );
+}
+
+// =========================
+// Grandstand Card Component
+// =========================
+
+interface GrandstandCardProps {
+  grandstand: GrandstandDto;
+}
+
+function GrandstandCard({ grandstand }: GrandstandCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
+      <h4 className="font-semibold text-neutral-100 mb-1">{grandstand.name}</h4>
+      {grandstand.description && (
+        <p className="text-sm text-neutral-500">{grandstand.description}</p>
+      )}
+    </div>
+  );
+}
+
+// =========================
+// Season History Card Component
+// =========================
+
+interface SeasonHistoryCardProps {
+  season: {
+    year: number;
+    seriesName: string;
+    seriesSlug: string;
+    roundName: string;
+    roundSlug: string;
+    roundNumber: number;
+  };
+}
+
+function SeasonHistoryCard({ season }: SeasonHistoryCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-lg font-semibold text-neutral-100">{season.year}</span>
+        <span className="text-sm text-neutral-500">Round {season.roundNumber}</span>
+      </div>
+      <p className="text-neutral-300 text-sm mb-1">{season.roundName}</p>
+      <Link
+        to={ROUTES.SERIES_DETAIL(season.seriesSlug)}
+        className="text-xs text-accent-green hover:underline"
+      >
+        {season.seriesName}
+      </Link>
+    </div>
+  );
+}
 
 // =========================
 // Page Component
@@ -66,8 +128,40 @@ const CIRCUITS_DATA: Record<string, {
  */
 export function CircuitDetailPage() {
   const { circuitSlug } = useParams<{ circuitSlug: string }>();
-  const circuit = circuitSlug ? CIRCUITS_DATA[circuitSlug] : null;
   
+  // State
+  const [circuit, setCircuit] = useState<CircuitDiscoveryDetailDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch circuit data
+  const fetchCircuit = useCallback(async () => {
+    if (!circuitSlug) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const data = await circuitsApi.getCircuitBySlug(circuitSlug);
+      setCircuit(data);
+    } catch (err: unknown) {
+      console.error('Failed to fetch circuit:', err);
+      const errorObj = err as { response?: { status?: number } };
+      if (errorObj.response?.status === 404) {
+        setError('Circuit not found');
+      } else {
+        setError('Failed to load circuit. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [circuitSlug]);
+  
+  useEffect(() => {
+    fetchCircuit();
+  }, [fetchCircuit]);
+  
+  // Build breadcrumbs
   useBreadcrumbs(
     circuit && circuitSlug
       ? buildCircuitBreadcrumbs(circuit.name, circuitSlug)
@@ -77,7 +171,8 @@ export function CircuitDetailPage() {
         ]
   );
   
-  if (!circuit || !circuitSlug) {
+  // Not found state
+  if (!loading && (error === 'Circuit not found' || !circuitSlug)) {
     return (
       <MainLayout showBreadcrumbs>
         <EmptyState
@@ -94,61 +189,180 @@ export function CircuitDetailPage() {
     );
   }
   
+  // Error state
+  if (!loading && error && error !== 'Circuit not found') {
+    return (
+      <MainLayout showBreadcrumbs>
+        <div className="text-center py-12">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p className="text-lg text-red-400 mb-4">{error}</p>
+          <button
+            onClick={fetchCircuit}
+            className="px-4 py-2 bg-accent-green text-neutral-900 rounded-lg font-semibold hover:bg-accent-green/90 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </MainLayout>
+    );
+  }
+  
+  // Get display values
+  const flag = getCountryFlag(circuit?.country, circuit?.countryCode);
+  const mapsUrl = circuit ? getGoogleMapsUrl(circuit.latitude, circuit.longitude) : null;
+  
+  // Calculate active years string
+  const activeYears = circuit?.stats?.firstSeasonYear && circuit?.stats?.lastSeasonYear
+    ? `${circuit.stats.firstSeasonYear} - ${circuit.stats.lastSeasonYear}`
+    : '';
+  
   return (
     <MainLayout showBreadcrumbs>
       <PageHeader
         icon="🏁"
-        title={circuit.name}
-        subtitle={`${circuit.location}, ${circuit.country}`}
+        title={loading ? 'Loading...' : circuit?.name || 'Circuit'}
+        subtitle={loading ? '' : `${flag} ${circuit?.location}, ${circuit?.country} ${activeYears ? `• ${activeYears}` : ''}`}
       />
       
       {/* Circuit Info Card */}
       <Section>
-        <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
-          <p className="text-neutral-300 mb-6">{circuit.description}</p>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <span className="text-sm text-neutral-500">Length</span>
-              <p className="text-xl font-semibold text-neutral-100">
-                {circuit.length.toFixed(3)} km
-              </p>
+        {loading ? (
+          <ProfileSkeleton />
+        ) : circuit && (
+          <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+            <div className="flex flex-col md:flex-row gap-6 mb-6">
+              {circuit.layoutMapUrl && (
+                <img
+                  src={circuit.layoutMapUrl}
+                  alt={`${circuit.name} layout`}
+                  className="w-32 h-32 rounded-xl object-contain bg-neutral-800"
+                />
+              )}
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-neutral-100 mb-2">{circuit.name}</h2>
+                <p className="text-neutral-400 mb-2">
+                  {flag} {circuit.location}, {circuit.country}
+                </p>
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  {circuit.wikipediaUrl && (
+                    <a
+                      href={circuit.wikipediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent-green hover:underline"
+                    >
+                      Wikipedia →
+                    </a>
+                  )}
+                  {mapsUrl && (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent-green hover:underline"
+                    >
+                      View on Map →
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <span className="text-sm text-neutral-500">Turns</span>
-              <p className="text-xl font-semibold text-neutral-100">{circuit.turns}</p>
-            </div>
-            <div>
-              <span className="text-sm text-neutral-500">First GP</span>
-              <p className="text-xl font-semibold text-neutral-100">{circuit.firstGP}</p>
-            </div>
-            <div>
-              <span className="text-sm text-neutral-500">Lap Record</span>
-              <p className="text-xl font-semibold text-neutral-100">{circuit.lapRecord}</p>
-              <p className="text-sm text-neutral-500">
-                {circuit.lapRecordHolder} ({circuit.lapRecordYear})
-              </p>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <span className="text-sm text-neutral-500">Length</span>
+                <p className="text-xl font-semibold text-neutral-100">
+                  {formatCircuitLength(circuit.lengthMeters)}
+                </p>
+              </div>
+              <div>
+                <span className="text-sm text-neutral-500">Altitude</span>
+                <p className="text-xl font-semibold text-neutral-100">
+                  {formatAltitude(circuit.altitude)}
+                </p>
+              </div>
+              {circuit.latitude && circuit.longitude && (
+                <div className="col-span-2">
+                  <span className="text-sm text-neutral-500">Coordinates</span>
+                  <p className="text-xl font-semibold text-neutral-100">
+                    {circuit.latitude.toFixed(4)}°, {circuit.longitude.toFixed(4)}°
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </Section>
       
-      {/* Circuit Guide */}
-      <Section title="Venue Guide" subtitle="Crowdsourced tips from race attendees">
-        <EmptyState
-          icon="📍"
-          title="Circuit Guide coming soon"
-          description="User reviews, grandstand recommendations, and seat views will be displayed here."
-        />
+      {/* Stats */}
+      <Section title="Statistics">
+        {loading ? (
+          <StatsSkeleton />
+        ) : circuit?.stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatsCard icon="🏁" value={circuit.stats.totalRounds} label="Rounds Hosted" />
+            <StatsCard icon="📅" value={circuit.stats.totalSeasons} label="Seasons" />
+            <StatsCard icon="🏆" value={circuit.stats.totalSeries} label="Series" />
+            <StatsCard 
+              icon="📆" 
+              value={circuit.stats.firstSeasonYear || 'N/A'} 
+              label="First Event" 
+            />
+          </div>
+        )}
       </Section>
       
-      {/* Upcoming Races */}
-      <Section title="Upcoming Races">
-        <EmptyState
-          icon="📅"
-          title="Calendar coming soon"
-          description="Upcoming events at this circuit will be displayed here."
-        />
+      {/* Grandstands / Venue Guide */}
+      <Section title="Venue Guide" subtitle="Grandstands and seating areas">
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 animate-pulse">
+                <div className="h-5 bg-neutral-800 rounded w-3/4 mb-2" />
+                <div className="h-4 bg-neutral-800 rounded w-full" />
+              </div>
+            ))}
+          </div>
+        ) : circuit?.grandstands && circuit.grandstands.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {circuit.grandstands.map(grandstand => (
+              <GrandstandCard key={grandstand.id} grandstand={grandstand} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="📍"
+            title="No grandstand data"
+            description="Grandstand and seating information is not available for this circuit yet."
+          />
+        )}
+      </Section>
+      
+      {/* Event History */}
+      <Section title="Event History">
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 animate-pulse">
+                <div className="h-6 bg-neutral-800 rounded w-1/3 mb-2" />
+                <div className="h-4 bg-neutral-800 rounded w-3/4 mb-1" />
+                <div className="h-3 bg-neutral-800 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : circuit?.seasonHistory && circuit.seasonHistory.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {circuit.seasonHistory.map((season, index) => (
+              <SeasonHistoryCard key={`${season.year}-${season.seriesSlug}-${index}`} season={season} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="📅"
+            title="No event history"
+            description="Event history is not available for this circuit."
+          />
+        )}
       </Section>
     </MainLayout>
   );

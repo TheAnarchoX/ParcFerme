@@ -1,49 +1,179 @@
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs, buildTeamBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
+import { teamsApi } from '../../services/teamsService';
+import type { TeamDetailDto } from '../../types/team';
+import { getTeamShortName, getTeamNationalityFlag, getTeamPlaceholderColor } from '../../types/team';
 
 // =========================
-// Mock Data
+// Loading Skeleton Components
 // =========================
 
-const TEAMS_DATA: Record<string, {
-  name: string;
-  country: string;
-  founded: number;
-  headquarters: string;
-  series: string[];
-  color: string;
-  description: string;
-}> = {
-  'red-bull-racing': {
-    name: 'Red Bull Racing',
-    country: 'Austria',
-    founded: 2005,
-    headquarters: 'Milton Keynes, UK',
-    series: ['F1'],
-    color: '#1E41FF',
-    description: 'Oracle Red Bull Racing is a Formula One racing team, competing under an Austrian licence and based in the United Kingdom.',
-  },
-  'ferrari': {
-    name: 'Scuderia Ferrari',
-    country: 'Italy',
-    founded: 1929,
-    headquarters: 'Maranello, Italy',
-    series: ['F1', 'WEC'],
-    color: '#DC0000',
-    description: 'Scuderia Ferrari is the racing division of luxury Italian auto manufacturer Ferrari and the racing team that competes in Formula One.',
-  },
-  'mclaren': {
-    name: 'McLaren Racing',
-    country: 'United Kingdom',
-    founded: 1963,
-    headquarters: 'Woking, UK',
-    series: ['F1', 'IndyCar'],
-    color: '#FF8700',
-    description: 'McLaren Racing Limited is a British motor racing team based at the McLaren Technology Centre in Woking, Surrey.',
-  },
-};
+function ProfileSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6 animate-pulse">
+      <div className="flex items-start gap-6">
+        <div className="w-24 h-24 rounded-xl bg-neutral-800" />
+        <div className="flex-1">
+          <div className="h-6 bg-neutral-800 rounded w-3/4 mb-4" />
+          <div className="h-4 bg-neutral-800 rounded w-1/2 mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-1/3" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 animate-pulse">
+          <div className="h-8 bg-neutral-800 rounded w-1/2 mx-auto mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-3/4 mx-auto" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DriverCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 animate-pulse">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-neutral-800" />
+        <div className="flex-1">
+          <div className="h-5 bg-neutral-800 rounded w-3/4 mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-1/2" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========================
+// Stats Card Component
+// =========================
+
+interface StatsCardProps {
+  icon: string;
+  value: number | string;
+  label: string;
+}
+
+function StatsCard({ icon, value, label }: StatsCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-center">
+      <div className="text-2xl mb-1">{icon}</div>
+      <div className="text-2xl font-bold text-neutral-100">{value}</div>
+      <div className="text-sm text-neutral-500">{label}</div>
+    </div>
+  );
+}
+
+// =========================
+// Driver Card Component
+// =========================
+
+interface DriverCardProps {
+  driver: {
+    slug: string;
+    firstName: string;
+    lastName: string;
+    nationality?: string;
+    headshotUrl?: string;
+    driverNumber?: number;
+  };
+}
+
+function DriverCard({ driver }: DriverCardProps) {
+  const fullName = `${driver.firstName} ${driver.lastName}`;
+  
+  return (
+    <Link
+      to={ROUTES.DRIVER_DETAIL(driver.slug)}
+      className="group bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 hover:border-neutral-700 hover:bg-neutral-900/80 transition-all"
+    >
+      <div className="flex items-center gap-4">
+        {driver.headshotUrl ? (
+          <img
+            src={driver.headshotUrl}
+            alt={fullName}
+            className="w-12 h-12 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400">
+            👤
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-neutral-100 group-hover:text-accent-green transition-colors truncate">
+            {fullName}
+          </h4>
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            {driver.driverNumber && (
+              <span className="font-mono">#{driver.driverNumber}</span>
+            )}
+            {driver.nationality && (
+              <span>{driver.nationality}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// =========================
+// Season History Card Component
+// =========================
+
+interface SeasonHistoryCardProps {
+  season: {
+    year: number;
+    seriesName: string;
+    seriesSlug: string;
+    drivers: { slug: string; firstName: string; lastName: string }[];
+    roundsParticipated: number;
+  };
+}
+
+function SeasonHistoryCard({ season }: SeasonHistoryCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h4 className="font-semibold text-neutral-100">{season.year}</h4>
+          <Link
+            to={ROUTES.SERIES_DETAIL(season.seriesSlug)}
+            className="text-sm text-accent-green hover:underline"
+          >
+            {season.seriesName}
+          </Link>
+        </div>
+        <span className="text-sm text-neutral-500">
+          {season.roundsParticipated} rounds
+        </span>
+      </div>
+      
+      {season.drivers.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {season.drivers.map(driver => (
+            <Link
+              key={driver.slug}
+              to={ROUTES.DRIVER_DETAIL(driver.slug)}
+              className="text-xs px-2 py-1 bg-neutral-800 text-neutral-400 rounded hover:bg-neutral-700 hover:text-neutral-200 transition-colors"
+            >
+              {driver.firstName} {driver.lastName}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // =========================
 // Page Component
@@ -54,8 +184,40 @@ const TEAMS_DATA: Record<string, {
  */
 export function TeamDetailPage() {
   const { teamSlug } = useParams<{ teamSlug: string }>();
-  const team = teamSlug ? TEAMS_DATA[teamSlug] : null;
   
+  // State
+  const [team, setTeam] = useState<TeamDetailDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch team data
+  const fetchTeam = useCallback(async () => {
+    if (!teamSlug) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const data = await teamsApi.getTeamBySlug(teamSlug);
+      setTeam(data);
+    } catch (err: unknown) {
+      console.error('Failed to fetch team:', err);
+      const errorObj = err as { response?: { status?: number } };
+      if (errorObj.response?.status === 404) {
+        setError('Team not found');
+      } else {
+        setError('Failed to load team. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [teamSlug]);
+  
+  useEffect(() => {
+    fetchTeam();
+  }, [fetchTeam]);
+  
+  // Build breadcrumbs
   useBreadcrumbs(
     team && teamSlug
       ? buildTeamBreadcrumbs(team.name, teamSlug)
@@ -65,7 +227,8 @@ export function TeamDetailPage() {
         ]
   );
   
-  if (!team || !teamSlug) {
+  // Not found state
+  if (!loading && (error === 'Team not found' || !teamSlug)) {
     return (
       <MainLayout showBreadcrumbs>
         <EmptyState
@@ -82,56 +245,156 @@ export function TeamDetailPage() {
     );
   }
   
+  // Error state
+  if (!loading && error && error !== 'Team not found') {
+    return (
+      <MainLayout showBreadcrumbs>
+        <div className="text-center py-12">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p className="text-lg text-red-400 mb-4">{error}</p>
+          <button
+            onClick={fetchTeam}
+            className="px-4 py-2 bg-accent-green text-neutral-900 rounded-lg font-semibold hover:bg-accent-green/90 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </MainLayout>
+    );
+  }
+  
+  // Get display values
+  const teamColor = team?.primaryColor || (team?.name ? getTeamPlaceholderColor(team.name) : '#374151');
+  const shortName = team ? getTeamShortName(team) : '';
+  const flag = getTeamNationalityFlag(team?.nationality);
+  
+  // Calculate active years string
+  const activeYears = team?.stats?.firstSeasonYear && team?.stats?.lastSeasonYear
+    ? `${team.stats.firstSeasonYear} - ${team.stats.lastSeasonYear}`
+    : '';
+  
   return (
     <MainLayout showBreadcrumbs>
       <PageHeader
         icon="🏎️"
-        title={team.name}
-        subtitle={`${team.country} • Founded ${team.founded}`}
+        title={loading ? 'Loading...' : team?.name || 'Team'}
+        subtitle={loading ? '' : `${flag} ${team?.nationality || 'Unknown'} ${activeYears ? `• ${activeYears}` : ''}`}
       />
       
       {/* Team Profile Card */}
       <Section>
-        <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
-          <div className="flex items-start gap-6">
-            <div
-              className="w-24 h-24 rounded-xl flex items-center justify-center text-white font-bold text-2xl"
-              style={{ backgroundColor: team.color }}
-            >
-              {team.name.split(' ').map(w => w[0]).join('').slice(0, 3)}
-            </div>
-            <div className="flex-1">
-              <p className="text-neutral-300 mb-4">{team.description}</p>
-              <div className="flex flex-wrap items-center gap-4 text-sm">
-                <span className="text-neutral-500">
-                  HQ: <span className="text-neutral-300">{team.headquarters}</span>
-                </span>
-                <span className="text-neutral-500">
-                  Series:{' '}
-                  <span className="text-neutral-300">{team.series.join(', ')}</span>
-                </span>
+        {loading ? (
+          <ProfileSkeleton />
+        ) : team && (
+          <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+            <div className="flex items-start gap-6">
+              {team.logoUrl ? (
+                <img
+                  src={team.logoUrl}
+                  alt={team.name}
+                  className="w-24 h-24 rounded-xl object-contain bg-white"
+                />
+              ) : (
+                <div
+                  className="w-24 h-24 rounded-xl flex items-center justify-center text-white font-bold text-2xl"
+                  style={{ backgroundColor: teamColor }}
+                >
+                  {shortName}
+                </div>
+              )}
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-neutral-100 mb-2">{team.name}</h2>
+                {team.shortName && team.shortName !== team.name && (
+                  <p className="text-neutral-400 text-sm mb-2">Also known as: {team.shortName}</p>
+                )}
+                <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-500">
+                  {team.nationality && (
+                    <span>
+                      {flag} {team.nationality}
+                    </span>
+                  )}
+                  {team.wikipediaUrl && (
+                    <a
+                      href={team.wikipediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent-green hover:underline"
+                    >
+                      Wikipedia →
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+      </Section>
+      
+      {/* Stats */}
+      <Section title="Statistics">
+        {loading ? (
+          <StatsSkeleton />
+        ) : team?.stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatsCard icon="📅" value={team.stats.totalSeasons} label="Seasons" />
+            <StatsCard icon="🏁" value={team.stats.totalRounds} label="Rounds" />
+            <StatsCard icon="👥" value={team.stats.totalDrivers} label="Drivers" />
+            <StatsCard icon="🏆" value={team.stats.totalSeries} label="Series" />
+          </div>
+        )}
       </Section>
       
       {/* Current Drivers */}
       <Section title="Current Drivers">
-        <EmptyState
-          icon="👤"
-          title="Drivers coming soon"
-          description="Current team drivers will be displayed here."
-        />
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <DriverCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : team?.currentDrivers && team.currentDrivers.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {team.currentDrivers.map(driver => (
+              <DriverCard key={driver.slug} driver={driver} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="👤"
+            title="No current drivers"
+            description="This team has no active drivers in the current season."
+          />
+        )}
       </Section>
       
-      {/* Team History */}
-      <Section title="Championship History">
-        <EmptyState
-          icon="🏆"
-          title="History coming soon"
-          description="Championship history and achievements will be displayed here."
-        />
+      {/* Season History */}
+      <Section title="Season History">
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 animate-pulse">
+                <div className="h-5 bg-neutral-800 rounded w-1/3 mb-2" />
+                <div className="h-4 bg-neutral-800 rounded w-1/2 mb-3" />
+                <div className="flex gap-2">
+                  <div className="h-6 bg-neutral-800 rounded w-20" />
+                  <div className="h-6 bg-neutral-800 rounded w-24" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : team?.seasonHistory && team.seasonHistory.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {team.seasonHistory.map((season, index) => (
+              <SeasonHistoryCard key={`${season.year}-${season.seriesSlug}-${index}`} season={season} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon="📅"
+            title="No season history"
+            description="Season participation data is not available for this team."
+          />
+        )}
       </Section>
     </MainLayout>
   );

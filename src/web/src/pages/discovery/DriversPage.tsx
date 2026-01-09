@@ -1,7 +1,11 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { MainLayout, PageHeader, Section } from '../../components/layout/MainLayout';
+import { useEffect, useState } from 'react';
+import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
+import { driversApi } from '../../services/driversService';
+import type { DriverListItemDto, DriverListResponse } from '../../types/driver';
+import { getNationalityFlag, getDriverFullName } from '../../types/driver';
 
 // =========================
 // Series name mapping (temporary until API provides this)
@@ -16,41 +20,45 @@ const SERIES_NAMES: Record<string, string> = {
 };
 
 // =========================
-// Mock Data
+// Loading Skeleton
 // =========================
 
-interface DriverData {
-  id: string;
-  firstName: string;
-  lastName: string;
-  slug: string;
-  team: string;
-  number: number;
-  nationality: string;
-  series: string[]; // Series slugs this driver has participated in
+function DriverCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-neutral-800 rounded-lg" />
+        <div className="flex-1 min-w-0">
+          <div className="h-5 bg-neutral-800 rounded w-32 mb-2" />
+          <div className="h-4 bg-neutral-800 rounded w-24" />
+        </div>
+        <div className="w-6 h-6 bg-neutral-800 rounded" />
+      </div>
+    </div>
+  );
 }
 
-const DRIVERS_DATA: DriverData[] = [
-  { id: '1', firstName: 'Max', lastName: 'Verstappen', slug: 'max-verstappen', team: 'Red Bull Racing', number: 1, nationality: 'Dutch', series: ['f1'] },
-  { id: '2', firstName: 'Lewis', lastName: 'Hamilton', slug: 'lewis-hamilton', team: 'Ferrari', number: 44, nationality: 'British', series: ['f1'] },
-  { id: '3', firstName: 'Charles', lastName: 'Leclerc', slug: 'charles-leclerc', team: 'Ferrari', number: 16, nationality: 'Monégasque', series: ['f1'] },
-  { id: '4', firstName: 'Lando', lastName: 'Norris', slug: 'lando-norris', team: 'McLaren', number: 4, nationality: 'British', series: ['f1'] },
-  { id: '5', firstName: 'Oscar', lastName: 'Piastri', slug: 'oscar-piastri', team: 'McLaren', number: 81, nationality: 'Australian', series: ['f1'] },
-  { id: '6', firstName: 'George', lastName: 'Russell', slug: 'george-russell', team: 'Mercedes', number: 63, nationality: 'British', series: ['f1'] },
-  { id: '7', firstName: 'Kimi', lastName: 'Antonelli', slug: 'kimi-antonelli', team: 'Mercedes', number: 12, nationality: 'Italian', series: ['f1'] },
-  { id: '8', firstName: 'Fernando', lastName: 'Alonso', slug: 'fernando-alonso', team: 'Aston Martin', number: 14, nationality: 'Spanish', series: ['f1', 'wec', 'indycar'] },
-  { id: '9', firstName: 'Carlos', lastName: 'Sainz', slug: 'carlos-sainz', team: 'Williams', number: 55, nationality: 'Spanish', series: ['f1'] },
-];
+function StatsCardSkeleton() {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
+      <div className="h-8 bg-neutral-800 rounded w-12 mb-2" />
+      <div className="h-4 bg-neutral-800 rounded w-24" />
+    </div>
+  );
+}
 
 // =========================
 // Driver Card Component
 // =========================
 
 interface DriverCardProps {
-  driver: DriverData;
+  driver: DriverListItemDto;
 }
 
 function DriverCard({ driver }: DriverCardProps) {
+  const fullName = getDriverFullName(driver);
+  const flag = getNationalityFlag(driver.nationality);
+  
   return (
     <Link
       to={ROUTES.DRIVER_DETAIL(driver.slug)}
@@ -60,24 +68,33 @@ function DriverCard({ driver }: DriverCardProps) {
         <div className="flex items-center gap-4">
           {/* Number */}
           <div className="w-12 h-12 bg-neutral-800 rounded-lg flex items-center justify-center">
-            <span className="text-xl font-bold text-neutral-300 font-racing">
-              {driver.number}
-            </span>
+            {driver.driverNumber ? (
+              <span className="text-xl font-bold text-neutral-300 font-racing">
+                {driver.driverNumber}
+              </span>
+            ) : (
+              <span className="text-xl text-neutral-600">—</span>
+            )}
           </div>
           
           {/* Info */}
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold text-neutral-100 group-hover:text-accent-green transition-colors truncate">
-              {driver.firstName} {driver.lastName}
+              {fullName}
             </h3>
             <p className="text-sm text-neutral-400 truncate">
-              {driver.team}
+              {driver.currentTeam?.name ?? 'No current team'}
             </p>
+            {driver.seasonsCount > 0 && (
+              <p className="text-xs text-neutral-500 mt-1">
+                {driver.seasonsCount} season{driver.seasonsCount !== 1 ? 's' : ''} • {driver.teamsCount} team{driver.teamsCount !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
           
-          {/* Flag placeholder */}
-          <span className="text-xl" title={driver.nationality}>
-            🏁
+          {/* Flag */}
+          <span className="text-xl" title={driver.nationality ?? 'Unknown'}>
+            {flag}
           </span>
         </div>
       </div>
@@ -112,6 +129,78 @@ function FilterBadge({ label, onClear }: FilterBadgeProps) {
 }
 
 // =========================
+// Stats Card Component
+// =========================
+
+interface StatsCardProps {
+  label: string;
+  value: number | string;
+  icon: string;
+}
+
+function StatsCard({ label, value, icon }: StatsCardProps) {
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{icon}</span>
+        <div>
+          <p className="text-2xl font-bold text-neutral-100">{value}</p>
+          <p className="text-sm text-neutral-500">{label}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========================
+// Pagination Controls
+// =========================
+
+interface PaginationProps {
+  page: number;
+  totalCount: number;
+  pageSize: number;
+  hasMore: boolean;
+  onPageChange: (newPage: number) => void;
+  isLoading: boolean;
+}
+
+function Pagination({ page, totalCount, pageSize, hasMore, onPageChange, isLoading }: PaginationProps) {
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const startItem = (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, totalCount);
+  
+  if (totalCount <= pageSize) return null;
+  
+  return (
+    <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-800">
+      <p className="text-sm text-neutral-500">
+        Showing {startItem}-{endItem} of {totalCount} drivers
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1 || isLoading}
+          className="px-3 py-1.5 text-sm bg-neutral-800 text-neutral-300 rounded hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Previous
+        </button>
+        <span className="px-3 py-1.5 text-sm text-neutral-400">
+          Page {page} of {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={!hasMore || isLoading}
+          className="px-3 py-1.5 text-sm bg-neutral-800 text-neutral-300 rounded hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// =========================
 // Page Component
 // =========================
 
@@ -124,10 +213,40 @@ export function DriversPage() {
   const seriesFilter = searchParams.get('series');
   const seriesName = seriesFilter ? SERIES_NAMES[seriesFilter] : null;
   
-  // Filter drivers based on series
-  const filteredDrivers = seriesFilter
-    ? DRIVERS_DATA.filter(driver => driver.series.includes(seriesFilter))
-    : DRIVERS_DATA;
+  // State
+  const [data, setData] = useState<DriverListResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Fetch drivers
+  useEffect(() => {
+    async function fetchDrivers() {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await driversApi.getDrivers({
+          series: seriesFilter ?? undefined,
+          page: currentPage,
+          pageSize: 50,
+        });
+        setData(response);
+      } catch (err) {
+        console.error('Failed to fetch drivers:', err);
+        setError('Failed to load drivers. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchDrivers();
+  }, [seriesFilter, currentPage]);
+  
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [seriesFilter]);
   
   // Build breadcrumbs - include series if filtered
   const breadcrumbItems = seriesFilter && seriesName
@@ -147,11 +266,43 @@ export function DriversPage() {
     setSearchParams({});
   };
   
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    // Scroll to top of list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
   // Generate page title and subtitle based on filter
   const pageTitle = seriesName ? `${seriesName} Drivers` : 'Drivers';
   const pageSubtitle = seriesName
     ? `All drivers who have competed in ${seriesName}`
     : 'Discover drivers across all racing series';
+  
+  // Error state
+  if (error && !isLoading) {
+    return (
+      <MainLayout showBreadcrumbs>
+        <PageHeader
+          icon="👤"
+          title={pageTitle}
+          subtitle={pageSubtitle}
+        />
+        <EmptyState
+          icon="⚠️"
+          title="Error loading drivers"
+          description={error}
+          action={
+            <button
+              onClick={() => window.location.reload()}
+              className="text-accent-green hover:underline"
+            >
+              Try again
+            </button>
+          }
+        />
+      </MainLayout>
+    );
+  }
   
   return (
     <MainLayout showBreadcrumbs>
@@ -169,33 +320,61 @@ export function DriversPage() {
         </div>
       )}
       
-      <Section 
-        title={seriesFilter ? undefined : "Current F1 Drivers"} 
-        subtitle={seriesFilter ? undefined : "2025 Season"}
-      >
-        {filteredDrivers.length > 0 ? (
+      {/* Stats summary */}
+      {!isLoading && data && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatsCard icon="👤" label="Total Drivers" value={data.totalCount} />
+        </div>
+      )}
+      {isLoading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatsCardSkeleton />
+        </div>
+      )}
+      
+      <Section>
+        {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDrivers.map((driver) => (
-              <DriverCard key={driver.id} driver={driver} />
+            {Array.from({ length: 12 }).map((_, i) => (
+              <DriverCardSkeleton key={i} />
             ))}
           </div>
+        ) : data && data.items.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.items.map((driver) => (
+                <DriverCard key={driver.id} driver={driver} />
+              ))}
+            </div>
+            <Pagination
+              page={data.page}
+              totalCount={data.totalCount}
+              pageSize={data.pageSize}
+              hasMore={data.hasMore}
+              onPageChange={handlePageChange}
+              isLoading={isLoading}
+            />
+          </>
         ) : (
-          <div className="text-center py-12 text-neutral-500">
-            <p className="text-lg mb-2">No drivers found</p>
-            <p className="text-sm">
-              {seriesFilter 
+          <EmptyState
+            icon="🔍"
+            title="No drivers found"
+            description={
+              seriesFilter 
                 ? `No drivers have been added for ${seriesName || seriesFilter} yet.`
-                : 'No drivers available.'}
-            </p>
-            {seriesFilter && (
-              <button
-                onClick={handleClearFilter}
-                className="mt-4 text-accent-green hover:underline"
-              >
-                View all drivers
-              </button>
-            )}
-          </div>
+                : 'No drivers available in the database.'
+            }
+            action={
+              seriesFilter ? (
+                <button
+                  onClick={handleClearFilter}
+                  className="text-accent-green hover:underline"
+                >
+                  View all drivers
+                </button>
+              ) : undefined
+            }
+          />
         )}
       </Section>
     </MainLayout>
