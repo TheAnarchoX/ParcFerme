@@ -17,12 +17,16 @@ export const driversApi = {
   getDrivers: (options?: {
     series?: string;
     search?: string;
+    nationality?: string;
+    status?: 'active' | 'legend';
     page?: number;
     pageSize?: number;
   }): Promise<DriverListResponse> => {
     const params = new URLSearchParams();
     if (options?.series) params.append('series', options.series);
     if (options?.search) params.append('search', options.search);
+    if (options?.nationality) params.append('nationality', options.nationality);
+    if (options?.status) params.append('status', options.status);
     if (options?.page) params.append('page', options.page.toString());
     if (options?.pageSize) params.append('pageSize', options.pageSize.toString());
     const queryString = params.toString();

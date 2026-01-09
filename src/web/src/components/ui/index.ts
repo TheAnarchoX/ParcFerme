@@ -20,3 +20,12 @@ export {
   ImagePlaceholder,
   Placeholders,
 } from './Placeholders';
+export { default as FilterBar } from './FilterBar';
+export type { FilterConfig, FilterBarProps } from './FilterBar';
+export {
+  SERIES_OPTIONS,
+  NATIONALITY_OPTIONS,
+  DRIVER_STATUS_OPTIONS,
+  REGION_OPTIONS,
+} from './filterOptions';
+export type { FilterOption } from './filterOptions';

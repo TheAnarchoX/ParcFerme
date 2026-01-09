@@ -30,6 +30,7 @@ public class CircuitsController : ControllerBase
     /// <param name="pageSize">Items per page (max 100)</param>
     /// <param name="series">Optional series slug filter</param>
     /// <param name="country">Optional country filter</param>
+    /// <param name="region">Optional region filter: "europe", "americas", "asia", "oceania", "middle-east"</param>
     /// <param name="search">Optional search query (searches name, location, country)</param>
     [HttpGet]
     [CacheResponse(DurationSeconds = 300)]
@@ -39,6 +40,7 @@ public class CircuitsController : ControllerBase
         [FromQuery] int pageSize = 24,
         [FromQuery] string? series = null,
         [FromQuery] string? country = null,
+        [FromQuery] string? region = null,
         [FromQuery] string? search = null)
     {
         page = Math.Max(1, page);
@@ -74,6 +76,16 @@ public class CircuitsController : ControllerBase
             query = query.Where(c => 
                 c.Country.ToLower() == country.ToLower() ||
                 c.CountryCode == country.ToUpper());
+        }
+        
+        // Filter by region if provided
+        if (!string.IsNullOrEmpty(region))
+        {
+            var regionCountries = GetRegionCountries(region.ToLowerInvariant());
+            if (regionCountries.Length > 0)
+            {
+                query = query.Where(c => regionCountries.Contains(c.Country.ToLower()));
+            }
         }
 
         var totalCount = await query.CountAsync();
@@ -272,4 +284,30 @@ public class CircuitsController : ControllerBase
 
         return Ok(seasons);
     }
+    
+    /// <summary>
+    /// Get countries in a region for filtering.
+    /// </summary>
+    private static string[] GetRegionCountries(string region) => region switch
+    {
+        "europe" => [
+            "uk", "united kingdom", "great britain", "monaco", "italy", "spain", "belgium", 
+            "france", "germany", "netherlands", "austria", "hungary", "portugal", 
+            "switzerland", "finland", "sweden", "ireland", "poland", "azerbaijan"
+        ],
+        "americas" => [
+            "usa", "united states", "brazil", "mexico", "canada", "argentina"
+        ],
+        "asia" => [
+            "japan", "china", "singapore", "malaysia", "india", "south korea", "korea", 
+            "vietnam", "thailand", "indonesia"
+        ],
+        "oceania" => [
+            "australia", "new zealand"
+        ],
+        "middle-east" => [
+            "bahrain", "saudi arabia", "uae", "united arab emirates", "qatar", "abu dhabi"
+        ],
+        _ => []
+    };
 }

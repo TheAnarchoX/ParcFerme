@@ -14,6 +14,8 @@ export interface GetTeamsOptions {
   pageSize?: number;
   series?: string;
   search?: string;
+  nationality?: string;
+  status?: 'active' | 'historical';
 }
 
 /**
@@ -26,6 +28,8 @@ export async function getTeams(options?: GetTeamsOptions): Promise<TeamListRespo
   if (options?.pageSize) params.append('pageSize', options.pageSize.toString());
   if (options?.series) params.append('series', options.series);
   if (options?.search) params.append('search', options.search);
+  if (options?.nationality) params.append('nationality', options.nationality);
+  if (options?.status) params.append('status', options.status);
   
   const queryString = params.toString();
   const url = queryString ? `/teams?${queryString}` : '/teams';

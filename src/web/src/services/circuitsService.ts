@@ -14,6 +14,7 @@ export interface GetCircuitsOptions {
   pageSize?: number;
   series?: string;
   country?: string;
+  region?: 'europe' | 'americas' | 'asia' | 'oceania' | 'middle-east';
   search?: string;
 }
 
@@ -27,6 +28,7 @@ export async function getCircuits(options?: GetCircuitsOptions): Promise<Circuit
   if (options?.pageSize) params.append('pageSize', options.pageSize.toString());
   if (options?.series) params.append('series', options.series);
   if (options?.country) params.append('country', options.country);
+  if (options?.region) params.append('region', options.region);
   if (options?.search) params.append('search', options.search);
   
   const queryString = params.toString();

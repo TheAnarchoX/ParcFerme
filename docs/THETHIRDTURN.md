@@ -44,6 +44,7 @@ patterns:
 
 - **Series Database Index**: 
     - URL: `https://thethirdturn.com/wiki/Series_Database:Index`
+    - Source FIle: `docs/thethirdturn/series_database_index.html`
     - Description: Lists all racing series available in the database.
     - Data Points: 
         - Series
@@ -92,6 +93,7 @@ patterns:
 
 - **Individual Series Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Series_Name}`
+    - Source File: `docs/thethirdturn/series_nascar_cup_series_central.html`
     - Description: Contains detailed information about a specific racing series,
       including links to seasons and drivers.
     - Data Points: 
@@ -160,6 +162,7 @@ patterns:
 
 - **Individual Season Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Season_Name}`
+    - Source File: `docs/thethirdturn/season_1949_nascar_strictly_stock_central.html`
     - Description: Contains detailed information about a specific season, containing data and links to individual races
       about races, drivers, and results.
     - Data Points:
@@ -179,6 +182,7 @@ patterns:
 
 - **Individual Race Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Race_Name}`
+    - Source File: `docs/thethirdturn/nascar_strictly_stock_1949_01.html`
     - Description: Contains detailed information about a specific race event,
       including session results, classification, and race-specific details.
     - Data Points:
@@ -188,7 +192,7 @@ patterns:
             - (Session details for this race)
         - Result[]
             - (Driver results and classifications)
-    - Example: (TBD)
+    - Example: https://thethirdturn.com/wiki/NASCAR_Strictly_Stock:1949-01
     - Useful Links:
         - (TBD)
     - Useful Javascript:
@@ -198,6 +202,7 @@ patterns:
 
 - **Driver Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Driver_Name}`
+    - Source File: `docs/thethirdturn/fernando_alonso.html`
     - Description: Contains comprehensive information about a specific driver,
       including career statistics, race history, and biographical details.
     - Data Points:
@@ -205,7 +210,7 @@ patterns:
             - (Driver biographical and career fields)
         - DriverAlias[]
             - (Alternative names and spelling variations)
-    - Example: (TBD)
+    - Example: https://thethirdturn.com/wiki/Fernando_Alonso
     - Useful Links:
         - (TBD)
     - Useful Javascript:

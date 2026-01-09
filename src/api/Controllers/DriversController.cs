@@ -30,15 +30,19 @@ public sealed class DriversController : BaseApiController
     /// </summary>
     /// <param name="series">Optional series slug to filter by (e.g., "formula-1").</param>
     /// <param name="search">Optional search query (searches name, nationality, abbreviation).</param>
+    /// <param name="nationality">Optional nationality filter (exact match, case-insensitive).</param>
+    /// <param name="status">Optional status filter: "active" (competed 2024+), "legend" (pre-2024 only).</param>
     /// <param name="page">Page number (1-indexed).</param>
     /// <param name="pageSize">Number of items per page (default 50, max 100).</param>
     /// <param name="ct">Cancellation token.</param>
     [HttpGet]
-    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "search", "page", "pageSize"])]
+    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "search", "nationality", "status", "page", "pageSize"])]
     [ProducesResponseType(typeof(DriverListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDrivers(
         [FromQuery] string? series,
         [FromQuery] string? search,
+        [FromQuery] string? nationality,
+        [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
@@ -61,6 +65,33 @@ public sealed class DriversController : BaseApiController
                 (d.FirstName + " " + d.LastName).ToLower().Contains(searchLower) ||
                 (d.Nationality != null && d.Nationality.ToLower().Contains(searchLower)) ||
                 (d.Abbreviation != null && d.Abbreviation.ToLower().Contains(searchLower)));
+        }
+        
+        // Apply nationality filter if provided
+        if (!string.IsNullOrWhiteSpace(nationality))
+        {
+            baseQuery = baseQuery.Where(d => 
+                d.Nationality != null && d.Nationality.ToLower() == nationality.ToLowerInvariant());
+        }
+        
+        // Apply status filter (active = competed 2024+, legend = pre-2024 only)
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var activeYear = 2024;
+            var activeDriverIds = await _db.Entrants
+                .Where(e => e.Round.Season.Year >= activeYear)
+                .Select(e => e.DriverId)
+                .Distinct()
+                .ToListAsync(ct);
+                
+            if (status.Equals("active", StringComparison.OrdinalIgnoreCase))
+            {
+                baseQuery = baseQuery.Where(d => activeDriverIds.Contains(d.Id));
+            }
+            else if (status.Equals("legend", StringComparison.OrdinalIgnoreCase))
+            {
+                baseQuery = baseQuery.Where(d => !activeDriverIds.Contains(d.Id));
+            }
         }
 
         // Filter by series if specified
