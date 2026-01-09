@@ -489,6 +489,14 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 **Pre-Launch Critical**
 - [ ] Legal review of historical data usage and user-generated content policies
+- [ ] Finalize CC BY-SA 4.0 licensing for data exports and document attribution requirements
+
+**Data & Licensing Infrastructure**
+- [ ] Create "Data & Licensing" page with full legal text and attribution
+- [ ] Add footer attribution snippet to all pages (CC BY-SA 4.0, data sources)
+- [ ] Setup bulk data download system (torrent for historical archive, PostgreSQL dumps)
+- [ ] Document API rate limits and usage guidelines for third parties
+- [ ] Create contributor attribution system for community-submitted data
 
 **Launch Prep**
 - [ ] Finalize marketing materials (press kit, screenshots, feature list)
@@ -527,6 +535,12 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - Basic info (date, watched vs attended)
   - Optional: car/team/driver focus, comments
   - Post-log redirect with results revealed
+- [ ] "Weekend Wrapper" logging mode
+  - Quick Log (Race Only) as default for casual fans
+  - Full Weekend Log with checkboxes for FP1/FP2/FP3/Quali/Sprint/Race
+  - Individual session ratings + weekend aggregate rating (weighted: Race 60%, Quali 25%, Sprint 10%, FP 5%)
+  - "Weekend Completeness" badge for users who watch every session
+  - Fan segmentation tracking: "Hardcore Fans" (FP watchers), "Qualifying Connoisseurs", "Sunday Drivers"
 - [ ] Logs API (CRUD for race logs)
 - [ ] Reviews API (create, read, like)
 
@@ -597,6 +611,13 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 ### Social & Discovery
 - [ ] Lists API (create, share, collaborate)
 - [ ] Lists feature UI (create, edit, share)
+- [ ] **"Sagas" (Chronological Playlists)**
+  - Special list type with `saga_mode` flag enforcing chronological ordering
+  - Designed for serialized storytelling: rivalries, championship fights, career arcs
+  - Timeline/subway-map UI view instead of poster grid
+  - Chapter markers with annotations (e.g., "The turning point", "The crash that changed everything")
+  - Examples: "Hamilton vs Verstappen 2021", "Ford vs Ferrari Le Mans Era", "Senna's Rise"
+  - Schema: `List.saga_mode` boolean, `ListItem.chapter_title`, `ListItem.saga_date`
 - [ ] Social feed algorithm
 - [ ] Activity notifications + notification center
 - [ ] Enhanced user profiles (stats, badges, year in review)
@@ -687,11 +708,46 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Achievement system UI
 - [ ] Stats dashboards
 
-### Premium Tier (PaddockPass)
-- [ ] PaddockPass premium features definition
+### Premium Tier (Paddock Pass)
+
+**Philosophy:** "Show your colors, manage your schedule, see your stats." Paddock Pass enhances identity and convenience, never gatekeeps data. 100% of revenue goes to infrastructure.
+
+#### 🎨 "Livery" Customization (Identity)
+- [ ] Team accent colors system (Ferrari red, McLaren papaya, etc. for UI elements)
+- [ ] Dark/Light mode overrides: "Midnight Mode" (AMOLED black), "Blueprint Mode" (technical drawing)
+- [ ] Custom app icons (tire compound colors, retro helmet designs)
+- [ ] Custom race poster selection (vintage posters, fan art, team promo materials)
+- [ ] Profile flair: supporter badges, legacy badges (1yr, 2yr member), verification badges
+
+#### 📊 "Telemetry" Personal Stats (Insight)
+- [ ] Lap counter: "You've watched X laps of racing this year"
+- [ ] Track heatmap: World map visualization of circuits watched
+- [ ] Constructor breakdown: Pie chart of race winners in viewing history
+- [ ] Driver bias analysis: "You rate races X% lower when [driver] wins"
+- [ ] Year in Review: Comprehensive annual stats summary (shareable card)
+- [ ] GitHub-style activity heatmap for viewing patterns
+
+#### 🏆 "Pit Wall" Features (Lists & Logs)
+- [ ] List forking: Clone/fork someone else's list as starting point
+- [ ] Custom list headers: Upload custom header images for lists
+- [ ] Pinned reviews: Pin favorite review to top of profile
+- [ ] Advanced filtering: Complex queries (wet races, date ranges, rating thresholds)
+
+#### 🔧 "Scrutineering" Rights (Community Influence)
+- [ ] Priority data queue: Fast-track flag for data corrections/additions submitted by supporters
+- [ ] Contributor recognition: Special badge for verified data contributors
+
+#### 📅 Calendar Sync (Paddock Pass Feature)
+- [ ] iCal subscription feeds for personalized calendar
+- [ ] Session type filtering (include/exclude FP, Quali, etc.)
+- [ ] Push notifications for schedule changes
+- [ ] See Phase 5 (Smart Calendar Sync) for full implementation details
+
+#### Payment & Subscription
 - [ ] Payment integration (Stripe)
-- [ ] PaddockPass upgrade flow
-- [ ] Advanced stats dashboards (premium-only)
+- [ ] Paddock Pass upgrade flow ($2.99/mo or $24.99/yr pricing)
+- [ ] Subscription management (cancel, pause, resume)
+- [ ] Funding transparency page (where the money goes)
 
 ### Mobile App
 - [ ] React Native app scaffold
@@ -700,7 +756,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 ---
 
-## 🗓️ Phase : Smart Calendar Sync
+## 🗓️ Phase 5: Smart Calendar Sync
 
 **Goal:** Become the single sync point for motorsport calendars—never hunt for ICS files again
 
@@ -712,11 +768,14 @@ Traditional motorsport calendars are static files you download once per year. We
 4. **Just work** with modern calendar apps (Google, Apple, Outlook, etc.)
 
 ### Core Features
-- [ ] iCalendar (.ics) subscription feeds (not static downloads)
-  - `/api/v1/calendar/{userId}/subscribe.ics` - personalized feed
-  - `/api/v1/calendar/series/{seriesSlug}.ics` - per-series public feed
-  - Event descriptions with deep links to session pages
-  - Location data for attended-mode reminders
+
+#### Free Tier (Per-Series Public Feeds)
+- [ ] `/api/v1/calendar/series/{seriesSlug}.ics` - public per-series calendar feeds
+- [ ] Event descriptions with deep links to session pages
+- [ ] Automatic schedule sync (background job updates when source data changes)
+
+#### Paddock Pass (Personalized Feeds)
+- [ ] `/api/v1/calendar/{userId}/subscribe.ics` - personalized feed
 - [ ] Smart profile inference
   - Auto-detect preferred series from logging history
   - Infer timezone from most-viewed sessions
@@ -725,9 +784,8 @@ Traditional motorsport calendars are static files you download once per year. We
   - Include/exclude session types (skip FP1/FP2 for casual fans)
   - Lead time reminders (30min, 1hr, 1 day before)
   - Spoiler-safe event titles option ("F1 Race" vs "Monaco Grand Prix")
-- [ ] Automatic schedule sync
-  - Background job to update ICS feeds when source data changes
-  - Push notifications for last-minute schedule changes (PaddockPass feature)
+  - Location data for attended-mode reminders
+- [ ] Push notifications for last-minute schedule changes
 
 ### Technical Implementation
 - [ ] ICS generation service (iCalendar RFC 5545 compliant)
@@ -737,8 +795,8 @@ Traditional motorsport calendars are static files you download once per year. We
 - [ ] Recurring event handling for multi-day weekends
 
 ### Future Enhancements
-- [ ] "Add to Calendar" one-click buttons on session pages
-- [ ] Calendar widget for mobile app home screen
+- [ ] "Add to Calendar" one-click buttons on session pages (free)
+- [ ] Calendar widget for mobile app home screen (Paddock Pass)
 - [ ] Outlook/Exchange direct sync (enterprise users)
 - [ ] Shared team calendars for watch parties
 
@@ -750,6 +808,7 @@ Traditional motorsport calendars are static files you download once per year. We
 - [ ] OAuth providers (Discord, Apple) — [PARTIAL: Google planned for MVP]
 - [ ] Import from other platforms (CSV, potential BoxBoxd migration)
 - [ ] Export user data (GDPR compliance)
+- [ ] Bulk data download page (torrent, PostgreSQL dumps, API access documentation)
 - [ ] Public API for third-party apps
 - [ ] Browser extension for spoiler blocking
 - [ ] Watch party coordination
@@ -796,12 +855,17 @@ Traditional motorsport calendars are static files you download once per year. We
 4. **Excitement ≠ Quality** — Separate ratings for "how exciting" vs "how good"
 5. **Multi-color brand support** — Series can have multiple brand colors for visual identity
 6. **Entity normalization** — Alias tracking for consistent driver/team/circuit identity across data sources
+7. **Open data philosophy** — All motorsport data is CC BY-SA 4.0, available for bulk download
+8. **Paddock Pass = identity + convenience** — Never gatekeeps data, only enhances experience
+9. **Weekend-level logging** — Support both quick race-only and full weekend logging modes
 
 ### Open Questions
 - How to handle live session updates without spoilers?
-- Should lists be collaborative by default?
-- PaddockPass pricing strategy? (Letterboxd model: ~$4/mo Pro, ~$10/mo Patron)
+- Should lists be collaborative by default? → Consider read-only by default, explicit collaboration opt-in
+- ~~PaddockPass pricing strategy?~~ → Decided: $2.99/mo or $24.99/yr (impulse price point)
 - Community contribution model details for non-F1 series data?
+- Should Sagas have a special "Rivalry" tag system for driver/team pairings?
+- Calendar sync: Free tier gets per-series public feeds, Paddock Pass gets personalized feeds?
 
 ### External Dependencies
 - **OpenF1 API** — Unofficial, may change; fallback to SportMonks (~€55/mo) if needed

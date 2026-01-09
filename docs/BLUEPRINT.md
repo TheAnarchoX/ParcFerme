@@ -40,7 +40,30 @@ In motorsport, the "unit of content" is the Race Weekend. Fans currently lack th
 
 By providing the infrastructure for this curation, Parc Fermé empowers the community to organize the chaotic history of motorsport into accessible entry points for new fans (driven by _Drive to Survive_) and nostalgic archives for veterans. This User-Generated Content (UGC) becomes a powerful organic growth engine, as highly shared lists act as SEO magnets.<sup>3</sup>
 
-### 2.2 Competitive Landscape and Gap Analysis
+### 2.4 "Sagas": Chronological Playlists for Serialized Storytelling
+
+Motorsport is fundamentally **serialized**—championships unfold over months, rivalries span years, and careers are epic narratives. Traditional lists (as seen on Letterboxd) are typically unordered collections. Parc Fermé introduces a specialized list type: the **Saga** (also called "Championship Fight" or "Rivalry Timeline").
+
+#### The Feature
+A Saga is a strict chronological playlist mechanism that tells a story through races:
+- **"The Hamilton vs. Verstappen 2021 War"** — All 22 races of their championship battle in order
+- **"The Ford vs. Ferrari Le Mans Era"** — The 1960s endurance battles
+- **"Senna's Rise to Greatness"** — Key races from his karting days through his championships
+- **"Rain Masters"** — Iconic wet races chronologically showing evolution of wet-weather racing
+
+#### The UI Differentiation
+Instead of a grid of posters (standard list view), Sagas display as:
+- **Timeline View:** A horizontal scrolling timeline with race nodes
+- **Subway Map View:** Track the progression across different circuits like metro stops
+- **Chapter Markers:** Users can annotate key moments ("The turning point," "The crash that changed everything")
+
+#### Technical Implementation
+- `List.saga_mode` boolean field enables chronological enforcement
+- `ListItem.chapter_title` optional string for narrative annotations
+- `ListItem.saga_date` for timeline positioning (usually Session.start_time)
+- API enforces chronological ordering when `saga_mode = true`
+
+### 2.5 Competitive Landscape and Gap Analysis
 
 The motorsport digital ecosystem is crowded, but specific niches remain underserved.
 
@@ -55,7 +78,7 @@ The motorsport digital ecosystem is crowded, but specific niches remain underser
 
 **The Gap:** Parc Fermé occupies the white space between these segments. It combines the historical depth of statistical sites, the user-centricity of social platforms, and the utility of venue guides.
 
-### 2.3 User Personas
+### 2.6 User Personas
 
 Successful product design requires clear target personas.
 
@@ -211,6 +234,30 @@ The UX of Parc Fermé must differ fundamentally from Twitter or Reddit. It must 
 
 - **Search/Identify:** User searches "Monaco" -> Selects "2024 Monaco Grand Prix".
 - **Context Modal:** "Did you Watch this or Attend this?" (Two distinct buttons).
+
+#### The "Weekend Wrapper" Option
+
+Unlike movies which are single files, **races are weekends**. The logging flow must acknowledge this reality:
+
+- **Quick Log (Race Only):** Default option for casual fans—just rate the main race
+- **Full Weekend Log:** Expands to show checkboxes for all sessions:
+  - ☐ Free Practice 1
+  - ☐ Free Practice 2  
+  - ☐ Free Practice 3
+  - ☐ Qualifying / Sprint Shootout
+  - ☐ Sprint Race (if applicable)
+  - ☑ Main Race (pre-checked)
+
+**Fan Segmentation Insights:** This enables powerful analytics:
+- **"Hardcore Fans"** — Users who watch Free Practice sessions (true enthusiasts)
+- **"Qualifying Connoisseurs"** — Users who always watch Quali but skip practice
+- **"Sunday Drivers"** — Users who only watch the main GP (casual fans)
+
+**Weekend-Level Rating:** When multiple sessions are logged, the system calculates:
+- Individual session ratings (user-provided)
+- Weekend aggregate rating (weighted: Race 60%, Quali 25%, Sprint 10%, FP 5%)
+- "Weekend Completeness" badge for users who watch every session
+
 - **The Rating Matrix (Watched):**
   - Star Rating (0.5 - 5.0).
   - "Like" Heart (Binary sentiment).
@@ -264,22 +311,64 @@ The "Letterboxd Effect" exploded when directors and stars joined. In racing, dri
 
 Running a database-heavy site has costs (storage, bandwidth, APIs). Monetization must be present but unobtrusive to avoid alienating the community.
 
-### 8.1 Freemium vs. "Paddock Club" (Pro Tier)
+### 8.1 Freemium vs. "Paddock Pass" (Pro Tier)
 
-The Letterboxd "Pro/Patron" model is the blueprint.<sup>33</sup>
+The Letterboxd "Pro/Patron" model is the blueprint.<sup>33</sup> However, our monetization philosophy is strict: **the Paddock Pass enhances identity and convenience, never gatekeeps data**.
 
-- **Free Tier:** Unlimited logging, ads (banner), basic stats.
-- **"Pit Wall" (Pro - \$4/mo):**
-  - Ad-free experience.
-  - Advanced Filtering (Filter lists by "Streaming Service availability").
-  - Profile Header customization (Upload a cover photo of your favorite car).
-  - Early access to new features.
-- **"Paddock Club" (Patron - \$10/mo):**
-  - Beta access.
-  - "Supporter" Badge on profile.
-  - Priority support.
+#### The Philosophy: "Show Your Colors, Manage Your Schedule, See Your Stats"
 
-### 8.2 Affiliate Revenue (Contextual Commerce)
+100% of Paddock Pass revenue goes toward server infrastructure, bandwidth, and development tools. This is a passion project, not a profit engine.
+
+- **Free Tier ("Grid"):** Unlimited logging, unlimited history, basic stats, all historical data.
+
+- **"Paddock Pass" ($2.99/mo or $24.99/yr):**
+
+  **🎨 "Livery" Customization (Identity)**
+  - **Team Accent Colors:** Select your team (Ferrari, McLaren, etc.) and the app's buttons, progress bars, and links adopt your team's colors (Rosso Corsa, Papaya Orange, etc.)
+  - **Dark/Light Mode Overrides:** Exclusive "Midnight Mode" (AMOLED black) and "Blueprint Mode" (technical drawing aesthetic)
+  - **Custom App Icons:** Change the home screen icon to match tire compounds (Soft Red, Medium Yellow, Hard White, Wet Blue) or retro helmet designs
+  - **Custom Race Posters:** Swap default race thumbnails for vintage posters, fan art, or team promo materials on your profile
+
+  **📊 "Telemetry" Personal Stats (Insight)**
+  - **Lap Counter:** "You have watched 3,400 laps of racing this year"
+  - **Track Heatmap:** World map showing which circuits you've watched the most races from
+  - **Constructor Breakdown:** Pie chart showing percentage of races won by different manufacturers in your viewing history
+  - **Driver Bias Analysis:** "You rate races 15% lower when Max Verstappen wins"
+  - **Year in Review:** Comprehensive annual stats summary (shareable)
+  - **GitHub-style Activity Heatmap:** Visualize your viewing patterns across the calendar
+
+  **📅 Calendar Sync (Utility)**
+  - **iCal Subscription Feeds:** Dynamic .ics links for Google/Apple/Outlook Calendar
+  - **Personalized Filters:** Only sync series/sessions you care about
+  - **Auto-Updates:** Feed automatically updates when schedules change
+  - **Push Notifications:** Last-minute schedule change alerts
+
+  **🏆 "Pit Wall" Features (Lists & Logs)**
+  - **Cloned/Forked Lists:** "Fork" someone else's list to make your own version
+  - **Custom List Headers:** Upload custom header images for your lists
+  - **Pinned Reviews:** Pin your favorite review to the top of your profile
+  - **Advanced Filtering:** Complex queries like "Show me all wet races from 2012-2016 rated above 4 stars"
+
+  **🔧 "Scrutineering" Rights (Community Influence)**
+  - **Priority Data Queue:** If you submit a data correction or request to add missing historic data, your ticket gets "Fast Track" flag in the moderation queue
+  - **Note:** This isn't paying for data—it's paying for faster review of your contribution
+
+  **🎫 Cosmetic "Passport" Stamps**
+  - **Legacy Badges:** "Season Ticket Holder" badges for 1, 2, 3+ year members
+  - **Verification Badge:** Special checkmark/helmet icon for known data contributors
+  - **Supporter Badge:** Visible on profile indicating platform support
+
+### 8.2 Funding Transparency
+
+Parc Fermé is transparent about where money goes:
+- **Server Infrastructure:** Hosting, database, CDN
+- **Bandwidth:** Image storage, API calls, data exports
+- **Development Tools:** APIs (SportMonks if needed), testing infrastructure
+- **Community Tools:** Moderation systems, contributor rewards
+
+The Paddock Pass does **not** gatekeep the data itself (which is always free via API/bulk downloads), but offers UI conveniences, cosmetic customization, and platform support perks.
+
+### 8.3 Affiliate Revenue (Contextual Commerce)
 
 This is potentially the highest revenue driver.
 
@@ -308,6 +397,41 @@ This is potentially the highest revenue driver.
 - **OpenF1:** Generally permissive but check for "commercial use" restrictions if you introduce subscriptions.
 - **Scraping:** If scraping data (e.g., for MotoGP), ensure you are not violating the robots.txt or ToS of the source site. Using "Fact" data (dates, results) is generally not copyrightable, but the _collection_ structure can be protected in some jurisdictions (EU Database Directive).
 - **GDPR/CCPA:** As a social platform storing user data (email, location habits), strict compliance is required. Implement "Delete My Data" and "Export My Data" features from Day 1.<sup>36</sup>
+
+### 9.3 Data Licensing & Transparency
+
+Parc Fermé is built on the belief that **motorsport history belongs to everyone**. We act as the "missing product"—a modern, user-friendly interface to explore the rich history of racing. This commitment to openness is non-negotiable.
+
+#### 9.3.1 The Data (CC BY-SA 4.0)
+
+The database driving Parc Fermé—including race results, driver statistics, circuit information, and historical records—is available under the **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)** license.
+
+- **Sources:** Data is derived from the Ergast Archive, OpenF1 API, The Third Turn database, and contributions from our community.
+- **Your Rights:** You are free to **share** and **adapt** this data for any purpose, even commercially, as long as you give appropriate credit and distribute your contributions under the same license.
+- **Bulk Access:** We believe in true open data. You don't need to scrape our site. We provide regularly updated bulk downloads of our full dataset:
+  - **Torrent:** For the complete historical archive
+  - **API:** Rate-limited but free for programmatic access
+  - **Database dumps:** PostgreSQL-compatible exports
+
+#### 9.3.2 The Platform (Copyright)
+
+While the data is open to all, the **Parc Fermé platform**—including our logo, branding, "Paddock Pass" concept, custom visualizations, site design, and source code—is © 2026 Parc Fermé.
+
+- **The Distinction:** The facts (e.g., "Max Verstappen won the 2023 World Championship") are open. The presentation (how we display that fact using our specific UI, the algorithms that power our recommendations, the design of our Race Cards) is proprietary.
+
+#### 9.3.3 Competitive Differentiation on Data
+
+Unlike competitors like BoxBoxd that gate historical data behind paywalls, Parc Fermé commits to **never restricting access to factual motorsport data**. Our competitive advantage lies in:
+- Superior user experience and interface design
+- Community features and social engagement tools
+- The "Watched vs Attended" duality that adds unique value
+- Curated editorial content and recommendations
+
+#### 9.3.4 Footer Attribution
+
+Every page must include the following footer snippet for legal compliance:
+
+> **Data & Licensing:** Parc Fermé is an open-data project. All motorsport data is licensed under CC BY-SA 4.0 and is available for bulk download. Data sourced from OpenF1, Ergast, The Third Turn, and community contributors. Site design and code © 2026 Parc Fermé. [Read the full Data Policy].
 
 ## 10\. Implementation Roadmap: From MVP to Platform
 
