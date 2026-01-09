@@ -556,6 +556,8 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 ##### 5. Miscellaneous
 - [ ] Develop "Standings" module in the backend to calculate championship points based on the official points system for each series taking historical changes into account.
+- [ ] Retroactively calculate and store championship standings for past seasons using the new "Standings" module.
+- [ ] Add "Points System" section to Series detail pages explaining how points are awarded for that series.
 - [ ] Add "Current/Final Championship Standings" section to Series detail pages
 - [ ] Add "Championship Standings" tab to Season detail pages
 
@@ -604,8 +606,39 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Advanced search UI with filters
 
 ### Moderation (Moved from Phase 1)
-- [ ] Admin/Mod tools (user management, content moderation queue, missing datapoint reports and work queue)
-- [ ] Community reporting tools (flag logs/reviews, report data issues)
+- [ ] Admin/Mod tools (moderation + data quality triage)
+  - **Goal:** Provide a lightweight internal tool for staff/moderators to manage users, review reported content, and triage missing/low-quality data without direct DB access.
+  - **Scope (MVP):**
+    - **User management**
+      - View user profile summary (id, email/username, created date, membership tier)
+      - Actions: suspend/unsuspend, revoke refresh tokens, force sign-out
+      - Audit log for all admin actions (who/when/what)
+    - **Moderation queue (logs/reviews)**
+      - Central queue fed by user reports
+      - Review reported item, reporter reason, history
+      - Actions: dismiss, remove/hide content, warn user, suspend user
+      - Notes on resolution (required) + audit log entry
+    - **Data quality triage queue**
+      - Create a queue of “data issues” (missing fields, suspected duplicates, bad names/aliases)
+      - Each issue has: entity type/id, field(s), severity (Required/NiceToHave), source, description, status, assignee
+      - Actions: mark resolved / needs community / won’t fix
+  - **Acceptance Criteria:**
+    - All actions are permission-gated to Admin/Moderator roles
+    - Every action writes an immutable audit log row
+    - Queue views support filtering (status, type, severity) and basic pagination
+    - No spoilers exposed by default in moderation views unless the moderator explicitly reveals them
+
+- [ ] Community reporting + transparency tooling
+  - **Reporting (User-facing):**
+    - Report a log/review for: spoiler violation, harassment, spam, other (free-text)
+    - Report a data issue for an entity (driver/team/circuit/round/session): incorrect name, missing fields, duplicate entity, wrong dates/locations
+  - **Transparency (Public-facing):**
+    - Show “data completeness” indicators for entities (e.g., missing wikipediaUrl/altitude, missing results, missing entrants)
+    - Provide a “Suggest an edit” entry point that creates a structured data issue (not a free-form comment)
+  - **Acceptance Criteria:**
+    - Reporting endpoints validate input and rate-limit per user/IP
+    - Report creation immediately appears in the admin moderation/data triage queues
+    - Public completeness indicators are spoiler-safe (never reveal winners/results)
 - [ ] Distinguished mod/admin roles with elevated permissions and badges
 
 ### Mobile & Responsive
@@ -613,16 +646,205 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 ---
 
-## 🗓️ Phase 3: Podium (Multi-Series & Premium)
+## 🗓️ Phase 3: The Third Turn - Historic Multi-Series Expansion
 
-**Goal:** Expand beyond F1, venue guides, gamification, monetization
+**Goal:** Leverage The Third Turn's comprehensive motorsport database to rapidly expand beyond F1 with minimal manual data entry
 
-### Multi-Series Expansion
-- [ ] MotoGP data integration (community contribution model)
-- [ ] IndyCar data integration (community JSON sources)
-- [ ] WEC data integration (complex: multi-class, multi-driver per car, time-based races)
-  - Custom scraper for https://fiawec.alkamelsystems.com/
+**Data Source:** [The Third Turn](https://www.thethirdturn.com/wiki/) — CC BY-NC-SA 4.0 licensed historic motorsport database covering most major racing series from 1900s-present
+
+**Why This Works:**
+- Structured, scrapable HTML with consistent patterns across series
+- Already includes MotoGP, IndyCar, WEC, NASCAR, Formula E, and dozens more series
+- Includes historical data, driver rosters, team lineups, race results
+- JavaScript extraction examples already documented in [THETHIRDTURN.md](./docs/THETHIRDTURN.md)
+- Can be implemented in Python following existing ingestion patterns
+
+### Phase 3A: The Third Turn Scraper Foundation
+
+**Goal:** Build a reliable, maintainable web scraper for The Third Turn using Python
+
+#### Implementation Tasks
+
+**1. Scraper Architecture Setup**
+- [ ] Create `src/python/ingestion/sources/thethirdturn/` module structure
+  - `client.py` — HTTP client with rate limiting, retry logic, caching
+  - `parsers.py` — BeautifulSoup-based HTML parsing utilities
+  - `models.py` — Pydantic models for scraped data (mirror EventModels.cs structure)
+  - `extractors.py` — Page-specific extraction logic (series index, season pages, race pages)
+- [ ] Add dependencies: `beautifulsoup4`, `lxml`, `httpx` (async HTTP client)
+- [ ] Implement respectful crawling:
+  - Rate limit: 1 request per 2 seconds minimum (configurable)
+  - User-Agent: "ParcFerme/1.0 (https://parcferme.com; contact@parcferme.com)"
+  - Retry with exponential backoff on 429/503
+  - Cache responses locally to avoid re-scraping (SQLite cache DB)
+- [ ] Add attribution footer to all series pages: "Historical data from The Third Turn (CC BY-NC-SA 4.0)"
+
+**2. Series Index Scraper** (Completed: when implemented)
+- [ ] Scrape `https://thethirdturn.com/wiki/Series_Database:Index`
+- [ ] Extract all series with name, URL, governing body
+- [ ] Filter out "Local Racing Division" entries
+- [ ] Map to Series model with:
+  - Name: from link text
+  - Slug: auto-generated from name
+  - GoverningBody: from table row header
+  - Source: "The Third Turn"
+- [ ] Store in database with `ThirdTurnSeriesUrl` tracking field
+- [ ] CLI command: `python -m ingestion.thethirdturn series-index`
+
+**3. Series Detail Scraper** (Completed: when implemented)
+- [ ] Scrape individual series pages (e.g., `/wiki/NASCAR_Cup_Series_Central`)
+- [ ] Extract Series metadata:
+  - Alternative names (SeriesAlias) with date ranges using regex parsing
+  - Governing body, country, category (if available)
+- [ ] Extract all Season links with years
+- [ ] Map to Season model with:
+  - Year: from link text
+  - SeriesId: foreign key to Series
+  - ThirdTurnSeasonUrl: tracking field
+- [ ] CLI command: `python -m ingestion.thethirdturn series-detail <series-url>`
+- [ ] Bulk mode: `python -m ingestion.thethirdturn sync-all-series`
+
+**4. Season/Race Listing Scraper** (Completed: when implemented)
+- [ ] Scrape season pages (e.g., `/wiki/1949_NASCAR_Strictly_Stock_Central`)
+- [ ] Extract race listings from main table:
+  - Round number (if available)
+  - Race name
+  - Circuit name
+  - Date
+  - Race URL
+- [ ] Map to Round model with:
+  - Name: "{Year} {SeriesName} Round {Number}" or race name if unique
+  - DateStart: parsed from table
+  - CircuitId: resolved via CircuitMatcher
+  - ThirdTurnRaceUrl: tracking field
+- [ ] Handle circuit name variations using existing CircuitMatcher
+- [ ] Create PendingMatch for uncertain circuit matches
+- [ ] CLI command: `python -m ingestion.thethirdturn season <season-url>`
+
+**5. Race Detail Scraper** (Future — Phase 3B)
+- [ ] Scrape individual race pages for detailed results
+- [ ] Extract qualifying/practice session data (if available)
+- [ ] Extract driver results with positions, times, status
+- [ ] Map to Session, Entrant, Result models
+- [ ] CLI command: `python -m ingestion.thethirdturn race <race-url>`
+
+**6. Driver Database Scraper** (Future — Phase 3B)
+- [ ] Scrape `/wiki/{Series_Name}/Drivers` pages
+- [ ] Extract driver roster with career spans
+- [ ] Map to Driver model with DriverAlias tracking
+- [ ] CLI command: `python -m ingestion.thethirdturn drivers <series-url>`
+
+**Testing Strategy:**
+- Unit tests for each extractor function with saved HTML fixtures
+- Integration tests with live scraping (marked `@pytest.mark.live`, skipped in CI)
+- Validator script: `python -m ingestion.thethirdturn validate <series-name>` to check data completeness
+- Comparison tests: verify scraped data matches known-good reference (e.g., 1949 NASCAR season)
+
+**Success Criteria:**
+1. Scraper handles network failures gracefully (retry, cache, resume)
+2. Entity matching uses existing DriverMatcher/TeamMatcher/CircuitMatcher with >95% accuracy
+3. Attribution displayed on all relevant pages
+4. Scraper can import a full series (all seasons + races) in <10 minutes
+5. No more than 1 uncertain match per 50 entities (flagged for review via PendingMatch)
+
+### Phase 3B: Multi-Series Data Import
+
+**Goal:** Use The Third Turn scraper to import complete historical data for major series
+
+**Priority Order (based on user demand + data availability):**
+
+**1. MotoGP** (Estimated: 2-3 days)
+- [ ] Import series metadata + seasons (1949-present, 75+ seasons)
+- [ ] Import race calendar for recent years (2020-2025)
+- [ ] Import complete 2024-2025 results for MVP coverage
+- [ ] Defer historical results (1949-2019) to post-launch backfill
+- [ ] Add MotoGP-specific session types: FP1, FP2, Practice, Qualifying, Sprint, Race
+- [ ] Add MotoGP to series navigation dropdown
+
+**2. IndyCar** (Estimated: 2-3 days)
+- [ ] Import series metadata + seasons (focus on modern era: 1996-present)
+- [ ] Handle split era complexity (CART vs IRL 1996-2007)
+- [ ] Import race calendar for recent years (2020-2025)
+- [ ] Import complete 2024-2025 results for MVP coverage
+- [ ] Add IndyCar-specific tracks: ovals, road courses, street circuits
+- [ ] Add IndyCar to series navigation dropdown
+
+**3. WEC (World Endurance Championship)** (Estimated: 3-4 days)
+- [ ] Import series metadata + seasons (2012-present)
+- [ ] Handle multi-class complexity (Hypercar, LMP2, LMGTE)
+- [ ] Handle multi-driver cars (3 drivers per car in most classes)
+- [ ] Import race calendar for recent years (2020-2025)
+- [ ] Import complete 2024-2025 results for MVP coverage
+- [ ] Time-based results (not lap-based): store total race time, gaps
+- [ ] Add WEC to series navigation dropdown
+
+**4. Formula E** (Estimated: 1-2 days)
+- [ ] Import series metadata + seasons (2014-present)
+- [ ] Import race calendar for recent years (2020-2025)
+- [ ] Import complete 2024-2025 results
+- [ ] Handle unique session format: Practice, Qualifying (group + duel), Race
+- [ ] Add Formula E to series navigation dropdown
+
+**5. Additional Series** (Future expansion, post-launch)
+- [ ] NASCAR Cup Series (1949-present) — massive dataset, ~70 seasons
+- [ ] Formula 2 / Formula 3
+- [ ] IMSA WeatherTech SportsCar Championship
+- [ ] Super Formula (Japan)
+- [ ] DTM (Deutsche Tourenwagen Masters)
+- [ ] British Touring Car Championship (BTCC)
+
+**Data Volume Estimates (The Third Turn coverage):**
+- MotoGP: ~75 seasons, ~1,300 race weekends, ~25,000 results
+- IndyCar: ~30 seasons (modern era), ~700 rounds, ~15,000 results
+- WEC: ~12 seasons, ~120 rounds, ~8,000 results (multi-class)
+- Formula E: ~11 seasons, ~140 rounds, ~3,500 results
+- NASCAR: ~75 seasons, ~2,500 rounds, ~100,000+ results (massive)
+
+**Phased Import Strategy:**
+1. **Series + Seasons** (fast, low risk)
+2. **Recent calendars** (2020-2025, establishes current coverage)
+3. **Recent results** (2024-2025, enables MVP logging)
+4. **Historical backfill** (post-launch, as background task)
+
+### Phase 3C: Multi-Series UI Polish
+
+**Goal:** Update navigation, discovery, and series-specific UI for non-F1 series
+
+**UI Updates:**
 - [ ] Multi-series navigation UI updates
+  - Series switcher in header (currently hardcoded to F1)
+  - Series logos for MotoGP, IndyCar, WEC, Formula E
+  - Series-specific color schemes (apply brand colors)
+- [ ] Session type display for non-F1 formats
+  - MotoGP: Sprint vs Grand Prix
+  - WEC: Practice, Qualifying, Warm-up, Race (multi-hour)
+  - Formula E: Practice, Qualifying (group + duel), Race
+- [ ] Multi-class results display (WEC only)
+  - Separate tables/tabs for Hypercar, LMP2, LMGTE
+  - Overall classification + class-specific positions
+- [ ] Multi-driver entrants (WEC, IMSA)
+  - Display all drivers for a car entry
+  - Handle driver changes mid-season
+- [ ] Oval track display (IndyCar, NASCAR)
+  - Distinguish oval, road course, street circuit in UI
+  - Lap-based results with average speed
+
+**Testing:**
+- [ ] Verify spoiler shield works correctly for all series
+- [ ] Verify entity matching works for non-F1 drivers/teams
+- [ ] Verify navigation flow works across all series
+
+**Success Criteria:**
+1. Users can browse and discover any supported series with same UX as F1
+2. Series-specific quirks (multi-class, multi-driver, time-based) display correctly
+3. Spoiler shield works identically across all series
+4. No hardcoded F1 assumptions in UI components
+
+---
+
+## 🗓️ Phase 4: Podium (Premium, Gamification, Mobile)
+
+**Goal:** Venue guides, gamification, monetization, mobile app
 
 ### Venue & Circuit Guides
 - [ ] Circuit/Venue guides API
@@ -647,7 +869,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 ---
 
-## 🗓️ Phase 4: Smart Calendar Sync
+## 🗓️ Phase : Smart Calendar Sync
 
 **Goal:** Become the single sync point for motorsport calendars—never hunt for ICS files again
 
@@ -753,6 +975,8 @@ Traditional motorsport calendars are static files you download once per year. We
 ### External Dependencies
 - **OpenF1 API** — Unofficial, may change; fallback to SportMonks (~€55/mo) if needed
 - **Ergast archive** — Deprecated but archived; loaded into `ergastf1` database (1950-2017)
+- **The Third Turn** — Used for many series historical data points, we should look into contributing back to the project with our community data once we have data thats not already present there
+- **RacingNews365** — Used for F1 calendar ICS parsing
 - **Community contributors** — Required for MotoGP/IndyCar/WEC data
 - **Legal review** — Historical data usage rights
 

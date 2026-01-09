@@ -134,7 +134,7 @@ builder.Services.AddSwaggerGen(options =>
         Contact = new Microsoft.OpenApi.Models.OpenApiContact
         {
             Name = "Parc Fermé",
-            Url = new Uri("https://github.com/yourusername/parcferme")
+            Url = new Uri("https://github.com/theanarchox/parcferme")
         },
         License = new Microsoft.OpenApi.Models.OpenApiLicense
         {
@@ -210,10 +210,14 @@ var app = builder.Build();
 // =========================
 // Middleware Pipeline
 // =========================
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsProduction())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Parc Fermé API v1");
+        options.RoutePrefix = "swagger";
+    });
 }
 
 app.UseCors("Frontend");

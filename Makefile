@@ -81,7 +81,8 @@ logs:
 
 api:
 	@echo "🚀 Starting .NET API on http://localhost:5000"
-	cd src/api && dotnet watch run
+	@echo "📚 Swagger UI available at http://localhost:5000/swagger"
+	cd src/api && ASPNETCORE_ENVIRONMENT=Development dotnet watch run
 
 web:
 	@echo "🚀 Starting React frontend on http://localhost:3000"

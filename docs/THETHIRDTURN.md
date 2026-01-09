@@ -47,55 +47,43 @@ patterns:
     - Description: Lists all racing series available in the database.
     - Data Points: 
         - Series
-            - Name: From data {link.name} in the series list.
+            - Name: From data {seriesLinks[].name} in the series list.
             - Slug : Slugify from Name
-            - GoverningBody _new field needed_: Always "Various" as this data source does not provide governing body information. 
-            - SeriesAlias[] (Model: SeriesAlias, this is a child collection of Series):
-                - AliasName : See the `getAlternativeNames` function below for extracting alternative names from series pages.
-                - AliasSlug : Slugify from AliasName
-                - ValidFrom : Also, see `getAlternativeNames` for date extraction.
-                - ValidTo : Also, see `getAlternativeNames` for date extraction.
-                - Source : "The Third Turn"
     - Javscript to get all series names, URLs, and GoverningBody as json:
     ```javascript
     // On: https://thethirdturn.com/wiki/Series_Database:Index
+    // Goal: extract [{ name, href, governingBody }, ...] robustly (avoid brittle childNodes indexing)
 
-    // 1. Select all matching links (series list, each rows contains a th with the governing body and a td > p > a with the series link)
+    // Each non-header row in the main series table
     const seriesRows = document.querySelectorAll(
-      "#mw-content-text > div > table > tbody > tr:not(:first-child)"
+        "#mw-content-text table tbody tr:not(:first-child)"
     );
 
-    const seriesLinks = Array.from(seriesRows).map((row) => {
-      const governingBody = row.querySelector("th").textContent.trim();
-      const linkElement = row.querySelector("td > p > a");
-      return {
-        name: linkElement.textContent.trim(),
-        href: linkElement.href,
-        governingBody: governingBody,
-      };
-    });
-    ```
+    const seriesLinks = [];
 
-    `getAlternativeNames` function referenced above, they are found like this for example:
+    for (const row of seriesRows) {
 
-    `NASCAR Strictly Stock (1949); NASCAR Grand National (1950-1970); NASCAR Winston Cup Series (1971-2003); NASCAR Nextel Cup Series (2004-2007); NASCAR Sprint Cup Series (2008-2016); Monster Energy NASCAR Cup Series (2017-2019); NASCAR Cup Series (2020-present)`
+        // Governing body is in the header-ish cell of the row
+        const governingBody =
+            row.querySelector("th")?.textContent?.trim() ?? null;
 
-    ```javascript
-    function getAlternativeNames() {
-        const altNames document.querySelector("#mw-content-text > div > div:nth-child(4) > table > tbody > tr:nth-child(2) > td > i").textContent.trim().split(",").map(name => name.trim());
-        const altNameObjects = altNames.map(nameEntry => {
-            const match = nameEntry.match(/^(.*?)(?:\s*\((\d{4})(?:-(\d{4}|present))?\))?$/);
-            if (match) {
-                return {
-                    AliasName: match[1].trim(),
-                    ValidFrom: match[2] ? parseInt(match[2], 10) : null,
-                    ValidTo: match[3] ? (match[3] === "present" ? null : parseInt(match[3], 10)) : null
-                };
-            }
-            return null;
-        }).filter(entry => entry !== null);
-        return altNameObjects;
+        // Series link is typically in the data cell (often td > p > a)
+        const a = row.querySelector("td a[href*='/wiki/']");
+        const name = a?.textContent?.trim() ?? null;
+        const href = a?.href ?? null;
+
+        // Skip rows that don't look like series entries
+        if (!governingBody || !name || !href) continue;
+
+        // Stop once we hit the local racing section (per original intent)
+        if (governingBody === "Local Racing Division") break;
+
+        seriesLinks.push({ name, href });
     }
+
+    console.log(seriesLinks);
+    // Optional: copy to clipboard in the browser console
+    // copy(seriesLinks);
     ```
 
     this will give you an array of objects with `name` and `href` properties for each series link.
@@ -108,7 +96,14 @@ patterns:
       including links to seasons and drivers.
     - Data Points: 
         - Series        
-            - Year "{data[].year}"
+            - SeriesAlias[]
+                - AliasName : See the `getAlternativeNames` function below for extracting alternative names from series pages.
+                - AliasSlug : Slugify from AliasName
+                - ValidFrom : Also, see `getAlternativeNames` for date extraction.
+                - ValidTo : Also, see `getAlternativeNames` for date extraction.
+                - Source : "The Third Turn"
+        - Season[]
+            - Year : From data {seasons[].year} in the seasons list.
     - Example: `https://thethirdturn.com/wiki/NASCAR_Cup_Series_Central`
     - Useful Links:
         - Drivers List: `https://thethirdturn.com/wiki/{Series_Name}/Drivers`
@@ -131,6 +126,38 @@ patterns:
     The only data we need to create a season is the year, which is in the text property of each link.
     The href property can be used to fetch the season page for more detailed data if needed.
 
+    `getAlternativeNames` function referenced above, they are found like this for example:
+
+    `NASCAR Strictly Stock (1949); NASCAR Grand National (1950-1970); NASCAR Winston Cup Series (1971-2003); NASCAR Nextel Cup Series (2004-2007); NASCAR Sprint Cup Series (2008-2016); Monster Energy NASCAR Cup Series (2017-2019); NASCAR Cup Series (2020-present)`
+
+    ```javascript
+    function getAlternativeNames() {
+        const altNames = document.querySelector("#mw-content-text > div > div:nth-child(4) > table > tbody > tr:nth-child(2) > td").textContent.replace("Alternatively Known As: ", "").trim().split(";").map(name => name.trim());
+        const altNameObjects = altNames.map(nameEntry => {
+            const match = nameEntry.match(/^(.*?)(?:\s*\((\d{4})(?:-(\d{4}|present))?\))?$/);
+            if (match) {
+                return {
+                    AliasName: match[1].trim(),
+                    ValidFrom: match[2] ? parseInt(match[2], 10) : null,
+                    ValidTo: match[3] ? (match[3] === "present" ? null : parseInt(match[3], 10)) : null
+                };
+            }
+            return null;
+        }).filter(entry => entry !== null);
+
+        // Fix the ValidTo of the furst entry to be one year before the ValidFrom of the second entry
+        for (let i = 0; i < altNameObjects.length - 1; i++) {
+            if (altNameObjects[i + 1].ValidFrom && !altNameObjects[i].ValidTo) {
+                altNameObjects[i].ValidTo = altNameObjects[i + 1].ValidFrom - 1;
+            }
+        }
+
+        // fix the last entry ValidTo to be the 
+
+        return altNameObjects;
+    }
+    ```
+
 - **Individual Season Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Season_Name}`
     - Description: Contains detailed information about a specific season, containing data and links to individual races
@@ -147,23 +174,10 @@ patterns:
     const racesRows = document.querySelectorAll("#mw-content-text > div > table.pointtable.sortable.resultdiv.jquery-tablesorter");
 
 
+// TODO: Outline data ingestion for these pages
 
+- ** Individual Race Page**:
 
+- ** Driver Page**:
 
-
-
-
-
-
-
-
-    for (let i = 0; i < seriesRows.length; i++) {
-
-    var link = {
-        name: row.childNodes[1].firstChild.firstChild.textContent.trim(),
-        href: seriesRows[i].childNodes[3].childNodes[1].childNodes[0].href,
-        governingBody: row.firstChild.textContent.trim()
-    };
-
-    links.push(link);
-}
+- ** Circuit Page**: 

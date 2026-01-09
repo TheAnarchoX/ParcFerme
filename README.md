@@ -19,7 +19,7 @@
 
 ```bash
 # Clone and enter the repo
-git clone https://github.com/yourusername/parcferme.git
+git clone https://github.com/theanarchox/parcferme.git
 cd parcferme
 
 # Copy environment file
