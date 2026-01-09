@@ -212,6 +212,7 @@ public sealed class SeriesController : BaseApiController
 
         // Get round IDs where the driver/team participated (if filter is provided)
         HashSet<Guid>? filteredRoundIds = null;
+        var seasonRoundIds = season.Rounds.Select(r => r.Id).ToList();
         
         if (!string.IsNullOrEmpty(driverSlug))
         {
@@ -219,11 +220,16 @@ public sealed class SeriesController : BaseApiController
             if (driver != null)
             {
                 filteredRoundIds = (await _db.Entrants
-                    .Where(e => e.DriverId == driver.Id && season.Rounds.Select(r => r.Id).Contains(e.RoundId))
+                    .Where(e => e.DriverId == driver.Id && seasonRoundIds.Contains(e.RoundId))
                     .Select(e => e.RoundId)
                     .Distinct()
                     .ToListAsync(ct))
                     .ToHashSet();
+            }
+            else
+            {
+                // Driver not found - return empty result
+                filteredRoundIds = new HashSet<Guid>();
             }
         }
         else if (!string.IsNullOrEmpty(teamSlug))
@@ -232,11 +238,16 @@ public sealed class SeriesController : BaseApiController
             if (team != null)
             {
                 filteredRoundIds = (await _db.Entrants
-                    .Where(e => e.TeamId == team.Id && season.Rounds.Select(r => r.Id).Contains(e.RoundId))
+                    .Where(e => e.TeamId == team.Id && seasonRoundIds.Contains(e.RoundId))
                     .Select(e => e.RoundId)
                     .Distinct()
                     .ToListAsync(ct))
                     .ToHashSet();
+            }
+            else
+            {
+                // Team not found - return empty result
+                filteredRoundIds = new HashSet<Guid>();
             }
         }
 
