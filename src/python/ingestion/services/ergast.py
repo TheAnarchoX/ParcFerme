@@ -283,6 +283,8 @@ class ErgastSyncService(BaseSyncService[ErgastDataSource]):
                 q1_time=sr.q1_time,
                 q2_time=sr.q2_time,
                 q3_time=sr.q3_time,
+                laps_led=sr.laps_led,
+                car_number=sr.car_number,
             )
             results.append(result)
         

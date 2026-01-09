@@ -110,6 +110,7 @@ public sealed class SeriesController : BaseApiController
             Slug: series.Slug,
             LogoUrl: series.LogoUrl,
             Description: GetSeriesDescription(series.Slug),
+            GoverningBody: series.GoverningBody,
             BrandColors: series.BrandColors.Count > 0 ? series.BrandColors : GetDefaultBrandColors(series.Slug),
             Seasons: seasons,
             Stats: stats

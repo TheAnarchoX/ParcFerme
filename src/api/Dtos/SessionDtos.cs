@@ -66,7 +66,10 @@ public sealed record ResultDto(
     // Qualifying times (1994+)
     string? Q1Time,
     string? Q2Time,
-    string? Q3Time
+    string? Q3Time,
+    // The Third Turn fields (historical data)
+    int? LapsLed,
+    string? CarNumber
 );
 
 /// <summary>

@@ -299,6 +299,8 @@ public sealed class DriversController : BaseApiController
             DriverNumber: driver.DriverNumber,
             DateOfBirth: driver.DateOfBirth,
             WikipediaUrl: driver.WikipediaUrl,
+            Nickname: driver.Nickname,
+            PlaceOfBirth: driver.PlaceOfBirth,
             Career: careerEntries,
             Stats: stats
         );

@@ -256,6 +256,7 @@ class OpenF1DataSource(BaseDataSource):
                     status=SourceResultStatus.FINISHED,
                     driver_number=driver_number,
                     fastest_lap=(driver_number == fastest_lap_driver),
+                    car_number=str(driver_number) if driver_number else None,
                 ))
             return results
         except OpenF1ApiError as e:
@@ -292,6 +293,7 @@ class OpenF1DataSource(BaseDataSource):
             laps=result.number_of_laps,
             time_milliseconds=time_ms,
             driver_number=result.driver_number,
+            car_number=str(result.driver_number) if result.driver_number else None,
         )
     
     def get_all_circuits(self) -> list[SourceCircuit]:

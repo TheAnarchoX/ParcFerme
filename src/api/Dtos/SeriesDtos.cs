@@ -28,6 +28,8 @@ public sealed record SeriesDetailDto(
     string Slug,
     string? LogoUrl,
     string? Description,
+    // The Third Turn field (historical data)
+    string? GoverningBody,
     IReadOnlyList<string> BrandColors,
     IReadOnlyList<SeasonSummaryDto> Seasons,
     SeriesStatsDto Stats

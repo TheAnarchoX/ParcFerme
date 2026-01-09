@@ -227,6 +227,9 @@ class Result(BaseModel):
     q1_time: str | None = None
     q2_time: str | None = None
     q3_time: str | None = None
+    # The Third Turn fields (historical data)
+    laps_led: int | None = None  # Number of laps led during race
+    car_number: str | None = None  # Entry's car number (string for #6T, #00, etc.)
 
 
 # =========================

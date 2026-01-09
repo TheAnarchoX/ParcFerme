@@ -41,6 +41,9 @@ public sealed record DriverDetailDto(
     int? DriverNumber,
     DateOnly? DateOfBirth,
     string? WikipediaUrl,
+    // The Third Turn fields (historical data)
+    string? Nickname,
+    string? PlaceOfBirth,
     
     // Career summary
     IReadOnlyList<DriverCareerEntryDto> Career,

@@ -451,6 +451,7 @@ class ErgastDataSource(BaseDataSource):
                     fastest_lap_speed=row["fastestLapSpeed"],
                     driver_source_id=row["driverRef"],
                     driver_number=row["number"],
+                    car_number=str(row["number"]) if row["number"] else None,
                 ))
             
             return results
@@ -495,6 +496,7 @@ class ErgastDataSource(BaseDataSource):
                     q3_time=row["q3"],
                     driver_source_id=row["driverRef"],
                     driver_number=row["number"],
+                    car_number=str(row["number"]) if row["number"] else None,
                 ))
             
             return results

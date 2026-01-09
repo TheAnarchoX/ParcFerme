@@ -374,7 +374,9 @@ public sealed class SpoilerShieldService : ISpoilerShieldService
             StatusDetail: result.StatusDetail,
             Q1Time: result.Q1Time,
             Q2Time: result.Q2Time,
-            Q3Time: result.Q3Time
+            Q3Time: result.Q3Time,
+            LapsLed: result.LapsLed,
+            CarNumber: result.CarNumber
         );
     }
 

@@ -199,6 +199,10 @@ class SourceResult:
     driver_number: int | None = None  # For OpenF1
     driver_source_id: str | None = None  # For Ergast (driverRef)
     team_source_id: str | None = None  # For Ergast (constructorRef)
+    
+    # The Third Turn fields (historical data)
+    laps_led: int | None = None  # Number of laps led during race
+    car_number: str | None = None  # Entry's car number (string for #6T, #00, etc.)
 
 
 @dataclass

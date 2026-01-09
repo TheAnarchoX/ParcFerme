@@ -52,6 +52,10 @@ public sealed record CircuitDiscoveryDetailDto(
     int? LengthMeters,
     int? Altitude,
     string? WikipediaUrl,
+    // The Third Turn fields (historical data)
+    string? TrackType,
+    string? TrackStatus,
+    int? OpenedYear,
     IReadOnlyList<GrandstandDto> Grandstands,
     IReadOnlyList<CircuitSeasonSummaryDto> SeasonHistory,
     CircuitStatsDto Stats

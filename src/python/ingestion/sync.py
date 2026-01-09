@@ -980,6 +980,7 @@ class OpenF1SyncService:
                 time_milliseconds=time_ms,
                 laps=sr.number_of_laps,
                 fastest_lap=False,  # Will be updated below if applicable
+                car_number=str(sr.driver_number) if sr.driver_number else None,
             )
             results.append(result)
         
@@ -1022,6 +1023,7 @@ class OpenF1SyncService:
                 position=position,
                 status=ResultStatus.FINISHED,
                 fastest_lap=(driver_number == fastest_lap_driver),
+                car_number=str(driver_number) if driver_number else None,
             )
             results.append(result)
         

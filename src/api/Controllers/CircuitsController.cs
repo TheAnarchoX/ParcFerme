@@ -218,6 +218,9 @@ public class CircuitsController : ControllerBase
             circuit.LengthMeters,
             circuit.Altitude,
             circuit.WikipediaUrl,
+            circuit.TrackType,
+            circuit.TrackStatus,
+            circuit.OpenedYear,
             grandstands,
             seasonHistory,
             stats
