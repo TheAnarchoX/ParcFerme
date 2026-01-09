@@ -283,26 +283,46 @@ Signals (by entity type):
 
 ##### Implementation Tasks
 
-**Phase 1: Core Matching Engine** (Agentic)
-- [ ] Create `matching/` module in ingestion package
-- [ ] Implement `MatchResult` dataclass with score, confidence level, signals used
-- [ ] Implement base `EntityMatcher` class with pluggable signal functions
-- [ ] Implement `DriverMatcher` with all signals
-- [ ] Implement `TeamMatcher` with all signals  
-- [ ] Implement `CircuitMatcher` with all signals (including geo-distance)
-- [ ] Implement `RoundMatcher` for event deduplication
-- [ ] Add Levenshtein and Jaro-Winkler distance utilities
-- [ ] Unit tests for each matcher (edge cases from Ergast import)
+**Phase 1: Core Matching Engine** (Completed: Jan 9, 2026)
+- [x] Create `matching/` module in ingestion package
+- [x] Implement `MatchResult` dataclass with score, confidence level, signals used
+- [x] Implement base `EntityMatcher` class with pluggable signal functions
+- [x] Implement `DriverMatcher` with all signals (last_name=0.3, first_name=0.2, number=0.15, abbreviation=0.15, nationality=0.1, fuzzy=0.1)
+- [x] Implement `TeamMatcher` with all signals (exact_name=0.4, containment=0.2, fuzzy=0.2, color=0.1, year=0.1)
+- [x] Implement `CircuitMatcher` with all signals including geo-distance (exact_name=0.3, location=0.25, country=0.15, fuzzy=0.15, coordinates=0.15)
+- [x] Add Levenshtein, Jaro-Winkler, and Damerau-Levenshtein distance utilities
+- [x] Unit tests for each matcher with edge cases from Ergast import (156 tests)
 
-**Phase 2: Name Normalization Pipeline** (Agentic)
-- [ ] Centralize `_normalize_name()` into matching module
-- [ ] Add sponsor/branding strip functions for Round names
-  - Strip "FORMULA 1", "FORMULA ONE", sponsor names (HEINEKEN, ARAMCO, etc.)
+**Implementation Summary (Phase 1):**
+- Created `src/python/ingestion/matching/` module with: `__init__.py`, `core.py`, `distance.py`, `normalization.py`, `drivers.py`, `teams.py`, `circuits.py`
+- `ConfidenceLevel` enum: HIGH (≥0.9), MEDIUM (0.7-0.9), LOW (0.5-0.7), NO_MATCH (<0.5)
+- `MatchSignal` dataclass tracks individual signal results with name, weight, score, matched flag, and details
+- `MatchResult` includes `explain()` method for debugging signal contributions
+- All matchers use Unicode NFD normalization for diacritics (ü→u, é→e, etc.)
+- DriverMatcher includes nationality aliases (UK/GBR, USA/US) and date-bounded number matching
+- TeamMatcher includes RGB color distance calculation and sponsor text stripping
+- CircuitMatcher includes Haversine-based coordinate proximity and abbreviation expansion (COTA, Spa, etc.)
+- Tests cover all edge cases from Ergast import: Hülkenberg/Hulkenberg, Pérez/Perez, Oracle Red Bull variations, COTA/Austin, etc.
+- **Note:** `RoundMatcher` deferred to Phase 4 as it depends on integration with existing Round/Session models
+
+**Phase 2: Name Normalization Pipeline** (Completed: Jan 9, 2026)
+- [x] Centralize `_normalize_name()` into matching module
+- [x] Add sponsor/branding strip functions for Round names
+  - Strip "FORMULA 1", "FORMULA ONE", sponsor names (HEINEKEN, ARAMCO, LENOVO, etc.)
   - Normalize "Grand Prix" / "GP" / "Gran Premio"
-  - Handle language variants (GRAND PRIX DE MONACO → Monaco Grand Prix)
-- [ ] Add team name normalization (strip "Racing", "F1 Team", sponsor suffixes)
-- [ ] Add circuit name normalization (strip "Circuit", "Autódromo", etc.)
-- [ ] Create canonical name extraction pipeline
+- [x] Add team name normalization (strip "Racing", "F1 Team", "Scuderia", sponsor suffixes)
+- [x] Add circuit name normalization (strip "Circuit", "Autódromo", "International", etc.)
+- [x] Create canonical name extraction pipeline
+
+**Implementation Summary (Phase 2):**
+- `normalize_name()`: Unicode NFD decomposition + lowercase + strip whitespace
+- `normalize_for_slug()`: Creates URL-safe slugs (hyphens, no special chars)
+- `strip_sponsor_text()`: Removes sponsor names, "Formula 1/One", "Grand Prix" variations
+- `normalize_grand_prix_name()`: "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2025" → "Chinese Grand Prix"
+- `normalize_team_name()`: "Oracle Red Bull Racing Honda" → "Red Bull"
+- `normalize_circuit_name()`: "Autódromo Hermanos Rodríguez" → "Hermanos Rodriguez"
+- `expand_circuit_abbreviation()`: "COTA" → "Circuit of the Americas", "Spa" → "Spa-Francorchamps"
+- `extract_name_parts()`: Handles "Last, First" format, suffixes (Jr, Sr, III), hyphenated names
 
 **Phase 3: Review Queue System** (Agentic)
 - [ ] Create `PendingMatch` database table for uncertain matches
