@@ -30,6 +30,7 @@ public class CircuitsController : ControllerBase
     /// <param name="pageSize">Items per page (max 100)</param>
     /// <param name="series">Optional series slug filter</param>
     /// <param name="country">Optional country filter</param>
+    /// <param name="search">Optional search query (searches name, location, country)</param>
     [HttpGet]
     [CacheResponse(DurationSeconds = 300)]
     [ProducesResponseType<CircuitListResponse>(StatusCodes.Status200OK)]
@@ -37,7 +38,8 @@ public class CircuitsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 24,
         [FromQuery] string? series = null,
-        [FromQuery] string? country = null)
+        [FromQuery] string? country = null,
+        [FromQuery] string? search = null)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -47,6 +49,16 @@ public class CircuitsController : ControllerBase
                 .ThenInclude(r => r.Season)
                     .ThenInclude(s => s.Series)
             .AsNoTracking();
+
+        // Apply search filter if provided
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLowerInvariant();
+            query = query.Where(c =>
+                c.Name.ToLower().Contains(searchLower) ||
+                (c.Location != null && c.Location.ToLower().Contains(searchLower)) ||
+                c.Country.ToLower().Contains(searchLower));
+        }
 
         // Filter by series if provided
         if (!string.IsNullOrEmpty(series))

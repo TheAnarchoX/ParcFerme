@@ -12,15 +12,17 @@ import type {
  */
 export const driversApi = {
   /**
-   * Get paginated list of drivers with optional filtering.
+   * Get paginated list of drivers with optional filtering and search.
    */
   getDrivers: (options?: {
     series?: string;
+    search?: string;
     page?: number;
     pageSize?: number;
   }): Promise<DriverListResponse> => {
     const params = new URLSearchParams();
     if (options?.series) params.append('series', options.series);
+    if (options?.search) params.append('search', options.search);
     if (options?.page) params.append('page', options.page.toString());
     if (options?.pageSize) params.append('pageSize', options.pageSize.toString());
     const queryString = params.toString();

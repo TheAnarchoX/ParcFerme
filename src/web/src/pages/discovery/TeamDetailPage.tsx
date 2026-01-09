@@ -5,7 +5,8 @@ import { useBreadcrumbs, buildTeamBreadcrumbs } from '../../components/navigatio
 import { ROUTES } from '../../types/navigation';
 import { teamsApi } from '../../services/teamsService';
 import type { TeamDetailDto } from '../../types/team';
-import { getTeamShortName, getTeamNationalityFlag, getTeamPlaceholderColor } from '../../types/team';
+import { getTeamNationalityFlag, getTeamPlaceholderColor } from '../../types/team';
+import { TeamPlaceholder } from '../../components/ui';
 
 // =========================
 // Loading Skeleton Components
@@ -265,7 +266,6 @@ export function TeamDetailPage() {
   
   // Get display values
   const teamColor = team?.primaryColor || (team?.name ? getTeamPlaceholderColor(team.name) : '#374151');
-  const shortName = team ? getTeamShortName(team) : '';
   const flag = getTeamNationalityFlag(team?.nationality);
   
   // Calculate active years string
@@ -295,12 +295,7 @@ export function TeamDetailPage() {
                   className="w-24 h-24 rounded-xl object-contain bg-white"
                 />
               ) : (
-                <div
-                  className="w-24 h-24 rounded-xl flex items-center justify-center text-white font-bold text-2xl"
-                  style={{ backgroundColor: teamColor }}
-                >
-                  {shortName}
-                </div>
+                <TeamPlaceholder size={96} secondaryColor={teamColor} primaryColor="#a3a3a3" />
               )}
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-neutral-100 mb-2">{team.name}</h2>

@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { MainLayout, PageHeader, Section } from '../../components/layout/MainLayout';
 import { useBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
@@ -13,13 +13,15 @@ import { Pagination, DriverPlaceholder } from '../../components/ui';
 // =========================
 
 const PAGE_SIZE = 24;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const SERIES_NAMES: Record<string, string> = {
-  'f1': 'Formula 1',
+  'formula-1': 'Formula 1',
   'motogp': 'MotoGP',
   'wec': 'WEC',
   'indycar': 'IndyCar',
   'formula-e': 'Formula E',
+  'nascar': 'NASCAR Cup Series',
 };
 
 const SORT_OPTIONS = [
@@ -211,11 +213,13 @@ function SortSelect({ value, onChange }: SortSelectProps) {
 
 /**
  * Drivers discovery page.
- * Supports filtering by series via query parameter (e.g., ?series=f1)
+ * Supports filtering by series via query parameter (e.g., ?series=formula-1)
+ * Supports server-side search via query parameter (e.g., ?search=verstappen)
  */
 export function DriversPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const seriesFilter = searchParams.get('series');
+  const searchParam = searchParams.get('search') || '';
   const pageParam = searchParams.get('page');
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
   
@@ -225,10 +229,50 @@ export function DriversPage() {
   const [driversData, setDriversData] = useState<DriverListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(searchParam);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   
-  // Fetch drivers
+  // Debounce timer ref
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Handle search input change with debouncing
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInput(value);
+    
+    // Clear existing timer
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    
+    // Set new debounce timer
+    searchDebounceRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams);
+      if (value.trim()) {
+        params.set('search', value.trim());
+        params.delete('page'); // Reset to page 1 on search
+      } else {
+        params.delete('search');
+        params.delete('page');
+      }
+      setSearchParams(params);
+    }, SEARCH_DEBOUNCE_MS);
+  }, [searchParams, setSearchParams]);
+  
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
+  
+  // Sync search input with URL param (for back/forward navigation)
+  useEffect(() => {
+    setSearchInput(searchParam);
+  }, [searchParam]);
+  
+  // Fetch drivers (server-side search)
   const fetchDrivers = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -238,6 +282,7 @@ export function DriversPage() {
         page: currentPage,
         pageSize: PAGE_SIZE,
         series: seriesFilter || undefined,
+        search: searchParam || undefined,
       });
       setDriversData(data);
     } catch (err) {
@@ -246,7 +291,7 @@ export function DriversPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, seriesFilter]);
+  }, [currentPage, seriesFilter, searchParam]);
   
   useEffect(() => {
     fetchDrivers();
@@ -267,7 +312,20 @@ export function DriversPage() {
   useBreadcrumbs(breadcrumbItems);
   
   const handleClearFilter = () => {
-    setSearchParams({});
+    const params = new URLSearchParams();
+    // Keep search if present
+    if (searchParam) {
+      params.set('search', searchParam);
+    }
+    setSearchParams(params);
+  };
+  
+  const handleClearSearch = () => {
+    setSearchInput('');
+    const params = new URLSearchParams(searchParams);
+    params.delete('search');
+    params.delete('page');
+    setSearchParams(params);
   };
   
   const handlePageChange = (page: number) => {
@@ -283,41 +341,21 @@ export function DriversPage() {
   // Calculate pagination
   const totalPages = driversData ? Math.ceil(driversData.totalCount / driversData.pageSize) : 0;
   
-  // Filter and sort drivers client-side (for search)
-  const filteredDrivers = useMemo(() => {
-    if (!driversData?.items) return [];
-    
-    let result = [...driversData.items];
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(driver => {
-        const fullName = getDriverFullName(driver).toLowerCase();
-        const nationality = (driver.nationality || '').toLowerCase();
-        const team = (driver.currentTeam?.name || '').toLowerCase();
-        return fullName.includes(query) || nationality.includes(query) || team.includes(query);
-      });
+  // Sort drivers client-side only (search is now server-side)
+  const sortedDrivers = (driversData?.items || []).slice().sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return getDriverFullName(a).localeCompare(getDriverFullName(b));
+      case 'name_desc':
+        return getDriverFullName(b).localeCompare(getDriverFullName(a));
+      case 'seasons':
+        return b.seasonsCount - a.seasonsCount;
+      case 'recent':
+        return b.seasonsCount - a.seasonsCount; // Approximation
+      default:
+        return 0;
     }
-    
-    // Apply sorting
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return getDriverFullName(a).localeCompare(getDriverFullName(b));
-        case 'name_desc':
-          return getDriverFullName(b).localeCompare(getDriverFullName(a));
-        case 'seasons':
-          return b.seasonsCount - a.seasonsCount;
-        case 'recent':
-          return b.seasonsCount - a.seasonsCount; // Approximation
-        default:
-          return 0;
-      }
-    });
-    
-    return result;
-  }, [driversData?.items, searchQuery, sortBy]);
+  });
   
   // Generate page title and subtitle based on filter
   const pageTitle = seriesName ? `${seriesName} Drivers` : 'Drivers';
@@ -351,19 +389,24 @@ export function DriversPage() {
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1">
           <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
+            value={searchInput}
+            onChange={handleSearchChange}
             placeholder="Search drivers by name, nationality, or team..."
           />
         </div>
         <SortSelect value={sortBy} onChange={setSortBy} />
       </div>
       
-      {/* Active filter indicator */}
-      {seriesFilter && seriesName && (
-        <div className="mb-6 flex items-center gap-3">
+      {/* Active filter indicators */}
+      {(seriesFilter || searchParam) && (
+        <div className="mb-6 flex items-center gap-3 flex-wrap">
           <span className="text-sm text-neutral-500">Filtered by:</span>
-          <FilterBadge label={seriesName} onClear={handleClearFilter} />
+          {seriesFilter && seriesName && (
+            <FilterBadge label={seriesName} onClear={handleClearFilter} />
+          )}
+          {searchParam && (
+            <FilterBadge label={`"${searchParam}"`} onClear={handleClearSearch} />
+          )}
         </div>
       )}
       
@@ -394,9 +437,9 @@ export function DriversPage() {
         {/* Drivers grid */}
         {!loading && !error && driversData && (
           <>
-            {filteredDrivers.length > 0 ? (
+            {sortedDrivers.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredDrivers.map(driver => (
+                {sortedDrivers.map(driver => (
                   <DriverCard key={driver.id} driver={driver} />
                 ))}
               </div>
@@ -405,16 +448,16 @@ export function DriversPage() {
                 <div className="text-4xl mb-4">👤</div>
                 <p className="text-lg mb-2">No drivers found</p>
                 <p className="text-sm">
-                  {searchQuery 
-                    ? `No drivers match "${searchQuery}".`
+                  {searchParam 
+                    ? `No drivers match "${searchParam}".`
                     : seriesFilter 
                       ? `No drivers have been added for ${seriesName || seriesFilter} yet.`
                       : 'No drivers available.'}
                 </p>
-                {(seriesFilter || searchQuery) && (
+                {(seriesFilter || searchParam) && (
                   <button
                     onClick={() => {
-                      setSearchQuery('');
+                      handleClearSearch();
                       if (seriesFilter) handleClearFilter();
                     }}
                     className="mt-4 text-accent-green hover:underline"
@@ -425,17 +468,15 @@ export function DriversPage() {
               </div>
             )}
             
-            {/* Only show pagination if not filtering client-side */}
-            {!searchQuery && (
-              <Pagination
-                currentPage={currentPage}
-                totalCount={driversData.totalCount}
-                pageSize={driversData.pageSize}
-                onPageChange={handlePageChange}
-                isLoading={loading}
-                itemLabel="drivers"
-              />
-            )}
+            {/* Pagination - always show since search is server-side now */}
+            <Pagination
+              currentPage={currentPage}
+              totalCount={driversData.totalCount}
+              pageSize={driversData.pageSize}
+              onPageChange={handlePageChange}
+              isLoading={loading}
+              itemLabel="drivers"
+            />
           </>
         )}
       </Section>

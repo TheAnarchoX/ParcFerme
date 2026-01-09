@@ -25,18 +25,20 @@ public sealed class TeamsController : BaseApiController
     }
 
     /// <summary>
-    /// Get all teams with optional filtering.
+    /// Get all teams with optional filtering and search.
     /// Returns paginated list with driver count.
     /// </summary>
-    /// <param name="series">Optional series slug to filter by (e.g., "f1").</param>
+    /// <param name="series">Optional series slug to filter by (e.g., "formula-1").</param>
+    /// <param name="search">Optional search query (searches name, short name, nationality).</param>
     /// <param name="page">Page number (1-indexed).</param>
     /// <param name="pageSize">Number of items per page (default 50, max 100).</param>
     /// <param name="ct">Cancellation token.</param>
     [HttpGet]
-    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "page", "pageSize"])]
+    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "search", "page", "pageSize"])]
     [ProducesResponseType(typeof(TeamListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTeams(
         [FromQuery] string? series,
+        [FromQuery] string? search,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
@@ -48,6 +50,16 @@ public sealed class TeamsController : BaseApiController
 
         // Build base query
         var baseQuery = _db.Teams.AsQueryable();
+
+        // Apply search filter if provided
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLowerInvariant();
+            baseQuery = baseQuery.Where(t =>
+                t.Name.ToLower().Contains(searchLower) ||
+                (t.ShortName != null && t.ShortName.ToLower().Contains(searchLower)) ||
+                (t.Nationality != null && t.Nationality.ToLower().Contains(searchLower)));
+        }
 
         // Filter by series if specified
         Guid? seriesId = null;

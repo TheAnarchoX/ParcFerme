@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { MainLayout, PageHeader, Section } from '../../components/layout/MainLayout';
 import { useBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
 import { teamsApi } from '../../services/teamsService';
 import type { TeamListItemDto, TeamListResponse } from '../../types/team';
-import { getTeamShortName, getTeamNationalityFlag, getTeamPlaceholderColor } from '../../types/team';
+import { getTeamNationalityFlag, getTeamPlaceholderColor } from '../../types/team';
 import { Pagination, TeamPlaceholder } from '../../components/ui';
 
 // =========================
@@ -13,14 +13,15 @@ import { Pagination, TeamPlaceholder } from '../../components/ui';
 // =========================
 
 const PAGE_SIZE = 24;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const SERIES_NAMES: Record<string, string> = {
-  'f1': 'Formula 1',
   'formula-1': 'Formula 1',
   'motogp': 'MotoGP',
   'wec': 'WEC',
   'indycar': 'IndyCar',
   'formula-e': 'Formula E',
+  'nascar': 'NASCAR Cup Series',
 };
 
 const SORT_OPTIONS = [
@@ -84,7 +85,6 @@ interface TeamCardProps {
 
 function TeamCard({ team }: TeamCardProps) {
   const backgroundColor = team.primaryColor || getTeamPlaceholderColor(team.name);
-  const shortName = getTeamShortName(team);
   const flag = getTeamNationalityFlag(team.nationality);
   
   return (
@@ -99,13 +99,6 @@ function TeamCard({ team }: TeamCardProps) {
             alt={team.name}
             className="w-12 h-12 rounded-lg object-contain bg-white"
           />
-        ) : team.primaryColor ? (
-          <div
-            className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-            style={{ backgroundColor }}
-          >
-            {shortName}
-          </div>
         ) : (
           <TeamPlaceholder size={48} secondaryColor={backgroundColor} primaryColor="#a3a3a3" />
         )}
@@ -220,11 +213,13 @@ function SortSelect({ value, onChange }: SortSelectProps) {
 
 /**
  * Teams discovery page.
- * Supports filtering by series via query parameter (e.g., ?series=f1)
+ * Supports filtering by series via query parameter (e.g., ?series=formula-1)
+ * Supports server-side search via query parameter (e.g., ?search=mclaren)
  */
 export function TeamsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const seriesFilter = searchParams.get('series');
+  const searchParam = searchParams.get('search') || '';
   const pageParam = searchParams.get('page');
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
   
@@ -234,10 +229,50 @@ export function TeamsPage() {
   const [teamsData, setTeamsData] = useState<TeamListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(searchParam);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   
-  // Fetch teams
+  // Debounce timer ref
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Handle search input change with debouncing
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInput(value);
+    
+    // Clear existing timer
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    
+    // Set new debounce timer
+    searchDebounceRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams);
+      if (value.trim()) {
+        params.set('search', value.trim());
+        params.delete('page'); // Reset to page 1 on search
+      } else {
+        params.delete('search');
+        params.delete('page');
+      }
+      setSearchParams(params);
+    }, SEARCH_DEBOUNCE_MS);
+  }, [searchParams, setSearchParams]);
+  
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
+  
+  // Sync search input with URL param (for back/forward navigation)
+  useEffect(() => {
+    setSearchInput(searchParam);
+  }, [searchParam]);
+  
+  // Fetch teams (server-side search)
   const fetchTeams = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -247,6 +282,7 @@ export function TeamsPage() {
         page: currentPage,
         pageSize: PAGE_SIZE,
         series: seriesFilter || undefined,
+        search: searchParam || undefined,
       });
       setTeamsData(data);
     } catch (err) {
@@ -255,7 +291,7 @@ export function TeamsPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, seriesFilter]);
+  }, [currentPage, seriesFilter, searchParam]);
   
   useEffect(() => {
     fetchTeams();
@@ -276,7 +312,20 @@ export function TeamsPage() {
   useBreadcrumbs(breadcrumbItems);
   
   const handleClearFilter = () => {
-    setSearchParams({});
+    const params = new URLSearchParams();
+    // Keep search if present
+    if (searchParam) {
+      params.set('search', searchParam);
+    }
+    setSearchParams(params);
+  };
+  
+  const handleClearSearch = () => {
+    setSearchInput('');
+    const params = new URLSearchParams(searchParams);
+    params.delete('search');
+    params.delete('page');
+    setSearchParams(params);
   };
   
   const handlePageChange = (page: number) => {
@@ -292,40 +341,21 @@ export function TeamsPage() {
   // Calculate pagination
   const totalPages = teamsData ? Math.ceil(teamsData.totalCount / teamsData.pageSize) : 0;
   
-  // Filter and sort teams client-side (for search)
-  const filteredTeams = useMemo(() => {
-    if (!teamsData?.items) return [];
-    
-    let result = [...teamsData.items];
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(team => {
-        const name = team.name.toLowerCase();
-        const nationality = (team.nationality || '').toLowerCase();
-        return name.includes(query) || nationality.includes(query);
-      });
+  // Sort teams client-side only (search is now server-side)
+  const sortedTeams = (teamsData?.items || []).slice().sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'name_desc':
+        return b.name.localeCompare(a.name);
+      case 'seasons':
+        return b.seasonsCount - a.seasonsCount;
+      case 'drivers':
+        return b.driversCount - a.driversCount;
+      default:
+        return 0;
     }
-    
-    // Apply sorting
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'name_desc':
-          return b.name.localeCompare(a.name);
-        case 'seasons':
-          return b.seasonsCount - a.seasonsCount;
-        case 'drivers':
-          return b.driversCount - a.driversCount;
-        default:
-          return 0;
-      }
-    });
-    
-    return result;
-  }, [teamsData?.items, searchQuery, sortBy]);
+  });
   
   // Generate page title and subtitle based on filter
   const pageTitle = seriesName ? `${seriesName} Teams` : 'Teams';
@@ -359,19 +389,24 @@ export function TeamsPage() {
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1">
           <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
+            value={searchInput}
+            onChange={handleSearchChange}
             placeholder="Search teams by name or nationality..."
           />
         </div>
         <SortSelect value={sortBy} onChange={setSortBy} />
       </div>
       
-      {/* Active filter indicator */}
-      {seriesFilter && seriesName && (
-        <div className="mb-6 flex items-center gap-3">
+      {/* Active filter indicators */}
+      {(seriesFilter || searchParam) && (
+        <div className="mb-6 flex items-center gap-3 flex-wrap">
           <span className="text-sm text-neutral-500">Filtered by:</span>
-          <FilterBadge label={seriesName} onClear={handleClearFilter} />
+          {seriesFilter && seriesName && (
+            <FilterBadge label={seriesName} onClear={handleClearFilter} />
+          )}
+          {searchParam && (
+            <FilterBadge label={`"${searchParam}"`} onClear={handleClearSearch} />
+          )}
         </div>
       )}
       
@@ -402,9 +437,9 @@ export function TeamsPage() {
         {/* Teams grid */}
         {!loading && !error && teamsData && (
           <>
-            {filteredTeams.length > 0 ? (
+            {sortedTeams.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTeams.map(team => (
+                {sortedTeams.map(team => (
                   <TeamCard key={team.id} team={team} />
                 ))}
               </div>
@@ -413,16 +448,16 @@ export function TeamsPage() {
                 <div className="text-4xl mb-4">🏎️</div>
                 <p className="text-lg mb-2">No teams found</p>
                 <p className="text-sm">
-                  {searchQuery 
-                    ? `No teams match "${searchQuery}".`
+                  {searchParam 
+                    ? `No teams match "${searchParam}".`
                     : seriesFilter 
                       ? `No teams have been added for ${seriesName || seriesFilter} yet.`
                       : 'No teams available.'}
                 </p>
-                {(seriesFilter || searchQuery) && (
+                {(seriesFilter || searchParam) && (
                   <button
                     onClick={() => {
-                      setSearchQuery('');
+                      handleClearSearch();
                       if (seriesFilter) handleClearFilter();
                     }}
                     className="mt-4 text-accent-green hover:underline"
@@ -433,17 +468,15 @@ export function TeamsPage() {
               </div>
             )}
             
-            {/* Only show pagination if not filtering client-side */}
-            {!searchQuery && (
-              <Pagination
-                currentPage={currentPage}
-                totalCount={teamsData.totalCount}
-                pageSize={teamsData.pageSize}
-                onPageChange={handlePageChange}
-                isLoading={loading}
-                itemLabel="teams"
-              />
-            )}
+            {/* Pagination - always show since search is server-side now */}
+            <Pagination
+              currentPage={currentPage}
+              totalCount={teamsData.totalCount}
+              pageSize={teamsData.pageSize}
+              onPageChange={handlePageChange}
+              isLoading={loading}
+              itemLabel="teams"
+            />
           </>
         )}
       </Section>

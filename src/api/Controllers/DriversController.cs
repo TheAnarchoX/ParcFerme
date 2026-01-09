@@ -25,18 +25,20 @@ public sealed class DriversController : BaseApiController
     }
 
     /// <summary>
-    /// Get all drivers with optional filtering.
+    /// Get all drivers with optional filtering and search.
     /// Returns paginated list with current team context.
     /// </summary>
-    /// <param name="series">Optional series slug to filter by (e.g., "f1").</param>
+    /// <param name="series">Optional series slug to filter by (e.g., "formula-1").</param>
+    /// <param name="search">Optional search query (searches name, nationality, abbreviation).</param>
     /// <param name="page">Page number (1-indexed).</param>
     /// <param name="pageSize">Number of items per page (default 50, max 100).</param>
     /// <param name="ct">Cancellation token.</param>
     [HttpGet]
-    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "page", "pageSize"])]
+    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["series", "search", "page", "pageSize"])]
     [ProducesResponseType(typeof(DriverListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDrivers(
         [FromQuery] string? series,
+        [FromQuery] string? search,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
@@ -48,6 +50,18 @@ public sealed class DriversController : BaseApiController
 
         // Build base query
         var baseQuery = _db.Drivers.AsQueryable();
+
+        // Apply search filter if provided
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLowerInvariant();
+            baseQuery = baseQuery.Where(d =>
+                d.FirstName.ToLower().Contains(searchLower) ||
+                d.LastName.ToLower().Contains(searchLower) ||
+                (d.FirstName + " " + d.LastName).ToLower().Contains(searchLower) ||
+                (d.Nationality != null && d.Nationality.ToLower().Contains(searchLower)) ||
+                (d.Abbreviation != null && d.Abbreviation.ToLower().Contains(searchLower)));
+        }
 
         // Filter by series if specified
         Guid? seriesId = null;
