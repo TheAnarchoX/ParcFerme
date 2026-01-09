@@ -23,6 +23,9 @@ This is to facilitate understanding of the data structure and how to
 extract the necessary information and since JavaScript can be run directly
 in the browser console it is easier to experiment with.
 
+Note how we do not use the driver and track database index pages to get lists of drivers and tracks, instead we get them from the series and season pages as we encounter them.
+This is to ensure we only get drivers and tracks that are actually used in series and seasons we have data for and support.
+
 ## URL Structure
 
 The Third Turn organizes its data in a hierarchical URL structure. The
@@ -218,14 +221,15 @@ patterns:
     // TODO: Implement driver page scraping
     ```
 
-- **Circuit Page**:
+
+- **Track Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Circuit_Name}`
     - Description: Contains information about a specific racing circuit or venue,
       including location, layout variations, and historical usage.
     - Data Points:
         - Circuit
             - (Circuit details and specifications)
-    - Example: (TBD)
+    - Example: https://thethirdturn.com/wiki/Monza_Circuit
     - Useful Links:
         - (TBD)
     - Useful Javascript:
