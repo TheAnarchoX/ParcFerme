@@ -129,6 +129,12 @@ _No active tasks_
 
 **See:** [docs/thethirdturn/THETHIRDTURN.md](./docs/thethirdturn/THETHIRDTURN.md) for technical details
 
+**✅ Foundation Complete:**
+- Data model updated with 8 new fields (GoverningBody, TrackType, TrackStatus, OpenedYear, Nickname, PlaceOfBirth, LapsLed, CarNumber)
+- DTOs and API endpoints updated to expose new fields
+- Python ingestion pipeline ready to populate new fields
+- THETHIRDTURN.md documentation with JavaScript extraction examples
+
 ### Phase 3A: Build The Third Turn Scraper
 - [ ] Build scraper in `src/python/ingestion/sources/thethirdturn/`
 - [ ] Scrape series index, series, season, race, driver and circuit

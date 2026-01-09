@@ -99,6 +99,46 @@
 
 ---
 
+### The Third Turn - Data Model Preparation (Completed: Jan 9, 2026)
+
+**Goal:** Prepare data model and ingestion pipelines to support The Third Turn historical multi-series data.
+
+#### Documentation
+- [x] **THETHIRDTURN.md** - Complete technical guide for The Third Turn integration
+  - Data gap analysis comparing Ergast DDL with TTT fields
+  - JavaScript extraction examples for all 6 page types (Series Index, Season, Race, Driver, Circuit)
+  - License compliance notes (CC BY-NC-SA 4.0)
+
+#### Data Model Updates
+- [x] **Added 8 new fields** to EventModels.cs:
+  - Series: `GoverningBody` (e.g., "NASCAR", "FIA", "IndyCar")
+  - Circuit: `TrackType` (road/oval/street), `TrackStatus` (open/closed), `OpenedYear`
+  - Driver: `Nickname`, `PlaceOfBirth`
+  - Result: `LapsLed`, `CarNumber` (string for #6T, #00, etc.)
+- [x] **EF Core migration**: `20260109215421_AddTheThirdTurnFields`
+
+#### Python Ingestion Pipeline Updates
+- [x] **Result model** (models.py): Added `laps_led`, `car_number` fields
+- [x] **SourceResult** (sources/base.py): Added `laps_led`, `car_number` fields
+- [x] **Ergast source** (sources/ergast.py): Populates `car_number` from `r.number`
+- [x] **OpenF1 source** (sources/openf1.py): Populates `car_number` from `driver_number`
+- [x] **ErgastSyncService**: `_process_results()` passes through new fields
+- [x] **sync.py**: Both OpenF1 Result creations include `car_number`
+
+#### C# API Updates (DTOs & Controllers)
+- [x] **ResultDto**: Added `LapsLed`, `CarNumber`
+- [x] **CircuitDiscoveryDetailDto**: Added `TrackType`, `TrackStatus`, `OpenedYear`
+- [x] **DriverDetailDto**: Added `Nickname`, `PlaceOfBirth`
+- [x] **SeriesDetailDto**: Added `GoverningBody`
+- [x] **SpoilerShieldService**: Updated `MapToResultDto()` with new fields
+- [x] **CircuitsController**: Updated `GetCircuitById()` with new fields
+- [x] **DriversController**: Updated `GetDriver()` with new fields
+- [x] **SeriesController**: Updated `GetSeriesBySlug()` with new fields
+
+**Note:** `laps_led` will only be populated from The Third Turn data (not available in OpenF1/Ergast).
+
+---
+
 ### Navigation Flow Verification (Completed: Jan 9, 2026)
 - [x] **All series hierarchy links verified** working (Series → Season → Round → Session)
 - [x] **Statistics cards on Series detail page** now link to filtered entity pages
