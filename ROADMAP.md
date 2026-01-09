@@ -648,125 +648,28 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 ## 🗓️ Phase 3: The Third Turn - Historic Multi-Series Expansion
 
-**Goal:** Leverage The Third Turn's comprehensive motorsport database to rapidly expand beyond F1 with minimal manual data entry
+**Goal:** Use The Third Turn database to bring MotoGP, IndyCar, WEC, Formula E, NASCAR (and more) into Parc Fermé
 
-**Data Source:** [The Third Turn](https://www.thethirdturn.com/wiki/) — CC BY-NC-SA 4.0 licensed historic motorsport database covering most major racing series from 1900s-present
+**See:** [docs/THETHIRDTURN.md](./docs/THETHIRDTURN.md) for all technical details, extraction patterns, and data mappings
 
-**Why This Works:**
-- Structured, scrapable HTML with consistent patterns across series
-- Already includes MotoGP, IndyCar, WEC, NASCAR, Formula E, and dozens more series
-- Includes historical data, driver rosters, team lineups, race results
-- JavaScript extraction examples already documented in [THETHIRDTURN.md](./docs/THETHIRDTURN.md)
-- Can be implemented in Python following existing ingestion patterns
+### Phase 3A: Build The Third Turn Scraper
+- [ ] Build scraper in `src/python/ingestion/sources/thethirdturn/` following THETHIRDTURN.md patterns
+- [ ] Scrape series index, series pages, season pages, race pages (see doc for extraction logic)
+- [ ] Use existing entity matchers, respect CC BY-NC-SA 4.0 license by using the Source fields in models (and adding them if missing) and documenting attribution in the UI
 
-### Phase 3A: The Third Turn Scraper Foundation
+### Phase 3B: Import Major Series
+- [ ] MotoGP (2020-2025 calendars + results, historical backfill later)
+- [ ] IndyCar (1996-present, handle CART/IRL split if data source warrants, handle speed based qualifying)
+- [ ] WEC (multi-class + multi-driver complexity)
+- [ ] Formula
+- [ ] NASCAR 
+- [ ] Future: Expand to F2/F3, IMSA, Super Formula, DTM, BTCC, and many more. 
+  - Make this easy to scale by adding a CLI option for importing new TTT series from a simple list file (e.g., `--import-series series.csv`, where the CSV contains a list of The Third Turn series URLs to ingest).
 
-**Goal:** Build a Python scraper that can extract motorsport data from The Third Turn website following the patterns documented in [THETHIRDTURN.md](./docs/THETHIRDTURN.md)
-
-**Reference Documentation:** All extraction patterns, JavaScript examples, and data mappings are in `docs/THETHIRDTURN.md`
-
-#### Tasks
-
-**1. Build the scraper foundation**
-- [ ] Set up The Third Turn scraper module in `src/python/ingestion/sources/thethirdturn/`
-  - Follow the patterns from OpenF1 and Ergast integrations
-  - See THETHIRDTURN.md for URL structure and extraction examples
-  - Implement respectful crawling (rate limiting, caching, proper User-Agent)
-  - Add CC BY-NC-SA 4.0 attribution to all scraped content vua the various "Source" fields (add missing ones) and add any required attribution in the UI as per licensing terms.
-
-**2. Scrape the series database index**
-- [ ] Extract all available series from the database index page
-  - JavaScript extraction example is in THETHIRDTURN.md under "Series Database Index"
-  - Store series metadata and prepare for season extraction
-  - Filter out "Local Racing Division" entries as documented
-
-**3. Scrape individual series pages**
-- [ ] Extract series metadata and season listings
-  - Alternative names with date ranges (SeriesAlias pattern in THETHIRDTURN.md)
-  - Season links and years (see JavaScript example in doc)
-  - Map to existing Series/Season models
-
-**4. Scrape season race listings**
-- [ ] Extract race calendars from season pages
-  - Round numbers, names, circuits, dates (extraction pattern in THETHIRDTURN.md)
-  - Use existing CircuitMatcher for circuit name variations
-  - Create PendingMatch entries for uncertain matches
-  - Map to Round model
-
-**5. Add race detail scraping (optional for Phase 3A)**
-- [ ] Extract full results from individual race pages if time permits
-  - Defer to Phase 3B if needed to maintain velocity
-
-**What Good Looks Like:**
-- Scraper respects The Third Turn's bandwidth (rate limiting, caching)
-- Entity matching leverages existing DriverMatcher/TeamMatcher/CircuitMatcher
-- Uncertain matches go to review queue (no silent failures)
-- CLI commands for each extraction level (series-index, series-detail, season)
-- Can extract a complete series (all seasons + races) in under 10 minutes
-
-### Phase 3B: Multi-Series Data Import
-
-**Goal:** Use The Third Turn scraper to bring in major non-F1 series, focusing on recent seasons first for MVP coverage
-
-**Priority Order:**
-
-**1. MotoGP**
-- [ ] Import MotoGP series, seasons (1949-present), and recent race calendars (2020-2025)
-- [ ] Import 2024-2025 results to enable logging
-- [ ] Historical backfill (1949-2019) can wait until post-launch
-- [ ] Estimated effort: 2-3 days
-
-**2. IndyCar**
-- [ ] Import IndyCar series, modern-era seasons (1996-present), and recent calendars
-- [ ] Handle CART/IRL split era (1996-2007) appropriately
-- [ ] Import 2024-2025 results to enable logging
-- [ ] Estimated effort: 2-3 days
-
-**3. WEC (World Endurance Championship)**
-- [ ] Import WEC series, seasons (2012-present), and recent calendars
-- [ ] Handle multi-class races (Hypercar, LMP2, LMGTE)
-- [ ] Handle multi-driver entries (3 drivers per car)
-- [ ] Import 2024-2025 results to enable logging
-- [ ] Estimated effort: 3-4 days (complexity from multi-class/multi-driver)
-
-**4. Formula E**
-- [ ] Import Formula E series, seasons (2014-present), and recent calendars
-- [ ] Import 2024-2025 results to enable logging
-- [ ] Estimated effort: 1-2 days
-
-**5. Future series (post-launch)**
-- [ ] NASCAR Cup Series (~70 seasons, massive dataset)
-- [ ] Formula 2, Formula 3
-- [ ] IMSA WeatherTech SportsCar Championship
-- [ ] Super Formula, DTM, BTCC
-
-**Import Strategy:**
-1. Series + Seasons first (fast, establishes structure)
-2. Recent calendars (2020-2025, shows what's available)
-3. Recent results (2024-2025, enables user logging)
-4. Historical backfill (post-launch, nice-to-have)
-
-### Phase 3C: Multi-Series UI Polish
-
-**Goal:** Make the UI work seamlessly for all series, not just F1
-
-**Tasks:**
-
-**1. Fix series-specific UI elements**
-- [ ] Series switcher in navigation (currently hardcoded to F1)
-- [ ] Series logos and brand colors for MotoGP, IndyCar, WEC, Formula E
-- [ ] Session type badges for different formats (MotoGP Sprint, WEC multi-hour races, Formula E qualifying duels)
-
-**2. Handle series-specific race formats**
-- [ ] Multi-class results display for WEC (Hypercar, LMP2, LMGTE in separate tables/tabs)
-- [ ] Multi-driver entrants for WEC/IMSA (show all drivers for a car)
-- [ ] Oval/road course/street circuit distinction for IndyCar/NASCAR
-
-**3. Verify core features work across all series**
-- [ ] Spoiler shield behaves identically for all series
-- [ ] Entity matching works for non-F1 drivers/teams
-- [ ] Navigation flows work across all series
-- [ ] No hardcoded F1 assumptions break other series
+### Phase 3C: Multi-Series UI
+- [ ] Fix F1-specific assumptions in navigation, session types, results display
+- [ ] Handle WEC multi-class, multi-driver formats
+- [ ] Verify spoiler shield + entity matching work across all series
 
 ---
 
