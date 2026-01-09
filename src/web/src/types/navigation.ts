@@ -115,10 +115,13 @@ export const ROUTES = {
   SEASONS: '/seasons',
   SESSIONS: '/sessions',
   DRIVERS: '/drivers',
+  DRIVERS_FILTERED: (seriesSlug: string) => `/drivers?series=${seriesSlug}`,
   DRIVER_DETAIL: (slug: string) => `/drivers/${slug}`,
   TEAMS: '/teams',
+  TEAMS_FILTERED: (seriesSlug: string) => `/teams?series=${seriesSlug}`,
   TEAM_DETAIL: (slug: string) => `/teams/${slug}`,
   CIRCUITS: '/circuits',
+  CIRCUITS_FILTERED: (seriesSlug: string) => `/circuits?series=${seriesSlug}`,
   CIRCUIT_DETAIL: (slug: string) => `/circuits/${slug}`,
   
   // Social

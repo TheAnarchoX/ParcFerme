@@ -455,6 +455,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - Merged 21 duplicate circuits into canonical entries (46→25 circuits)
   - Added short names as aliases (e.g., "Austin" → "Circuit of the Americas")
   - Preserved all historical round associations
+- [ ] Add UIOrder to Series for consistent ordering in dropdowns/lists and being able to control the order in which they appear. 
 
 **Medium Priority — User-Facing Polish**
 - [x] About page content creation (mission, team, FAQs)
@@ -489,18 +490,10 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 
 **Pre-Launch Critical**
 - [ ] Legal review of historical data usage and user-generated content policies
-- [ ] Finalize CC BY-SA 4.0 licensing for data exports and document attribution requirements
-
-**Data & Licensing Infrastructure**
-- [ ] Create "Data & Licensing" page with full legal text and attribution
-- [ ] Add footer attribution snippet to all pages (CC BY-SA 4.0, data sources)
-- [ ] Setup bulk data download system (torrent for historical archive, PostgreSQL dumps)
-- [ ] Document API rate limits and usage guidelines for third parties
-- [ ] Create contributor attribution system for community-submitted data
 
 **Launch Prep**
 - [ ] Finalize marketing materials (press kit, screenshots, feature list)
-- [ ] Setup social media accounts (Twitter/X, Bluesky, Instagram) + initial posts
+- [x] Setup social media accounts (Twitter/X, Bluesky, Instagram) + initial posts
 
 **Growth Phase**
 - [ ] Find and onboard community members for data contributions (MotoGP, IndyCar, WEC) and feedback
@@ -523,10 +516,16 @@ The Chores list lives next to the sprints so that they can be prioritized and co
   - GET /{seriesSlug}/{year}/{roundSlug} for round detail
   - GET /{seriesSlug}/{year} for rounds listing
   - 24 integration tests covering all scenarios
-- [ ] Navigation flow between Series → Season → Round → Session
-  - Check that all links/buttons work correctly
-  - Ensure "Statistics" like for the Series detail page the "Teams" and "Drivers" sections link to the correct pre-filtered pages. E.g. For Formula 1 if you click on "Teams" it should take you to the Teams page filtered to only show teams that have participated in Formula 1.
-  - Ensure breadcrumb navigation works correctly across all new pages.
+- [x] Navigation flow between Series → Season → Round → Session (Completed: Jan 9, 2026)
+  - All series hierarchy links verified working (Series → Season → Round → Session)
+  - Statistics cards on Series detail page now link to filtered entity pages
+    - Drivers card links to `/drivers?series={slug}` showing only drivers from that series
+    - Teams card links to `/teams?series={slug}` showing only teams from that series
+    - Circuits card links to `/circuits?series={slug}` showing only circuits from that series
+  - DriversPage, TeamsPage, CircuitsPage updated to support `?series=` query parameter filtering
+  - Filter badge UI with clear button to remove series filter
+  - Breadcrumbs update dynamically when filtering by series (include series in trail)
+  - Added ROUTES.DRIVERS_FILTERED, TEAMS_FILTERED, CIRCUITS_FILTERED route helpers
   
 #### 2. Core Logging Flow (The MVP Feature)
 - [ ] "Log a Race" flow
@@ -586,6 +585,9 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Complete auth endpoints (password reset, email verification)
 - [ ] OpenF1 scheduled sync job (automated weekly updates)
 - [ ] Seed complete 2024-2025 F1 calendar data
+- [ ] Finalize CC BY-SA 4.0 licensing for data exports and document attribution requirements
+- [ ] Create "Data & Licensing" page with full legal text and attribution
+- [ ] Add footer attribution snippet to all pages (CC BY-SA 4.0, data sources)
 
 ### Infrastructure for Launch
 - [ ] Production deployment setup
@@ -661,6 +663,7 @@ The Chores list lives next to the sprints so that they can be prioritized and co
     - Report creation immediately appears in the admin moderation/data triage queues
     - Public completeness indicators are spoiler-safe (never reveal winners/results)
 - [ ] Distinguished mod/admin roles with elevated permissions and badges
+- [ ] Create contributor attribution system for community-submitted data
 
 ### Mobile & Responsive
 - [ ] Mobile-responsive improvements across all pages
@@ -691,6 +694,12 @@ The Chores list lives next to the sprints so that they can be prioritized and co
 - [ ] Fix F1-specific assumptions in navigation, session types, results display
 - [ ] Handle WEC multi-class, multi-driver formats
 - [ ] Verify spoiler shield + entity matching work across all series
+
+### Phase 3D: Data Exports & Third-Party Access
+- [ ] Public API for third-party apps
+- [ ] Build public API documentation site (Swagger/OpenAPI)
+- [ ] Setup bulk data download system (torrent for historical archive, PostgreSQL dumps)
+- [ ] Document API rate limits and usage guidelines for third parties
 
 ---
 
@@ -809,7 +818,6 @@ Traditional motorsport calendars are static files you download once per year. We
 - [ ] Import from other platforms (CSV, potential BoxBoxd migration)
 - [ ] Export user data (GDPR compliance)
 - [ ] Bulk data download page (torrent, PostgreSQL dumps, API access documentation)
-- [ ] Public API for third-party apps
 - [ ] Browser extension for spoiler blocking
 - [ ] Watch party coordination
 - [ ] Prediction games

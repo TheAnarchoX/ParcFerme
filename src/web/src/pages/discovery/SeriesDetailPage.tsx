@@ -34,21 +34,44 @@ interface StatsCardProps {
   value: number | string;
   icon: string;
   description?: string;
+  linkTo?: string;
 }
 
-function StatsCard({ label, value, icon, description }: StatsCardProps) {
-  return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 hover:border-neutral-700 transition-all">
+function StatsCard({ label, value, icon, description, linkTo }: StatsCardProps) {
+  const content = (
+    <>
       <div className="flex items-center gap-3 mb-1">
         <span className="text-2xl">{icon}</span>
         <div className="flex-1">
           <p className="text-2xl font-bold text-neutral-100">{value}</p>
           <p className="text-sm text-neutral-500">{label}</p>
         </div>
+        {linkTo && (
+          <svg className="w-4 h-4 text-neutral-600 group-hover:text-accent-green transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        )}
       </div>
       {description && (
         <p className="text-xs text-neutral-600 mt-2">{description}</p>
       )}
+    </>
+  );
+
+  if (linkTo) {
+    return (
+      <Link 
+        to={linkTo}
+        className="group block bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 hover:border-neutral-700 hover:bg-neutral-900/70 transition-all"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 hover:border-neutral-700 transition-all">
+      {content}
     </div>
   );
 }
@@ -144,8 +167,8 @@ export function SeriesDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get series brand color
-  const seriesColor = getSeriesColors(seriesSlug)[0];
+  // Get series brand color (default to gray if not found)
+  const seriesColor = getSeriesColors(seriesSlug)[0] ?? '#666666';
   
   // Fetch series data
   useEffect(() => {
@@ -228,10 +251,13 @@ export function SeriesDetailPage() {
     );
   }
   
+  // At this point, seriesSlug is guaranteed to be defined
+  const slug = seriesSlug;
+  
   // Use brandColors from API if available, otherwise fall back to local mapping
   const colors = seriesData.brandColors?.length > 0 
     ? seriesData.brandColors 
-    : getSeriesColors(seriesSlug);
+    : getSeriesColors(slug);
   const primaryColor = colors[0];
   
   // Generate header style - gradient for multi-color, solid for single
@@ -303,18 +329,21 @@ export function SeriesDetailPage() {
                   label="Drivers" 
                   value={seriesData.stats.totalDrivers}
                   description="All-time participants"
+                  linkTo={ROUTES.DRIVERS_FILTERED(slug)}
                 />
                 <StatsCard 
                   icon="🏢" 
                   label="Teams" 
                   value={seriesData.stats.totalTeams}
                   description="Constructor entries"
+                  linkTo={ROUTES.TEAMS_FILTERED(slug)}
                 />
                 <StatsCard 
                   icon="🗺️" 
                   label="Circuits" 
                   value={seriesData.stats.totalCircuits}
                   description="Unique venues"
+                  linkTo={ROUTES.CIRCUITS_FILTERED(slug)}
                 />
               </div>
             </div>
@@ -347,7 +376,7 @@ export function SeriesDetailPage() {
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-neutral-400">Current Season:</span>
                       <Link 
-                        to={ROUTES.SEASON_DETAIL(seriesSlug, currentSeason.year)}
+                        to={ROUTES.SEASON_DETAIL(slug, currentSeason.year)}
                         className="hover:underline font-medium flex items-center gap-1"
                         style={{ color: seriesColor }}
                       >
@@ -434,7 +463,7 @@ export function SeriesDetailPage() {
             {seriesData.seasons.map((season) => (
               <SeasonCard 
                 key={season.id} 
-                seriesSlug={seriesSlug} 
+                seriesSlug={slug} 
                 season={season}
                 seriesColor={seriesColor}
               />
