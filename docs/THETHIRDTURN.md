@@ -47,7 +47,7 @@ patterns:
 
 - **Series Database Index**: 
     - URL: `https://thethirdturn.com/wiki/Series_Database:Index`
-    - Source FIle: `docs/thethirdturn/series_database_index.html`
+    - Source FIle: `docs/thethirdturn/THETHIRDTURN/series_database_index.html`
     - Description: Lists all racing series available in the database.
     - Data Points: 
         - Series
@@ -96,7 +96,7 @@ patterns:
 
 - **Individual Series Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Series_Name}`
-    - Source File: `docs/thethirdturn/series_nascar_cup_series_central.html`
+    - Source File: `docs/thethirdturn/THETHIRDTURN/series_nascar_cup_series_central.html`
     - Description: Contains detailed information about a specific racing series,
       including links to seasons and drivers.
     - Data Points: 
@@ -165,7 +165,7 @@ patterns:
 
 - **Individual Season Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Season_Name}`
-    - Source File: `docs/thethirdturn/season_1949_nascar_strictly_stock_central.html`
+    - Source File: `docs/thethirdturn/THETHIRDTURN/season_1949_nascar_strictly_stock_central.html`
     - Description: Contains detailed information about a specific season, containing data and links to individual races
       about races, drivers, and results.
     - Data Points:
@@ -185,7 +185,7 @@ patterns:
 
 - **Individual Race Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Race_Name}`
-    - Source File: `docs/thethirdturn/nascar_strictly_stock_1949_01.html`
+    - Source File: `docs/thethirdturn/THETHIRDTURN/nascar_strictly_stock_1949_01.html`
     - Description: Contains detailed information about a specific race event,
       including session results, classification, and race-specific details.
     - Data Points:
@@ -205,7 +205,7 @@ patterns:
 
 - **Driver Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Driver_Name}`
-    - Source File: `docs/thethirdturn/fernando_alonso.html`
+    - Source File: `docs/thethirdturn/THETHIRDTURN/fernando_alonso.html`
     - Description: Contains comprehensive information about a specific driver,
       including career statistics, race history, and biographical details.
     - Data Points:
@@ -224,12 +224,13 @@ patterns:
 
 - **Track Page**:
     - URL Pattern: `https://thethirdturn.com/wiki/{Circuit_Name}`
+    - Source File: `docs/thethirdturn/THETHIRDTURN/autodromo_nazionale_di_monza.html`
     - Description: Contains information about a specific racing circuit or venue,
       including location, layout variations, and historical usage.
     - Data Points:
         - Circuit
             - (Circuit details and specifications)
-    - Example: https://thethirdturn.com/wiki/Monza_Circuit
+    - Example: https://thethirdturn.com/wiki/Autodromo_Nazionale_di_Monza
     - Useful Links:
         - (TBD)
     - Useful Javascript:

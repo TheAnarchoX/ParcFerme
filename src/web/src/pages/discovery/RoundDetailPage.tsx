@@ -7,6 +7,7 @@ import { roundsApi } from '../../services/roundsService';
 import type { RoundPageResponse, SessionTimelineDto } from '../../types/round';
 import { cleanRoundName, formatDateRange, getSeriesPrimaryColor } from '../../types/round';
 import { getContrastColor } from '../../types/series';
+import { getCountryFlag } from '../../lib/flags';
 
 // =========================
 // Loading Skeletons
@@ -249,7 +250,7 @@ function CircuitCard({ circuit, primaryColor }: CircuitCardProps) {
               <span>📏 {(circuit.lengthMeters / 1000).toFixed(3)} km</span>
             )}
             {circuit.countryCode && (
-              <span>🏳️ {circuit.countryCode}</span>
+              <span>{getCountryFlag(circuit.country, circuit.countryCode)} {circuit.country}</span>
             )}
           </div>
           

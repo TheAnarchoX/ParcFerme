@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs, buildDriverBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
@@ -78,13 +78,15 @@ function StatsCard({ label, value, icon }: StatsCardProps) {
 
 interface CareerEntryProps {
   entry: DriverCareerEntryDto;
+  driverSlug: string;
 }
 
-function CareerEntry({ entry }: CareerEntryProps) {
+function CareerEntry({ entry, driverSlug }: CareerEntryProps) {
   return (
     <Link
-      to={ROUTES.SEASON_DETAIL(entry.seriesSlug, entry.year)}
+      to={ROUTES.SEASON_DETAIL_FILTERED_BY_DRIVER(entry.seriesSlug, entry.year, driverSlug)}
       className="flex items-center gap-4 p-4 bg-neutral-900/30 rounded-lg hover:bg-neutral-900/50 transition-colors group"
+      title={`View ${entry.year} ${entry.seriesName} rounds featuring this driver`}
     >
       <span className="text-lg font-bold text-neutral-300 w-16">{entry.year}</span>
       
@@ -127,6 +129,149 @@ function CareerEntry({ entry }: CareerEntryProps) {
 }
 
 // =========================
+// Grouping Types & Controls
+// =========================
+
+type CareerGrouping = 'chronological' | 'team' | 'series';
+
+interface GroupingControlsProps {
+  grouping: CareerGrouping;
+  onGroupingChange: (grouping: CareerGrouping) => void;
+}
+
+function GroupingControls({ grouping, onGroupingChange }: GroupingControlsProps) {
+  const options: { id: CareerGrouping; label: string; icon: string }[] = [
+    { id: 'chronological', label: 'By Year', icon: '📅' },
+    { id: 'team', label: 'By Team', icon: '🏎️' },
+    { id: 'series', label: 'By Series', icon: '🏁' },
+  ];
+
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <span className="text-sm text-neutral-500">Group by:</span>
+      <div className="flex gap-1">
+        {options.map(option => (
+          <button
+            key={option.id}
+            onClick={() => onGroupingChange(option.id)}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1.5 ${
+              grouping === option.id
+                ? 'bg-accent-green text-neutral-900 font-medium'
+                : 'bg-neutral-800 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700'
+            }`}
+          >
+            <span>{option.icon}</span>
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =========================
+// Grouped Career Display
+// =========================
+
+interface GroupedCareerEntry {
+  groupKey: string;
+  groupLabel: string;
+  groupIcon?: string;
+  entries: DriverCareerEntryDto[];
+  totalRounds: number;
+  yearRange: string;
+}
+
+function groupCareerEntries(
+  entries: DriverCareerEntryDto[],
+  grouping: CareerGrouping
+): GroupedCareerEntry[] {
+  if (grouping === 'chronological') {
+    // Return as single group for chronological
+    return [];
+  }
+
+  const groups = new Map<string, DriverCareerEntryDto[]>();
+
+  entries.forEach(entry => {
+    const key = grouping === 'team' ? entry.team.slug : entry.seriesSlug;
+    const existing = groups.get(key) || [];
+    existing.push(entry);
+    groups.set(key, existing);
+  });
+
+  return Array.from(groups.entries()).map(([key, groupEntries]) => {
+    const sortedEntries = [...groupEntries].sort((a, b) => b.year - a.year);
+    const years = sortedEntries.map(e => e.year);
+    const minYear = Math.min(...years);
+    const maxYear = Math.max(...years);
+    const yearRange = minYear === maxYear ? `${minYear}` : `${minYear}-${maxYear}`;
+    
+    const firstEntry = sortedEntries[0]!; // Safe because we're iterating over non-empty groups
+    const groupLabel = grouping === 'team' ? firstEntry.team.name : firstEntry.seriesName;
+    
+    return {
+      groupKey: key,
+      groupLabel,
+      entries: sortedEntries,
+      totalRounds: sortedEntries.reduce((sum, e) => sum + e.roundsParticipated, 0),
+      yearRange,
+    };
+  }).sort((a, b) => {
+    // Sort groups by most recent year
+    const aMaxYear = Math.max(...a.entries.map(e => e.year));
+    const bMaxYear = Math.max(...b.entries.map(e => e.year));
+    return bMaxYear - aMaxYear;
+  });
+}
+
+interface GroupedCareerSectionProps {
+  group: GroupedCareerEntry;
+  driverSlug: string;
+  grouping: CareerGrouping;
+}
+
+function GroupedCareerSection({ group, driverSlug, grouping }: GroupedCareerSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  
+  return (
+    <div className="mb-4">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg hover:border-neutral-700 transition-all mb-2"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-lg">
+            {grouping === 'team' ? '🏎️' : '🏁'}
+          </span>
+          <div className="text-left">
+            <h4 className="font-semibold text-neutral-100">{group.groupLabel}</h4>
+            <p className="text-sm text-neutral-500">
+              {group.yearRange} • {group.entries.length} season{group.entries.length !== 1 ? 's' : ''} • {group.totalRounds} rounds
+            </p>
+          </div>
+        </div>
+        <span className={`text-neutral-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+          ▼
+        </span>
+      </button>
+      
+      {isExpanded && (
+        <div className="space-y-2 pl-4 border-l-2 border-neutral-800">
+          {group.entries.map(entry => (
+            <CareerEntry
+              key={`${entry.year}-${entry.seriesSlug}-${entry.team.id}`}
+              entry={entry}
+              driverSlug={driverSlug}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =========================
 // Page Component
 // =========================
 
@@ -140,6 +285,13 @@ export function DriverDetailPage() {
   const [driver, setDriver] = useState<DriverDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [careerGrouping, setCareerGrouping] = useState<CareerGrouping>('chronological');
+  
+  // Compute grouped career entries
+  const groupedCareer = useMemo(() => {
+    if (!driver || careerGrouping === 'chronological') return [];
+    return groupCareerEntries(driver.career, careerGrouping);
+  }, [driver, careerGrouping]);
   
   // Fetch driver data
   useEffect(() => {
@@ -335,14 +487,35 @@ export function DriverDetailPage() {
         subtitle="Teams and seasons"
       >
         {driver.career.length > 0 ? (
-          <div className="space-y-2">
-            {driver.career.map((entry) => (
-              <CareerEntry 
-                key={`${entry.year}-${entry.seriesSlug}-${entry.team.id}`} 
-                entry={entry} 
-              />
-            ))}
-          </div>
+          <>
+            <GroupingControls
+              grouping={careerGrouping}
+              onGroupingChange={setCareerGrouping}
+            />
+            
+            {careerGrouping === 'chronological' ? (
+              <div className="space-y-2">
+                {driver.career.map((entry) => (
+                  <CareerEntry 
+                    key={`${entry.year}-${entry.seriesSlug}-${entry.team.id}`} 
+                    entry={entry}
+                    driverSlug={driverSlug}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {groupedCareer.map(group => (
+                  <GroupedCareerSection
+                    key={group.groupKey}
+                    group={group}
+                    driverSlug={driverSlug}
+                    grouping={careerGrouping}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <EmptyState
             icon="📊"

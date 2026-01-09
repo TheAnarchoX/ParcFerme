@@ -103,19 +103,19 @@ interface SeasonHistoryCardProps {
 
 function SeasonHistoryCard({ season }: SeasonHistoryCardProps) {
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
+    <Link
+      to={ROUTES.ROUND_DETAIL(season.seriesSlug, season.year, season.roundSlug)}
+      className="block bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 hover:border-neutral-700 hover:bg-neutral-900/80 transition-all group"
+    >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-lg font-semibold text-neutral-100">{season.year}</span>
+        <span className="text-lg font-semibold text-neutral-100 group-hover:text-accent-green transition-colors">{season.year}</span>
         <span className="text-sm text-neutral-500">Round {season.roundNumber}</span>
       </div>
       <p className="text-neutral-300 text-sm mb-1">{season.roundName}</p>
-      <Link
-        to={ROUTES.SERIES_DETAIL(season.seriesSlug)}
-        className="text-xs text-accent-green hover:underline"
-      >
+      <span className="text-xs text-neutral-500">
         {season.seriesName}
-      </Link>
-    </div>
+      </span>
+    </Link>
   );
 }
 

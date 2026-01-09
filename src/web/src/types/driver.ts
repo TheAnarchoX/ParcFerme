@@ -113,84 +113,8 @@ export function getDriverShortName(driver: { firstName: string; lastName: string
   return `${driver.firstName.charAt(0)}. ${driver.lastName}`;
 }
 
-/**
- * Get flag emoji for a nationality (basic mapping).
- * Returns a placeholder if nationality is unknown.
- */
-export function getNationalityFlag(nationality?: string): string {
-  if (!nationality) return '🏁';
-  
-  const flagMap: Record<string, string> = {
-    // Common F1 nationalities
-    'Dutch': '🇳🇱',
-    'Netherlands': '🇳🇱',
-    'British': '🇬🇧',
-    'UK': '🇬🇧',
-    'German': '🇩🇪',
-    'Germany': '🇩🇪',
-    'Spanish': '🇪🇸',
-    'Spain': '🇪🇸',
-    'French': '🇫🇷',
-    'France': '🇫🇷',
-    'Italian': '🇮🇹',
-    'Italy': '🇮🇹',
-    'Australian': '🇦🇺',
-    'Australia': '🇦🇺',
-    'Finnish': '🇫🇮',
-    'Finland': '🇫🇮',
-    'Mexican': '🇲🇽',
-    'Mexico': '🇲🇽',
-    'Japanese': '🇯🇵',
-    'Japan': '🇯🇵',
-    'Canadian': '🇨🇦',
-    'Canada': '🇨🇦',
-    'American': '🇺🇸',
-    'USA': '🇺🇸',
-    'United States': '🇺🇸',
-    'Thai': '🇹🇭',
-    'Thailand': '🇹🇭',
-    'Chinese': '🇨🇳',
-    'China': '🇨🇳',
-    'Danish': '🇩🇰',
-    'Denmark': '🇩🇰',
-    'Monégasque': '🇲🇨',
-    'Monaco': '🇲🇨',
-    'Brazilian': '🇧🇷',
-    'Brazil': '🇧🇷',
-    'Argentine': '🇦🇷',
-    'Argentina': '🇦🇷',
-    'Austrian': '🇦🇹',
-    'Austria': '🇦🇹',
-    'Belgian': '🇧🇪',
-    'Belgium': '🇧🇪',
-    'Swiss': '🇨🇭',
-    'Switzerland': '🇨🇭',
-    'Swedish': '🇸🇪',
-    'Sweden': '🇸🇪',
-    'Polish': '🇵🇱',
-    'Poland': '🇵🇱',
-    'New Zealander': '🇳🇿',
-    'New Zealand': '🇳🇿',
-    'Russian': '🇷🇺',
-    'Russia': '🇷🇺',
-    'South African': '🇿🇦',
-    'South Africa': '🇿🇦',
-    'Indian': '🇮🇳',
-    'India': '🇮🇳',
-    'Indonesian': '🇮🇩',
-    'Indonesia': '🇮🇩',
-    'Colombian': '🇨🇴',
-    'Colombia': '🇨🇴',
-    'Venezuelan': '🇻🇪',
-    'Venezuela': '🇻🇪',
-    'Portuguese': '🇵🇹',
-    'Portugal': '🇵🇹',
-    'Irish': '🇮🇪',
-    'Ireland': '🇮🇪',
-  };
-  
-  return flagMap[nationality] ?? '🏁';
-}
+// Re-export the centralized flag utility for backwards compatibility
+export { nationalityToFlag as getNationalityFlag } from '../lib/flags';
 
 /**
  * Calculate approximate age from date of birth.

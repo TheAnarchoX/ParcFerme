@@ -139,20 +139,22 @@ interface SeasonHistoryCardProps {
     drivers: { slug: string; firstName: string; lastName: string }[];
     roundsParticipated: number;
   };
+  teamSlug: string;
 }
 
-function SeasonHistoryCard({ season }: SeasonHistoryCardProps) {
+function SeasonHistoryCard({ season, teamSlug }: SeasonHistoryCardProps) {
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
+    <Link
+      to={ROUTES.SEASON_DETAIL_FILTERED_BY_TEAM(season.seriesSlug, season.year, teamSlug)}
+      className="block bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 hover:border-neutral-700 hover:bg-neutral-900/80 transition-all group"
+      title={`View ${season.year} ${season.seriesName} rounds featuring this team`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h4 className="font-semibold text-neutral-100">{season.year}</h4>
-          <Link
-            to={ROUTES.SERIES_DETAIL(season.seriesSlug)}
-            className="text-sm text-accent-green hover:underline"
-          >
+          <h4 className="font-semibold text-neutral-100 group-hover:text-accent-green transition-colors">{season.year}</h4>
+          <span className="text-sm text-neutral-500">
             {season.seriesName}
-          </Link>
+          </span>
         </div>
         <span className="text-sm text-neutral-500">
           {season.roundsParticipated} rounds
@@ -160,19 +162,21 @@ function SeasonHistoryCard({ season }: SeasonHistoryCardProps) {
       </div>
       
       {season.drivers.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
           {season.drivers.map(driver => (
             <Link
               key={driver.slug}
-              to={ROUTES.DRIVER_DETAIL(driver.slug)}
+              to={ROUTES.SEASON_DETAIL_FILTERED_BY_DRIVER(season.seriesSlug, season.year, driver.slug)}
               className="text-xs px-2 py-1 bg-neutral-800 text-neutral-400 rounded hover:bg-neutral-700 hover:text-neutral-200 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+              title={`View ${season.year} ${season.seriesName} rounds featuring ${driver.firstName} ${driver.lastName}`}
             >
               {driver.firstName} {driver.lastName}
             </Link>
           ))}
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
@@ -388,7 +392,11 @@ export function TeamDetailPage() {
         ) : team?.seasonHistory && team.seasonHistory.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {team.seasonHistory.map((season, index) => (
-              <SeasonHistoryCard key={`${season.year}-${season.seriesSlug}-${index}`} season={season} />
+              <SeasonHistoryCard 
+                key={`${season.year}-${season.seriesSlug}-${index}`} 
+                season={season}
+                teamSlug={teamSlug!}
+              />
             ))}
           </div>
         ) : (

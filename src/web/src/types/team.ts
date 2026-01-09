@@ -112,43 +112,8 @@ export function getTeamShortName(team: { name: string; shortName?: string }): st
     .toUpperCase();
 }
 
-/**
- * Get nationality flag for a team.
- */
-export function getTeamNationalityFlag(nationality?: string): string {
-  if (!nationality) return '🏁';
-  
-  const flagMap: Record<string, string> = {
-    'Austrian': '🇦🇹',
-    'Austria': '🇦🇹',
-    'British': '🇬🇧',
-    'UK': '🇬🇧',
-    'United Kingdom': '🇬🇧',
-    'German': '🇩🇪',
-    'Germany': '🇩🇪',
-    'Italian': '🇮🇹',
-    'Italy': '🇮🇹',
-    'French': '🇫🇷',
-    'France': '🇫🇷',
-    'American': '🇺🇸',
-    'USA': '🇺🇸',
-    'United States': '🇺🇸',
-    'Swiss': '🇨🇭',
-    'Switzerland': '🇨🇭',
-    'Japanese': '🇯🇵',
-    'Japan': '🇯🇵',
-    'Dutch': '🇳🇱',
-    'Netherlands': '🇳🇱',
-    'Indian': '🇮🇳',
-    'India': '🇮🇳',
-    'Malaysian': '🇲🇾',
-    'Malaysia': '🇲🇾',
-    'Chinese': '🇨🇳',
-    'China': '🇨🇳',
-  };
-  
-  return flagMap[nationality] ?? '🏁';
-}
+// Re-export the centralized flag utility for backwards compatibility
+export { nationalityToFlag as getTeamNationalityFlag } from '../lib/flags';
 
 /**
  * Generate a placeholder color for teams without a primary color.

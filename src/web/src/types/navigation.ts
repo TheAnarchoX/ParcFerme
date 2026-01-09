@@ -106,6 +106,10 @@ export const ROUTES = {
   SERIES_DETAIL: (slug: string) => `/series/${slug}`,
   SEASON_LIST: (seriesSlug: string) => `/series/${seriesSlug}/seasons`,
   SEASON_DETAIL: (seriesSlug: string, year: number) => `/series/${seriesSlug}/${year}`,
+  SEASON_DETAIL_FILTERED_BY_DRIVER: (seriesSlug: string, year: number, driverSlug: string) => 
+    `/series/${seriesSlug}/${year}?driver=${driverSlug}`,
+  SEASON_DETAIL_FILTERED_BY_TEAM: (seriesSlug: string, year: number, teamSlug: string) => 
+    `/series/${seriesSlug}/${year}?team=${teamSlug}`,
   ROUND_DETAIL: (seriesSlug: string, year: number, roundSlug: string) => 
     `/series/${seriesSlug}/${year}/${roundSlug}`,
   SESSION_DETAIL: (seriesSlug: string, year: number, roundSlug: string, sessionId: string) => 

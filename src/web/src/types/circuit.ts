@@ -110,56 +110,8 @@ export interface CircuitSeasonDto {
 // Utility Functions
 // =========================
 
-/**
- * Get country flag emoji from country name or code.
- */
-export function getCountryFlag(country?: string, countryCode?: string): string {
-  if (!country && !countryCode) return '🏁';
-  
-  // Try country code first (2-letter ISO)
-  if (countryCode && countryCode.length === 2) {
-    const codePoints = countryCode
-      .toUpperCase()
-      .split('')
-      .map(char => 127397 + char.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-  }
-  
-  // Fallback to country name mapping
-  const flagMap: Record<string, string> = {
-    'Australia': '🇦🇺',
-    'Austria': '🇦🇹',
-    'Azerbaijan': '🇦🇿',
-    'Bahrain': '🇧🇭',
-    'Belgium': '🇧🇪',
-    'Brazil': '🇧🇷',
-    'Canada': '🇨🇦',
-    'China': '🇨🇳',
-    'France': '🇫🇷',
-    'Germany': '🇩🇪',
-    'Hungary': '🇭🇺',
-    'Italy': '🇮🇹',
-    'Japan': '🇯🇵',
-    'Mexico': '🇲🇽',
-    'Monaco': '🇲🇨',
-    'Netherlands': '🇳🇱',
-    'Portugal': '🇵🇹',
-    'Qatar': '🇶🇦',
-    'Russia': '🇷🇺',
-    'Saudi Arabia': '🇸🇦',
-    'Singapore': '🇸🇬',
-    'Spain': '🇪🇸',
-    'UAE': '🇦🇪',
-    'United Arab Emirates': '🇦🇪',
-    'UK': '🇬🇧',
-    'United Kingdom': '🇬🇧',
-    'United States': '🇺🇸',
-    'USA': '🇺🇸',
-    'Vietnam': '🇻🇳',
-  };
-  
-  return country ? (flagMap[country] ?? '🏁') : '🏁';
-}
+// Re-export the centralized flag utility for backwards compatibility
+export { getCountryFlag } from '../lib/flags';
 
 /**
  * Format circuit length in a readable way.

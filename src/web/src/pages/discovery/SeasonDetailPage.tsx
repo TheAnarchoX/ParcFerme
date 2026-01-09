@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs, buildSeasonBreadcrumbs } from '../../components/navigation/Breadcrumbs';
@@ -191,6 +191,53 @@ function RoundCard({ seriesSlug, seriesName, year, round, primaryColor }: RoundC
 }
 
 // =========================
+// Filter Indicator Component
+// =========================
+
+interface FilterIndicatorProps {
+  type: 'driver' | 'team';
+  slug: string;
+  onClear: () => void;
+  primaryColor?: string;
+}
+
+function FilterIndicator({ type, slug, onClear, primaryColor }: FilterIndicatorProps) {
+  const displayName = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const icon = type === 'driver' ? '👤' : '🏎️';
+  const label = type === 'driver' ? 'Driver' : 'Team';
+  
+  return (
+    <div 
+      className="mb-6 p-4 rounded-xl border flex items-center justify-between"
+      style={{ 
+        backgroundColor: primaryColor ? `${primaryColor}10` : 'rgba(74, 222, 128, 0.05)',
+        borderColor: primaryColor ? `${primaryColor}40` : 'rgba(74, 222, 128, 0.2)'
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <span className="text-xl">{icon}</span>
+        <div>
+          <p className="text-sm text-neutral-400">Showing rounds featuring {label.toLowerCase()}</p>
+          <p 
+            className="font-semibold"
+            style={{ color: primaryColor || '#4ade80' }}
+          >
+            {displayName}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={onClear}
+        className="px-3 py-1.5 text-sm bg-neutral-800 text-neutral-300 rounded-lg hover:bg-neutral-700 transition-colors flex items-center gap-2"
+      >
+        <span>✕</span>
+        Clear filter
+      </button>
+    </div>
+  );
+}
+
+// =========================
 // Filter Tabs
 // =========================
 
@@ -243,15 +290,29 @@ function FilterTabs({ activeFilter, onFilterChange, counts, primaryColor }: Filt
 /**
  * Season detail page - shows rounds/calendar for a specific season.
  * Fetches real data from the API and displays with spoiler-safe aggregates.
+ * Supports filtering by driver or team via query parameters.
  */
 export function SeasonDetailPage() {
   const { seriesSlug, year } = useParams<{ seriesSlug: string; year: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [seasonData, setSeasonData] = useState<SeasonDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [roundFilter, setRoundFilter] = useState<RoundFilter>('all');
   
   const yearNum = year ? parseInt(year, 10) : NaN;
+  
+  // Get filter params
+  const driverFilter = searchParams.get('driver');
+  const teamFilter = searchParams.get('team');
+  
+  // Clear entity filter
+  const clearEntityFilter = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('driver');
+    newParams.delete('team');
+    setSearchParams(newParams);
+  };
   
   // Fetch season data
   useEffect(() => {
@@ -414,6 +475,24 @@ export function SeasonDetailPage() {
       
       {/* Race Calendar */}
       <Section title="Race Calendar">
+        {/* Entity filter indicator */}
+        {driverFilter && (
+          <FilterIndicator
+            type="driver"
+            slug={driverFilter}
+            onClear={clearEntityFilter}
+            primaryColor={primaryColor}
+          />
+        )}
+        {teamFilter && !driverFilter && (
+          <FilterIndicator
+            type="team"
+            slug={teamFilter}
+            onClear={clearEntityFilter}
+            primaryColor={primaryColor}
+          />
+        )}
+        
         <FilterTabs 
           activeFilter={roundFilter}
           onFilterChange={setRoundFilter}

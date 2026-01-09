@@ -127,7 +127,7 @@ _No active tasks_
 
 **Goal:** Use The Third Turn database to bring MotoGP, IndyCar, WEC, Formula E, NASCAR into Parc Fermé
 
-**See:** [docs/THETHIRDTURN.md](./docs/THETHIRDTURN.md) for technical details
+**See:** [docs/thethirdturn/THETHIRDTURN.md](./docs/thethirdturn/THETHIRDTURN.md) for technical details
 
 ### Phase 3A: Build The Third Turn Scraper
 - [ ] Build scraper in `src/python/ingestion/sources/thethirdturn/`
@@ -301,4 +301,4 @@ Dynamic, personalized calendars that:
 - [API Documentation](http://localhost:5000/swagger) (local dev)
 - [Bulk Sync Guide](./docs/BULK_SYNC.md)
 - [Ergast Migration Strategy](./docs/ERGAST_MIGRATION.md)
-- [The Third Turn Integration](./docs/THETHIRDTURN.md)
+- [The Third Turn Integration](./docs/thethirdturn/THETHIRDTURN.md)
