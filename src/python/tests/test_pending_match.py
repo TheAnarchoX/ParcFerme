@@ -87,24 +87,24 @@ class TestPendingMatchEnums:
     """Test PendingMatch enums."""
 
     def test_entity_type_enum(self):
-        """Test entity type enum values."""
-        assert PendingMatchEntityType.DRIVER.value == "driver"
-        assert PendingMatchEntityType.TEAM.value == "team"
-        assert PendingMatchEntityType.CIRCUIT.value == "circuit"
-        assert PendingMatchEntityType.ROUND.value == "round"
+        """Test entity type enum values (integers matching C# model)."""
+        assert PendingMatchEntityType.DRIVER.value == 0
+        assert PendingMatchEntityType.TEAM.value == 1
+        assert PendingMatchEntityType.CIRCUIT.value == 2
+        assert PendingMatchEntityType.ROUND.value == 3
 
     def test_status_enum(self):
-        """Test status enum values."""
-        assert PendingMatchStatus.PENDING.value == "pending"
-        assert PendingMatchStatus.APPROVED.value == "approved"
-        assert PendingMatchStatus.REJECTED.value == "rejected"
-        assert PendingMatchStatus.MERGED.value == "merged"
+        """Test status enum values (integers matching C# model)."""
+        assert PendingMatchStatus.PENDING.value == 0
+        assert PendingMatchStatus.APPROVED.value == 1
+        assert PendingMatchStatus.REJECTED.value == 2
+        assert PendingMatchStatus.MERGED.value == 3
 
     def test_resolution_enum(self):
-        """Test resolution enum values."""
-        assert PendingMatchResolution.MATCH_EXISTING.value == "match_existing"
-        assert PendingMatchResolution.CREATE_NEW.value == "create_new"
-        assert PendingMatchResolution.SKIP.value == "skip"
+        """Test resolution enum values (integers matching C# model)."""
+        assert PendingMatchResolution.MATCH_EXISTING.value == 0
+        assert PendingMatchResolution.CREATE_NEW.value == 1
+        assert PendingMatchResolution.SKIP.value == 2
 
 
 class TestPendingMatchStatusTransitions:
@@ -270,4 +270,5 @@ class TestPendingMatchSerialization:
 
         json_str = match.model_dump_json()
         assert "Test Driver" in json_str
-        assert "driver" in json_str
+        # Entity type is serialized as integer (0 = DRIVER)
+        assert '"entity_type":0' in json_str or '"entity_type": 0' in json_str

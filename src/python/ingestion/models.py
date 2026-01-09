@@ -234,27 +234,66 @@ class Result(BaseModel):
 # =========================
 
 
-class PendingMatchEntityType(str, Enum):
-    """Entity types that can have pending matches."""
-    DRIVER = "driver"
-    TEAM = "team"
-    CIRCUIT = "circuit"
-    ROUND = "round"
+class PendingMatchEntityType(int, Enum):
+    """Entity types that can have pending matches.
+    
+    Values match C# enum PendingMatchEntityType in Models/PendingMatch.cs
+    """
+    DRIVER = 0
+    TEAM = 1
+    CIRCUIT = 2
+    ROUND = 3
+    
+    @classmethod
+    def from_string(cls, value: str) -> "PendingMatchEntityType":
+        """Convert string name to enum value."""
+        mapping = {"driver": cls.DRIVER, "team": cls.TEAM, "circuit": cls.CIRCUIT, "round": cls.ROUND}
+        return mapping.get(value.lower(), cls.DRIVER)
+    
+    def to_string(self) -> str:
+        """Convert enum to lowercase string name."""
+        return self.name.lower()
 
 
-class PendingMatchStatus(str, Enum):
-    """Resolution status for pending matches."""
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    MERGED = "merged"
+class PendingMatchStatus(int, Enum):
+    """Resolution status for pending matches.
+    
+    Values match C# enum PendingMatchStatus in Models/PendingMatch.cs
+    """
+    PENDING = 0
+    APPROVED = 1
+    REJECTED = 2
+    MERGED = 3
+    
+    @classmethod
+    def from_string(cls, value: str) -> "PendingMatchStatus":
+        """Convert string name to enum value."""
+        mapping = {"pending": cls.PENDING, "approved": cls.APPROVED, "rejected": cls.REJECTED, "merged": cls.MERGED}
+        return mapping.get(value.lower(), cls.PENDING)
+    
+    def to_string(self) -> str:
+        """Convert enum to lowercase string name."""
+        return self.name.lower()
 
 
-class PendingMatchResolution(str, Enum):
-    """Resolution action taken for a pending match."""
-    MATCH_EXISTING = "match_existing"
-    CREATE_NEW = "create_new"
-    SKIP = "skip"
+class PendingMatchResolution(int, Enum):
+    """Resolution action taken for a pending match.
+    
+    Values match C# enum PendingMatchResolution in Models/PendingMatch.cs
+    """
+    MATCH_EXISTING = 0
+    CREATE_NEW = 1
+    SKIP = 2
+    
+    @classmethod
+    def from_string(cls, value: str) -> "PendingMatchResolution":
+        """Convert string name to enum value."""
+        mapping = {"match_existing": cls.MATCH_EXISTING, "create_new": cls.CREATE_NEW, "skip": cls.SKIP}
+        return mapping.get(value.lower(), cls.MATCH_EXISTING)
+    
+    def to_string(self) -> str:
+        """Convert enum to lowercase string name."""
+        return self.name.lower()
 
 
 class PendingMatch(BaseModel):

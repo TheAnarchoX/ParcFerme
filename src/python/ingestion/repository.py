@@ -1604,6 +1604,10 @@ class RacingRepository:
         Returns:
             List of pending match dictionaries
         """
+        # Map string values to database integers (C# enum values)
+        status_map = {"pending": 0, "approved": 1, "rejected": 2, "merged": 3}
+        entity_type_map = {"driver": 0, "team": 1, "circuit": 2, "round": 3}
+        
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
             query = """
                 SELECT 
@@ -1625,11 +1629,15 @@ class RacingRepository:
                 FROM "PendingMatches"
                 WHERE "Status" = %s
             """
-            params: list = [status]
+            # Convert string status to integer
+            status_int = status_map.get(status.lower(), 0)
+            params: list = [status_int]
             
             if entity_type:
                 query += ' AND "EntityType" = %s'
-                params.append(entity_type)
+                # Convert string entity_type to integer
+                entity_type_int = entity_type_map.get(entity_type.lower(), 0)
+                params.append(entity_type_int)
             if min_score is not None:
                 query += ' AND "MatchScore" >= %s'
                 params.append(min_score)
