@@ -448,6 +448,25 @@ public sealed class CircuitAlias
 }
 
 /// <summary>
+/// Role of a driver within a team for a specific round.
+/// Used to distinguish regular lineup from reserves and test drivers.
+/// </summary>
+public enum DriverRole
+{
+    /// <summary>Regular race driver - part of the official lineup.</summary>
+    Regular = 0,
+    
+    /// <summary>Reserve/test driver filling in for an injured or unavailable driver.</summary>
+    Reserve = 1,
+    
+    /// <summary>FP1-only driver - typically a rookie getting mandatory practice time.</summary>
+    Fp1Only = 2,
+    
+    /// <summary>Test driver participating in a test session.</summary>
+    Test = 3
+}
+
+/// <summary>
 /// Links a driver to a team for a specific round.
 /// Handles driver changes mid-season and WEC multi-driver cars.
 /// </summary>
@@ -457,6 +476,12 @@ public sealed class Entrant
     public Guid RoundId { get; set; }
     public Guid DriverId { get; set; }
     public Guid TeamId { get; set; }
+    
+    /// <summary>
+    /// Role of the driver for this round (regular, reserve, FP1-only).
+    /// Defaults to Regular for backwards compatibility.
+    /// </summary>
+    public DriverRole Role { get; set; } = DriverRole.Regular;
     
     public Round Round { get; set; } = null!;
     public Driver Driver { get; set; } = null!;

@@ -3,7 +3,34 @@
  * Keep in sync with backend TeamDtos.cs
  */
 
-import type { DriverSummaryDto } from './spoiler';
+// =========================
+// Driver Role Type
+// =========================
+
+/**
+ * Driver's role within a team.
+ */
+export type DriverRole = 'regular' | 'reserve' | 'fp1_only' | 'test';
+
+/**
+ * Driver info within a team context - includes role.
+ */
+export interface TeamDriverDto {
+  id: string;
+  firstName: string;
+  lastName: string;
+  slug: string;
+  abbreviation?: string;
+  nationality?: string;
+  headshotUrl?: string;
+  driverNumber?: number;
+  dateOfBirth?: string;
+  wikipediaUrl?: string;
+  /** Driver's role: "regular", "reserve", "fp1_only", "test" */
+  role: DriverRole;
+  /** Number of rounds this driver participated in (for the season context) */
+  roundsParticipated: number;
+}
 
 // =========================
 // Team List Types
@@ -51,7 +78,7 @@ export interface TeamDetailDto {
   primaryColor?: string;
   nationality?: string;
   wikipediaUrl?: string;
-  currentDrivers: DriverSummaryDto[];
+  currentDrivers: TeamDriverDto[];
   seasonHistory: TeamSeasonRosterDto[];
   stats: TeamStatsDto;
 }
@@ -64,7 +91,7 @@ export interface TeamSeasonRosterDto {
   seriesName: string;
   seriesSlug: string;
   seriesLogoUrl?: string;
-  drivers: DriverSummaryDto[];
+  drivers: TeamDriverDto[];
   roundsParticipated: number;
 }
 
@@ -89,7 +116,7 @@ export interface TeamSeasonDto {
   seriesName: string;
   seriesSlug: string;
   seriesLogoUrl?: string;
-  drivers: DriverSummaryDto[];
+  drivers: TeamDriverDto[];
   roundsParticipated: number;
 }
 
@@ -126,4 +153,40 @@ export function getTeamPlaceholderColor(teamName: string): string {
   }
   const hue = Math.abs(hash % 360);
   return `hsl(${hue}, 60%, 40%)`;
+}
+
+/**
+ * Get a human-readable label for a driver role.
+ */
+export function getDriverRoleLabel(role: DriverRole): string {
+  switch (role) {
+    case 'regular':
+      return 'Driver';
+    case 'reserve':
+      return 'Reserve';
+    case 'fp1_only':
+      return 'FP1 Driver';
+    case 'test':
+      return 'Test Driver';
+    default:
+      return 'Driver';
+  }
+}
+
+/**
+ * Get CSS classes for a driver role badge.
+ */
+export function getDriverRoleBadgeClasses(role: DriverRole): string {
+  switch (role) {
+    case 'regular':
+      return ''; // No badge for regular drivers
+    case 'reserve':
+      return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+    case 'fp1_only':
+      return 'bg-sky-500/20 text-sky-400 border border-sky-500/30';
+    case 'test':
+      return 'bg-purple-500/20 text-purple-400 border border-purple-500/30';
+    default:
+      return '';
+  }
 }

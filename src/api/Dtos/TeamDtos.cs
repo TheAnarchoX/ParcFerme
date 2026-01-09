@@ -36,14 +36,34 @@ public sealed record TeamDetailDto(
     string? Nationality,
     string? WikipediaUrl,
     
-    // Current roster (most recent season)
-    IReadOnlyList<DriverSummaryDto> CurrentDrivers,
+    // Current roster (most recent season) - with role info
+    IReadOnlyList<TeamDriverDto> CurrentDrivers,
     
     // Historical roster by season
     IReadOnlyList<TeamSeasonRosterDto> SeasonHistory,
     
     // Stats
     TeamStatsDto Stats
+);
+
+/// <summary>
+/// Driver info within a team context - includes role.
+/// Role is a string: "regular", "reserve", "fp1_only", "test".
+/// RoundsParticipated shows how many rounds this driver participated in (useful for distinguishing one-off appearances).
+/// </summary>
+public sealed record TeamDriverDto(
+    Guid Id,
+    string FirstName,
+    string LastName,
+    string Slug,
+    string? Abbreviation,
+    string? Nationality,
+    string? HeadshotUrl,
+    int? DriverNumber,
+    DateOnly? DateOfBirth,
+    string? WikipediaUrl,
+    string Role,
+    int RoundsParticipated
 );
 
 /// <summary>
@@ -54,7 +74,7 @@ public sealed record TeamSeasonRosterDto(
     string SeriesName,
     string SeriesSlug,
     string? SeriesLogoUrl,
-    IReadOnlyList<DriverSummaryDto> Drivers,
+    IReadOnlyList<TeamDriverDto> Drivers,
     int RoundsParticipated
 );
 
@@ -80,7 +100,7 @@ public sealed record TeamSeasonDto(
     string SeriesName,
     string SeriesSlug,
     string? SeriesLogoUrl,
-    IReadOnlyList<DriverSummaryDto> Drivers,
+    IReadOnlyList<TeamDriverDto> Drivers,
     int RoundsParticipated
 );
 

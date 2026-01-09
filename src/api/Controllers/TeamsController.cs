@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ParcFerme.Api.Caching;
 using ParcFerme.Api.Data;
 using ParcFerme.Api.Dtos;
+using ParcFerme.Api.Models;
 
 namespace ParcFerme.Api.Controllers;
 
@@ -270,27 +271,11 @@ public sealed class TeamsController : BaseApiController
             .ThenByDescending(e => e.Round.RoundNumber)
             .ToListAsync(ct);
 
-        // Get current drivers (most recent season)
+        // Get current drivers (most recent season) with role info
         var latestSeasonId = entrants.FirstOrDefault()?.Round.SeasonId;
         var currentDrivers = latestSeasonId is not null
-            ? entrants
-                .Where(e => e.Round.SeasonId == latestSeasonId)
-                .Select(e => e.Driver)
-                .DistinctBy(d => d.Id)
-                .Select(d => new DriverSummaryDto(
-                    Id: d.Id,
-                    FirstName: d.FirstName,
-                    LastName: d.LastName,
-                    Slug: d.Slug,
-                    Abbreviation: d.Abbreviation,
-                    Nationality: d.Nationality,
-                    HeadshotUrl: d.HeadshotUrl,
-                    DriverNumber: d.DriverNumber,
-                    DateOfBirth: d.DateOfBirth,
-                    WikipediaUrl: d.WikipediaUrl
-                ))
-                .ToList()
-            : new List<DriverSummaryDto>();
+            ? BuildTeamDrivers(entrants.Where(e => e.Round.SeasonId == latestSeasonId))
+            : new List<TeamDriverDto>();
 
         // Group by year + series for season history
         var seasonHistory = entrants
@@ -298,22 +283,7 @@ public sealed class TeamsController : BaseApiController
             .Select(g =>
             {
                 var first = g.First();
-                var drivers = g
-                    .Select(e => e.Driver)
-                    .DistinctBy(d => d.Id)
-                    .Select(d => new DriverSummaryDto(
-                        Id: d.Id,
-                        FirstName: d.FirstName,
-                        LastName: d.LastName,
-                        Slug: d.Slug,
-                        Abbreviation: d.Abbreviation,
-                        Nationality: d.Nationality,
-                        HeadshotUrl: d.HeadshotUrl,
-                        DriverNumber: d.DriverNumber,
-                        DateOfBirth: d.DateOfBirth,
-                        WikipediaUrl: d.WikipediaUrl
-                    ))
-                    .ToList();
+                var drivers = BuildTeamDrivers(g);
                 
                 return new TeamSeasonRosterDto(
                     Year: g.Key.Year,
@@ -394,22 +364,7 @@ public sealed class TeamsController : BaseApiController
             .Select(g =>
             {
                 var first = g.First();
-                var drivers = g
-                    .Select(e => e.Driver)
-                    .DistinctBy(d => d.Id)
-                    .Select(d => new DriverSummaryDto(
-                        Id: d.Id,
-                        FirstName: d.FirstName,
-                        LastName: d.LastName,
-                        Slug: d.Slug,
-                        Abbreviation: d.Abbreviation,
-                        Nationality: d.Nationality,
-                        HeadshotUrl: d.HeadshotUrl,
-                        DriverNumber: d.DriverNumber,
-                        DateOfBirth: d.DateOfBirth,
-                        WikipediaUrl: d.WikipediaUrl
-                    ))
-                    .ToList();
+                var drivers = BuildTeamDrivers(g);
                 
                 return new TeamSeasonDto(
                     SeasonId: first.Round.SeasonId,
@@ -427,4 +382,71 @@ public sealed class TeamsController : BaseApiController
 
         return Ok(seasons);
     }
+    
+    /// <summary>
+    /// Build a list of TeamDriverDto from entrants with role detection and sorting.
+    /// Regular drivers are sorted by driver number (lowest first),
+    /// followed by reserves and FP1-only drivers.
+    /// </summary>
+    private static List<TeamDriverDto> BuildTeamDrivers(IEnumerable<Entrant> entrants)
+    {
+        // Group by driver to aggregate role and rounds participated
+        var driverData = entrants
+            .GroupBy(e => e.DriverId)
+            .Select(g =>
+            {
+                var first = g.First();
+                var driver = first.Driver;
+                var roundsParticipated = g.Select(e => e.RoundId).Distinct().Count();
+                
+                // Determine the "primary" role - use the most common role across rounds
+                // If any entrant is Regular, consider them Regular
+                // Otherwise use the most restrictive role found
+                var roles = g.Select(e => e.Role).Distinct().ToList();
+                var role = roles.Contains(DriverRole.Regular) 
+                    ? DriverRole.Regular 
+                    : roles.Min();  // Enum order: Regular < Reserve < Fp1Only < Test
+                
+                return new 
+                {
+                    Driver = driver,
+                    Role = role,
+                    RoundsParticipated = roundsParticipated
+                };
+            })
+            .ToList();
+        
+        // Sort by: Role (Regular first), then by DriverNumber (ascending)
+        return driverData
+            .OrderBy(d => d.Role)
+            .ThenBy(d => d.Driver.DriverNumber ?? int.MaxValue)
+            .ThenBy(d => d.Driver.LastName)
+            .Select(d => new TeamDriverDto(
+                Id: d.Driver.Id,
+                FirstName: d.Driver.FirstName,
+                LastName: d.Driver.LastName,
+                Slug: d.Driver.Slug,
+                Abbreviation: d.Driver.Abbreviation,
+                Nationality: d.Driver.Nationality,
+                HeadshotUrl: d.Driver.HeadshotUrl,
+                DriverNumber: d.Driver.DriverNumber,
+                DateOfBirth: d.Driver.DateOfBirth,
+                WikipediaUrl: d.Driver.WikipediaUrl,
+                Role: ConvertRoleToString(d.Role),
+                RoundsParticipated: d.RoundsParticipated
+            ))
+            .ToList();
+    }
+    
+    /// <summary>
+    /// Convert DriverRole enum to a user-friendly string for the API.
+    /// </summary>
+    private static string ConvertRoleToString(DriverRole role) => role switch
+    {
+        DriverRole.Regular => "regular",
+        DriverRole.Reserve => "reserve",
+        DriverRole.Fp1Only => "fp1_only",
+        DriverRole.Test => "test",
+        _ => "regular"
+    };
 }

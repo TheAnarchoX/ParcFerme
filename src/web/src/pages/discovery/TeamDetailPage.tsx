@@ -4,8 +4,8 @@ import { MainLayout, PageHeader, Section, EmptyState } from '../../components/la
 import { useBreadcrumbs, buildTeamBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
 import { teamsApi } from '../../services/teamsService';
-import type { TeamDetailDto } from '../../types/team';
-import { getTeamNationalityFlag, getTeamPlaceholderColor } from '../../types/team';
+import type { TeamDetailDto, TeamDriverDto } from '../../types/team';
+import { getTeamNationalityFlag, getTeamPlaceholderColor, getDriverRoleLabel, getDriverRoleBadgeClasses } from '../../types/team';
 import { TeamPlaceholder } from '../../components/ui';
 
 // =========================
@@ -79,18 +79,14 @@ function StatsCard({ icon, value, label }: StatsCardProps) {
 // =========================
 
 interface DriverCardProps {
-  driver: {
-    slug: string;
-    firstName: string;
-    lastName: string;
-    nationality?: string;
-    headshotUrl?: string;
-    driverNumber?: number;
-  };
+  driver: TeamDriverDto;
+  showRole?: boolean;
 }
 
-function DriverCard({ driver }: DriverCardProps) {
+function DriverCard({ driver, showRole = true }: DriverCardProps) {
   const fullName = `${driver.firstName} ${driver.lastName}`;
+  const isNonRegular = driver.role !== 'regular';
+  const badgeClasses = getDriverRoleBadgeClasses(driver.role);
   
   return (
     <Link
@@ -110,15 +106,25 @@ function DriverCard({ driver }: DriverCardProps) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-neutral-100 group-hover:text-accent-green transition-colors truncate">
-            {fullName}
-          </h4>
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-neutral-100 group-hover:text-accent-green transition-colors truncate">
+              {fullName}
+            </h4>
+            {showRole && isNonRegular && (
+              <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${badgeClasses}`}>
+                {getDriverRoleLabel(driver.role)}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2 text-sm text-neutral-500">
             {driver.driverNumber && (
               <span className="font-mono">#{driver.driverNumber}</span>
             )}
             {driver.nationality && (
               <span>{driver.nationality}</span>
+            )}
+            {driver.roundsParticipated === 1 && isNonRegular && (
+              <span className="text-xs text-neutral-600">(1 round)</span>
             )}
           </div>
         </div>
@@ -136,13 +142,17 @@ interface SeasonHistoryCardProps {
     year: number;
     seriesName: string;
     seriesSlug: string;
-    drivers: { slug: string; firstName: string; lastName: string }[];
+    drivers: TeamDriverDto[];
     roundsParticipated: number;
   };
   teamSlug: string;
 }
 
 function SeasonHistoryCard({ season, teamSlug }: SeasonHistoryCardProps) {
+  // Separate regular drivers from non-regular
+  const regularDrivers = season.drivers.filter(d => d.role === 'regular');
+  const otherDrivers = season.drivers.filter(d => d.role !== 'regular');
+  
   return (
     <Link
       to={ROUTES.SEASON_DETAIL_FILTERED_BY_TEAM(season.seriesSlug, season.year, teamSlug)}
@@ -163,7 +173,8 @@ function SeasonHistoryCard({ season, teamSlug }: SeasonHistoryCardProps) {
       
       {season.drivers.length > 0 && (
         <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-          {season.drivers.map(driver => (
+          {/* Regular drivers first */}
+          {regularDrivers.map(driver => (
             <Link
               key={driver.slug}
               to={ROUTES.SEASON_DETAIL_FILTERED_BY_DRIVER(season.seriesSlug, season.year, driver.slug)}
@@ -174,6 +185,21 @@ function SeasonHistoryCard({ season, teamSlug }: SeasonHistoryCardProps) {
               {driver.firstName} {driver.lastName}
             </Link>
           ))}
+          {/* Non-regular drivers with role indicator */}
+          {otherDrivers.map(driver => {
+            const badgeClasses = getDriverRoleBadgeClasses(driver.role);
+            return (
+              <Link
+                key={driver.slug}
+                to={ROUTES.SEASON_DETAIL_FILTERED_BY_DRIVER(season.seriesSlug, season.year, driver.slug)}
+                className={`text-xs px-2 py-1 rounded hover:opacity-80 transition-colors ${badgeClasses || 'bg-neutral-800 text-neutral-400'}`}
+                onClick={(e) => e.stopPropagation()}
+                title={`${getDriverRoleLabel(driver.role)}: View ${season.year} ${season.seriesName} rounds featuring ${driver.firstName} ${driver.lastName}`}
+              >
+                {driver.firstName} {driver.lastName}
+              </Link>
+            );
+          })}
         </div>
       )}
     </Link>
