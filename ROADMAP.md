@@ -324,20 +324,61 @@ Signals (by entity type):
 - `expand_circuit_abbreviation()`: "COTA" → "Circuit of the Americas", "Spa" → "Spa-Francorchamps"
 - `extract_name_parts()`: Handles "Last, First" format, suffixes (Jr, Sr, III), hyphenated names
 
-**Phase 3: Review Queue System** (Agentic)
-- [ ] Create `PendingMatch` database table for uncertain matches
-- [ ] Create CLI tool to review and resolve pending matches: `python -m ingestion.review_matches`
-- [ ] Add bulk approve/reject functionality
-- [ ] Auto-learn from resolved matches (update known_aliases.json)
+**Phase 3: Review Queue System** (Completed: Jan 9, 2026)
+- [x] Create `PendingMatch` database table for uncertain matches
+  - C# model with EntityType, Status, Resolution enums
+  - EF Core migration `20260109010737_AddPendingMatchTable`
+  - Python Pydantic model with CRUD repository methods
+- [x] Create CLI tool to review and resolve pending matches: `python -m ingestion.review_matches`
+  - `--list`: Show pending matches with filtering by entity type and status
+  - `--approve <id>`: Approve a pending match (creates alias if needed)
+  - `--reject <id>`: Reject a pending match
+  - `--bulk-approve-above <threshold>`: Auto-approve matches above score threshold
+  - `--export <path>`: Export pending matches to CSV for batch review
+- [x] Auto-create aliases when approving matches
 
-**Phase 4: Integration & Migration** (Deferred - existing EntityResolver works well)
-- [ ] Integrate new matchers into `EntityResolver` (optional - current sequential matching works)
-- [ ] Update `sync.py` (OpenF1) to use new matching framework
-- [ ] Update `services/ergast.py` to use new matching framework
-- [ ] Migrate existing `known_aliases.json` data to database aliases
-- [ ] Add ingestion audit log table for traceability
+**Implementation Summary (Phase 3):**
+- `PendingMatch` model: id, entity_type, incoming_name, incoming_data_json, candidate_entity_id, candidate_entity_name, match_score, signals_json, source, status, resolved_at, resolved_by, resolution, resolution_notes
+- `PendingMatchEntityType` enum: DRIVER, TEAM, CIRCUIT, ROUND
+- `PendingMatchStatus` enum: PENDING, APPROVED, REJECTED, MERGED
+- `PendingMatchResolution` enum: MATCH_EXISTING, CREATE_NEW, SKIP
+- Repository methods: `get_pending_matches()`, `insert_pending_match()`, `update_pending_match()`, `delete_pending_match()`
+- CLI tool includes tabular output with Rich formatting
+- Tests: 14 PendingMatch model tests
 
-**Note on Phase 4:** The existing `EntityResolver` with sequential matching strategies is working well. The new matching framework provides better scoring and confidence levels, but integration is optional until we add new data sources.
+**Phase 4: Integration & Migration** (Completed: Jan 9, 2026)
+- [x] Create `RoundMatcher` for deduplicating rounds across sources
+  - Signals: exact_name (0.25), circuit (0.25), date (0.25), round_number_year (0.15), fuzzy (0.10)
+  - Uses `normalize_grand_prix()` to strip sponsor names
+  - Pre-filter by year for performance
+- [x] Integrate new matchers into `EntityResolver`
+  - Added `resolve_driver_with_scoring()` method using DriverMatcher
+  - Added `resolve_team_with_scoring()` method using TeamMatcher
+  - Added `resolve_circuit_with_scoring()` method using CircuitMatcher
+  - ScoringResult dataclass with: matched, entity_id, entity_name, confidence, score, signals, needs_review, pending_match_id
+  - Creates PendingMatch for LOW confidence matches (0.5-0.7)
+- [x] Update `sync.py` with `use_scoring` flag in SyncOptions
+- [x] Update `bulk_sync.py` with `--use-scoring` CLI flag
+- [x] Update `services/ergast.py` to use `normalize_name` from matching module (removes duplicate code)
+
+**Implementation Summary (Phase 4):**
+- `RoundMatcher` in `matching/rounds.py`: Handles sponsor-cluttered names, date proximity, circuit matching
+- EntityResolver scoring methods return ScoringResult (not the entity directly) with match metadata
+- Default behavior unchanged: `use_scoring=False` uses existing sequential matching
+- When `use_scoring=True`, low-confidence matches create PendingMatch for review
+- Tests: 16 RoundMatcher tests, 15 EntityResolver scoring tests
+
+**Validation Commands:**
+```bash
+# List pending matches
+python -m ingestion.review_matches --list
+
+# Bulk approve high-confidence matches
+python -m ingestion.review_matches --bulk-approve-above 0.8
+
+# Test scoring-based sync (dry run)
+python -m ingestion.bulk_sync --start-year 2025 --end-year 2025 --use-scoring --dry-run
+```
 
 **Phase 5: Clean Existing Data** (Completed: Jan 9, 2026)
 - [x] Run matching on existing Rounds to normalize names (remove sponsor clutter)
