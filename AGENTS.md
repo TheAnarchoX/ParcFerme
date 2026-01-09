@@ -126,13 +126,17 @@ This ensures:
 
 ## Roadmap Hygiene
 
-**Keep ROADMAP.md in sync with actual work.** When working on tasks:
+**Keep ROADMAP.md and COMPLETED.md in sync with actual work.**
+
+### File Organization
+- **ROADMAP.md**: Active and upcoming work only (current sprint, next priorities, future phases)
+- **COMPLETED.md**: Historical archive of all finished tasks with implementation details
 
 ### When Getting A Task That is Not on the Roadmap
 1. **Add it to the Roadmap first**: Before starting work on any new task or feature not already listed:
    - Create a new entry in the appropriate section of ROADMAP.md
    - Provide a clear description, acceptance criteria, and any relevant context
-   - Assign priority level (e.g., Critical, High, Medium, Low)
+   - Assign priority level within the "Up Next" section or appropriate phase
    - Commit the updated roadmap before beginning implementation
 
 ### When Picking Up a Task
@@ -151,39 +155,43 @@ This ensures:
    - Break down vague tasks into concrete sub-tasks
    - Commit the roadmap update before starting implementation
 
-3. **Move to In Progress**: Move the item to the "🚧 In Progress" section
+3. **Move to In Progress**: Move the item to the "🚧 In Progress" section in ROADMAP.md
 
 ### During Work
 
-Update status markers as appropriate:
-- `[IN PROGRESS]` - actively being worked on
-- `[COMPLETED]` - fully implemented and tested
-- `[DEFERRED]` - postponed to later phase
-- `[OBSOLETE]` - no longer relevant or superseded
-- `[RESTRUCTURED]` - reorganized into other items
+Update the task status in ROADMAP.md as you progress. Mark the checkbox `[x]` when complete.
 
 ### Upon Completion
 
-1. **Move to Completed section** with completion date
-2. **Update the task with implementation summary**:
-   - What was actually built/changed
-   - Key files or commands added
-   - Any deviations from original plan
-   - Gotchas or lessons learned for future reference
+1. **Move to COMPLETED.md**: Once a task is fully implemented and tested:
+   - Move the completed item from ROADMAP.md to COMPLETED.md
+   - Add it under the appropriate date/section in COMPLETED.md (most recent first)
+   - Include implementation summary with the completed task:
+     - What was actually built/changed
+     - Key files or commands added
+     - Any deviations from original plan
+     - Gotchas or lessons learned for future reference
    
    Example:
    ```markdown
-   - [x] Pre-fill 2026 data for F1 (Completed: Jan 7, 2026)
-     - Parsed ICS calendar from RacingNews365, translated Dutch to English
-     - Removed branding, created 24 rounds with 120 sessions
-     - Added seed script: `python -m ingestion.seed_f1_2026`
+   ### Discovery Pages Enhancement (Completed: Jan 9, 2026)
+   - [x] **Unified FilterBar component** with search, sort, and filter controls
+   - [x] **Server-side search** across all discovery pages (drivers, teams, circuits)
+   - [x] **Enhanced filters**: nationality for drivers/teams, region for circuits, active status for drivers
+   - [x] **Active filter badges** with clear buttons
+   - [x] **SVG placeholder refinement** for entities without images
    ```
 
+2. **Commit both files together**: When moving completed work to the archive:
+   - Stage both ROADMAP.md and COMPLETED.md
+   - Use commit message format: `chore: archive completed work to COMPLETED.md`
+   - Include brief description of what was completed
+
 ### General Maintenance
-- Keep completed items organized by date (most recent first)
-- Add brief notes about implementation details to completed items when helpful
+- **ROADMAP.md**: Keep lean and focused on active/upcoming work only
+- **COMPLETED.md**: Organize by date (most recent first), include implementation details
 - Flag items that are blocked or need clarification
 - Consolidate duplicate or overlapping tasks
 - Ensure priority ordering makes sense from engineering and product perspectives
 
-The roadmap is a living document—treat it as a source of truth for project status, not just a wish list.
+The roadmap is a living document—treat it as a source of truth for project status. COMPLETED.md is the historical record.
