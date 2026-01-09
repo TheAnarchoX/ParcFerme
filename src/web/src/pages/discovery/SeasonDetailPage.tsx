@@ -324,7 +324,13 @@ export function SeasonDetailPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await seriesApi.getSeasonByYear(seriesSlug!, yearNum);
+        // Pass entity filters to API
+        const filters = driverFilter 
+          ? { driverSlug: driverFilter } 
+          : teamFilter 
+            ? { teamSlug: teamFilter } 
+            : undefined;
+        const data = await seriesApi.getSeasonByYear(seriesSlug!, yearNum, filters);
         if (!cancelled) {
           setSeasonData(data);
         }
@@ -345,7 +351,7 @@ export function SeasonDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [seriesSlug, yearNum]);
+  }, [seriesSlug, yearNum, driverFilter, teamFilter]);
   
   // Set breadcrumbs
   useBreadcrumbs(

@@ -84,6 +84,10 @@ body {
   text-shadow: 0 0 30px rgba(0, 255, 127, 0.2);
 }
 
+.bg-accent-green {
+  background-color: #00FF7F;
+}
+
 .text-accent-yellow {
   color: #FFD700;
   text-shadow: 0 0 30px rgba(255, 215, 0, 0.2);

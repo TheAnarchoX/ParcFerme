@@ -174,11 +174,21 @@ public sealed class SeriesController : BaseApiController
     /// <summary>
     /// Get a specific season by series slug and year.
     /// </summary>
+    /// <param name="slug">The URL slug for the series.</param>
+    /// <param name="year">The season year.</param>
+    /// <param name="driverSlug">Optional driver slug to filter rounds by participation.</param>
+    /// <param name="teamSlug">Optional team slug to filter rounds by participation.</param>
+    /// <param name="ct">Cancellation token.</param>
     [HttpGet("{slug}/seasons/{year:int}")]
-    [CacheResponse(DurationSeconds = 300)]
+    [CacheResponse(DurationSeconds = 300, VaryByQueryParams = ["driverSlug", "teamSlug"])]
     [ProducesResponseType(typeof(SeasonDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetSeasonByYear(string slug, int year, CancellationToken ct)
+    public async Task<IActionResult> GetSeasonByYear(
+        string slug, 
+        int year, 
+        [FromQuery] string? driverSlug,
+        [FromQuery] string? teamSlug,
+        CancellationToken ct)
     {
         var series = await _db.Series
             .FirstOrDefaultAsync(s => s.Slug == slug.ToLowerInvariant(), ct);
@@ -200,9 +210,47 @@ public sealed class SeriesController : BaseApiController
             return NotFoundResult("Season", $"{slug}/{year}");
         }
 
+        // Get round IDs where the driver/team participated (if filter is provided)
+        HashSet<Guid>? filteredRoundIds = null;
+        
+        if (!string.IsNullOrEmpty(driverSlug))
+        {
+            var driver = await _db.Drivers.FirstOrDefaultAsync(d => d.Slug == driverSlug.ToLowerInvariant(), ct);
+            if (driver != null)
+            {
+                filteredRoundIds = (await _db.Entrants
+                    .Where(e => e.DriverId == driver.Id && season.Rounds.Select(r => r.Id).Contains(e.RoundId))
+                    .Select(e => e.RoundId)
+                    .Distinct()
+                    .ToListAsync(ct))
+                    .ToHashSet();
+            }
+        }
+        else if (!string.IsNullOrEmpty(teamSlug))
+        {
+            var team = await _db.Teams.FirstOrDefaultAsync(t => t.Slug == teamSlug.ToLowerInvariant(), ct);
+            if (team != null)
+            {
+                filteredRoundIds = (await _db.Entrants
+                    .Where(e => e.TeamId == team.Id && season.Rounds.Select(r => r.Id).Contains(e.RoundId))
+                    .Select(e => e.RoundId)
+                    .Distinct()
+                    .ToListAsync(ct))
+                    .ToHashSet();
+            }
+        }
+
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var rounds = season.Rounds
+        var roundsQuery = season.Rounds.AsEnumerable();
+        
+        // Apply entity filter if specified
+        if (filteredRoundIds != null)
+        {
+            roundsQuery = roundsQuery.Where(r => filteredRoundIds.Contains(r.Id));
+        }
+
+        var rounds = roundsQuery
             .OrderBy(r => r.RoundNumber)
             .Select(r => new RoundSummaryForSeasonDto(
                 Id: r.Id,

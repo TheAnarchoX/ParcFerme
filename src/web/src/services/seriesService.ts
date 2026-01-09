@@ -41,9 +41,22 @@ export const seriesApi = {
 
   /**
    * Get a specific season by series slug and year.
+   * @param slug - The series slug.
+   * @param year - The season year.
+   * @param filters - Optional filters for driver or team participation.
    */
-  getSeasonByYear: (slug: string, year: number): Promise<SeasonDetailDto> =>
-    apiClient.get<SeasonDetailDto>(`/series/${slug}/seasons/${year}`),
+  getSeasonByYear: (
+    slug: string, 
+    year: number, 
+    filters?: { driverSlug?: string; teamSlug?: string }
+  ): Promise<SeasonDetailDto> => {
+    const params = new URLSearchParams();
+    if (filters?.driverSlug) params.set('driverSlug', filters.driverSlug);
+    if (filters?.teamSlug) params.set('teamSlug', filters.teamSlug);
+    const queryString = params.toString();
+    const url = `/series/${slug}/seasons/${year}${queryString ? `?${queryString}` : ''}`;
+    return apiClient.get<SeasonDetailDto>(url);
+  },
 };
 
 /**
