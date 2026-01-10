@@ -23,7 +23,7 @@ This project uses **custom VS Code agents** (`.github/agents/`) to accelerate de
 | **Reviewer** | Code review, pattern compliance, quality checks | Backend, Frontend, Security, QA, Staff |
 | **Security** | Security audits, auth review, vulnerability assessment | Staff, Backend, Frontend, Reviewer, QA |
 | **Spoiler Shield** | Implementing/reviewing the critical spoiler protection feature | Backend, Frontend, QA, Security, Reviewer |
-
+>
 ### Recommended Workflow
 
 1. **Planning Phase**: Use `@planner` to break down complex features
@@ -58,18 +58,34 @@ Tasks below are tagged with recommended agents:
 
 #### 1. Core Logging Flow - Remaining Work
 
-- [ ] **Delete Log/Review functionality** `[🎨 frontend]` `[🔧 backend]`
-  - Add delete confirmation modal
-  - Wire up DELETE endpoints (already exist in backend)
-  - Add delete option to log edit or session detail page
-  > **Prompt**: `Implement Delete functionality for user logs and reviews. The backend DELETE endpoints already exist. Create a delete confirmation modal component that warns users about permanent data loss. Add a delete button accessible from the session detail page when viewing your own log. Handle the API call and refresh data after successful deletion. Ensure proper authorization checks.`
-
 - [ ] **Integration tests for Logs/Reviews controllers** `[🧪 qa]`
   > **Prompt**: `Write comprehensive integration tests for LogsController and ReviewsController. Test all CRUD operations, authorization (users can only edit/delete their own logs), spoiler mode behavior when fetching logs with results, and the weekend logging endpoint. Use the existing test patterns in tests/api/Integration/. Ensure tests cover edge cases like logging a session twice, editing non-existent logs, and unauthorized access attempts.`
 
 ---
 
 #### 2. User Experience Polish
+
+- [ ] **Development Roadmap Carousel component** `[🎨 frontend]`
+  > **Prompt**: `Redesign the "Development Status" section on HomePage (both marketing and dashboard versions) as an interactive phase carousel. Create a reusable RoadmapCarousel component that displays all 5 phases:
+  > 
+  > **Phase 1: Shakedown** (current) - F1 2024-2025 live, logging, reviews, Spoiler Shield
+  > **Phase 2: Midfield** - Historical archive (1950+), Lists & Sagas, Social feed, Search
+  > **Phase 3: The Third Turn** - Multi-series (MotoGP, IndyCar, WEC, Formula E, NASCAR)
+  > **Phase 4: Podium** - Circuit Guides, Gamification, Paddock Pass premium tier, Mobile app
+  > **Phase 5: Calendar Sync** - iCal feeds, schedule notifications, personalized calendars
+  > 
+  > Requirements:
+  > - Auto-advances every 5 seconds (pausable on hover)
+  > - Manual navigation via dots or prev/next arrows
+  > - Current phase highlighted with green accent, future phases grayed
+  > - Each phase card shows: icon, name, short tagline, 3-4 bullet points of key features
+  > - Smooth slide/fade transitions
+  > - Keep "Check System Status →" link fixed at bottom of the card container
+  > - Mobile responsive (touch swipe support)
+  > - Accessible (keyboard nav, aria-labels, respects reduced-motion preference)
+  > 
+  > File: src/web/src/components/ui/RoadmapCarousel.tsx
+  > Update: HomePage.tsx to use the new component in both MarketingPage and DashboardPage`
 
 - [ ] **User profiles API + page** `[📋 plan]` `[🔧 backend]` `[🎨 frontend]`
   > **Prompt**: `Implement the user profiles feature. Backend: Create ProfilesController with endpoints for GET /api/v1/users/{username} returning public profile data (display name, join date, log count, review count, favorite series/drivers). Include recent activity (last 10 logs). Frontend: Create a /users/{username} page with profile header, stats cards, and activity feed. Reference existing page patterns. Respect privacy - only show public data.`

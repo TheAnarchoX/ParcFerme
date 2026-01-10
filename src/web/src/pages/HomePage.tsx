@@ -171,17 +171,18 @@ function MarketingPage() {
         <div className="max-w-2xl mx-auto text-center">
           <div className="bg-neutral-900 rounded-xl p-8 border border-neutral-800">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="inline-block w-2 h-2 bg-pf-yellow rounded-full animate-pulse" />
-              <span className="text-pf-yellow font-medium">In Development</span>
+              <span className="inline-block w-2 h-2 bg-pf-green rounded-full animate-pulse" />
+              <span className="text-pf-green font-medium">Phase 1: Shakedown</span>
             </div>
-            <h3 className="text-xl font-semibold mb-2">Phase 1: Shakedown</h3>
+            <h3 className="text-xl font-semibold mb-2">F1 2024-2025 Now Live!</h3>
             <p className="text-neutral-400 mb-6">
-              F1 2024-2025 seasons, basic logging, profiles, and social features.
+              Start logging sessions, rating your excitement, and writing reviews. 
+              User profiles and social features coming soon.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/register">
                 <Button variant="primary">
-                  Join the Early Grid
+                  Join Now
                 </Button>
               </Link>
               <Link 
@@ -304,12 +305,12 @@ function DashboardPage() {
       {/* Development Status */}
       <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
         <div className="flex items-center gap-2 mb-4">
-          <span className="inline-block w-2 h-2 bg-pf-yellow rounded-full animate-pulse" />
-          <span className="text-pf-yellow font-medium text-sm">In Development</span>
+          <span className="inline-block w-2 h-2 bg-pf-green rounded-full animate-pulse" />
+          <span className="text-pf-green font-medium text-sm">Phase 1: Shakedown</span>
         </div>
         <p className="text-neutral-400 text-sm">
-          Phase 1: Shakedown — F1 2024-2025, basic logging + profiles. 
-          More features coming soon!
+          F1 2024-2025 seasons are live! Log sessions, rate your excitement, write reviews, 
+          and track what you've watched. User profiles, social features, and historical data coming next.
         </p>
         <Link 
           to="/status" 

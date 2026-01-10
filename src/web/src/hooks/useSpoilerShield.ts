@@ -11,6 +11,7 @@ import {
   revealSpoilers,
   tempRevealSession,
   markSessionLogged,
+  markSessionUnlogged,
   clearTempReveals,
   setSpoilerMode,
 } from '../store/slices/spoilerSlice';
@@ -71,6 +72,16 @@ export function useSpoilerShield() {
   );
 
   /**
+   * Mark a session as unlogged (e.g., after deleting a log).
+   */
+  const markUnlogged = useCallback(
+    (sessionId: string) => {
+      dispatch(markSessionUnlogged(sessionId));
+    },
+    [dispatch]
+  );
+
+  /**
    * Clear temporary reveals.
    */
   const clearReveals = useCallback(() => {
@@ -95,6 +106,7 @@ export function useSpoilerShield() {
     reveal,
     tempReveal,
     markLogged,
+    markUnlogged,
     clearReveals,
     setMode,
   };

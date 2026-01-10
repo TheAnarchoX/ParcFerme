@@ -113,6 +113,13 @@ export const spoilerSlice = createSlice({
     },
     
     /**
+     * Remove a session from the logged list (e.g., after deleting a log).
+     */
+    markSessionUnlogged: (state, action: PayloadAction<string>) => {
+      state.loggedSessionIds = state.loggedSessionIds.filter(id => id !== action.payload);
+    },
+    
+    /**
      * Clear all temp reveals (e.g., on logout).
      */
     clearTempReveals: (state) => {
@@ -179,6 +186,7 @@ export const {
   setSpoilerMode,
   tempRevealSession,
   markSessionLogged,
+  markSessionUnlogged,
   clearTempReveals,
   resetSpoilerState,
   clearError,

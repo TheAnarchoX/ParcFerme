@@ -172,9 +172,9 @@ public sealed class SessionsController : BaseApiController
     {
         if (CurrentUserId is null)
         {
-            // Anonymous users - show spoilers by default (never gate historical data)
+            // Anonymous users default to Strict mode to protect spoilers
             return Ok(new SpoilerStatusResponse(
-                SpoilerMode: "None",
+                SpoilerMode: "Strict",
                 LoggedSessionIds: [],
                 RevealedCount: 0
             ));

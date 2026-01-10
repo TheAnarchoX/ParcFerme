@@ -1,5 +1,6 @@
 export { Input } from './Input';
 export { Button } from './Button';
+export { DeleteConfirmationModal } from './DeleteConfirmationModal';
 export {
   SpoilerMask,
   SpoilerBlur,

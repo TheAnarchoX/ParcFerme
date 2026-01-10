@@ -6,6 +6,50 @@
 
 ## 📅 January 2026
 
+### Delete Log/Review Functionality (Completed: Jan 10, 2026)
+
+Implemented the ability to delete existing logs and reviews from the session detail page.
+
+#### Frontend Implementation
+- [x] **DeleteConfirmationModal component** - New reusable modal for delete confirmations
+  - Warning icon and red accent styling for destructive actions
+  - Shows item being deleted with name
+  - Customizable warning text for data loss implications
+  - Handles loading state and error display
+  - Follows WCAG accessibility guidelines (aria-labels, role="alertdialog")
+  - File: `src/web/src/components/ui/DeleteConfirmationModal.tsx`
+
+- [x] **SessionDetailPage delete integration**
+  - Added delete button next to "Edit Log" when viewing own log
+  - Delete confirmation modal with session name and warning text
+  - Calls `logsApi.deleteLog()` on confirmation
+  - Updates Redux spoiler state via `markUnlogged()` after deletion
+  - Refreshes session data to update log count stats
+
+- [x] **Redux spoiler slice updates**
+  - Added `markSessionUnlogged` action to remove session from logged list
+  - Exported new action from slice
+  - File: `src/web/src/store/slices/spoilerSlice.ts`
+
+- [x] **useSpoilerShield hook updates**
+  - Added `markUnlogged` function to mark sessions as unlogged
+  - Updated return object to include new function
+  - File: `src/web/src/hooks/useSpoilerShield.ts`
+
+#### Backend (Pre-existing)
+- Backend DELETE endpoint already existed at `DELETE /api/v1/logs/{id}`
+- Handles cascade deletion of associated Review and Experience
+- Authorization check ensures users can only delete their own logs
+
+#### Files Changed
+- `src/web/src/components/ui/DeleteConfirmationModal.tsx` (new)
+- `src/web/src/components/ui/index.ts` - Export new component
+- `src/web/src/pages/discovery/SessionDetailPage.tsx` - Add delete button and modal
+- `src/web/src/store/slices/spoilerSlice.ts` - Add markSessionUnlogged action
+- `src/web/src/hooks/useSpoilerShield.ts` - Add markUnlogged function
+
+---
+
 ### Add UIOrder to Series (Completed: Jan 10, 2026)
 
 Added UIOrder column to the Series entity for consistent ordering in dropdowns and lists.

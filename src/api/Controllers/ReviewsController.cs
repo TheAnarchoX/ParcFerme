@@ -288,7 +288,9 @@ public sealed class ReviewsController : BaseApiController
         _db.ReviewLikes.Add(like);
         await _db.SaveChangesAsync(ct);
 
-        return Ok(new { likeCount = review.Likes.Count + 1 });
+        // Query the actual count after save to ensure accuracy
+        var likeCount = await _db.ReviewLikes.CountAsync(l => l.ReviewId == id, ct);
+        return Ok(new { likeCount });
     }
 
     /// <summary>
@@ -315,13 +317,16 @@ public sealed class ReviewsController : BaseApiController
         var existingLike = review.Likes.FirstOrDefault(l => l.UserId == userId);
         if (existingLike is null)
         {
-            return Ok(new { likeCount = review.Likes.Count });
+            var currentCount = await _db.ReviewLikes.CountAsync(l => l.ReviewId == id, ct);
+            return Ok(new { likeCount = currentCount });
         }
 
         _db.ReviewLikes.Remove(existingLike);
         await _db.SaveChangesAsync(ct);
 
-        return Ok(new { likeCount = review.Likes.Count - 1 });
+        // Query the actual count after save to ensure accuracy
+        var likeCount = await _db.ReviewLikes.CountAsync(l => l.ReviewId == id, ct);
+        return Ok(new { likeCount });
     }
 
     // =========================

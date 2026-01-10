@@ -12,6 +12,7 @@ import {
 } from '../../components/ui/SpoilerShield';
 import { useSpoilerVisibility, useSpoilerShield } from '../../hooks/useSpoilerShield';
 import { Button } from '../../components/ui/Button';
+import { DeleteConfirmationModal } from '../../components/ui/DeleteConfirmationModal';
 import { Pagination } from '../../components/ui/Pagination';
 import { LogModal } from '../../components/logging';
 import { ReviewCard, ReviewCardSkeleton } from '../../components/ReviewCard';
@@ -549,6 +550,20 @@ function OtherSessionsNav({
   roundSlug,
   primaryColor 
 }: OtherSessionsNavProps) {
+  // Short display names for nav buttons
+  const getShortSessionName = (type: string): string => {
+    const shortNames: Record<string, string> = {
+      'FP1': 'FP1',
+      'FP2': 'FP2',
+      'FP3': 'FP3',
+      'Qualifying': 'Quali',
+      'SprintQualifying': 'Sprint Quali',
+      'Sprint': 'Sprint',
+      'Race': 'Race',
+    };
+    return shortNames[type] || type;
+  };
+
   return (
     <div className="flex flex-wrap gap-2">
       {sessions.map((session) => {
@@ -566,7 +581,7 @@ function OtherSessionsNav({
             `}
             style={isCurrent ? { backgroundColor: primaryColor || '#4ade80' } : undefined}
           >
-            {session.type}
+            {getShortSessionName(session.type)}
             {session.isLogged && <span className="ml-1">✓</span>}
           </Link>
         );
@@ -751,6 +766,7 @@ export function SessionDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   // Auth state
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -762,7 +778,7 @@ export function SessionDetailPage() {
   
   // Spoiler visibility based on Redux state + API data
   const { visibility, isLogged, shouldShow } = useSpoilerVisibility(sessionId || '');
-  const { markLogged } = useSpoilerShield();
+  const { markLogged, markUnlogged } = useSpoilerShield();
   
   // Fetch session data
   // Pass forceReveal=true when local state says spoilers should be shown
@@ -812,6 +828,24 @@ export function SessionDetailPage() {
   useEffect(() => {
     fetchUserLog();
   }, [fetchUserLog]);
+  
+  // Handle log deletion
+  const handleDeleteLog = useCallback(async () => {
+    if (!userLog || !sessionId) {
+      throw new Error('No log to delete');
+    }
+    
+    await logsApi.deleteLog(userLog.id);
+    
+    // Mark session as unlogged in Redux
+    markUnlogged(sessionId);
+    
+    // Clear local state
+    setUserLog(null);
+    
+    // Refresh session data to update stats
+    fetchSession();
+  }, [userLog, sessionId, markUnlogged, fetchSession]);
   
   // Derive primary color and series info
   const primaryColor = session?.round?.seriesName 
@@ -921,51 +955,62 @@ export function SessionDetailPage() {
             subtitle={`${session.round.seriesName} ${yearNum} • ${session.round.circuit.name}`}
             actions={
               <div className="flex items-center gap-2">
-                {isLogged && userLog && (
+                {isLogged && userLog ? (
+                  // Logged state: show unified button group
+                  <div className="flex items-center">
+                    <span 
+                      className="inline-flex items-center px-4 py-2.5 rounded-l-lg text-sm font-medium"
+                      style={{ backgroundColor: primaryColor, color: textColor }}
+                    >
+                      ✓ Logged
+                    </span>
+                    <Button 
+                      variant="secondary"
+                      onClick={() => {
+                        setIsEditMode(true);
+                        setIsLogModalOpen(true);
+                      }}
+                      className="rounded-none border-l-0 border-r-0"
+                    >
+                      ✏️ Edit
+                    </Button>
+                    <Button 
+                      variant="secondary"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="rounded-l-none text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      aria-label="Delete log"
+                    >
+                      🗑️
+                    </Button>
+                  </div>
+                ) : (
+                  // Not logged state: show log button
                   <Button 
-                    variant="ghost"
+                    variant="primary"
                     onClick={() => {
-                      setIsEditMode(true);
+                      if (!isAuthenticated) {
+                        navigate('/login', { state: { from: window.location.pathname } });
+                        return;
+                      }
+                      setIsEditMode(false);
                       setIsLogModalOpen(true);
                     }}
                   >
-                    ✏️ Edit Log
+                    📝 Log this session
                   </Button>
                 )}
-                <Button 
-                  variant="primary"
-                  onClick={() => {
-                    if (!isAuthenticated) {
-                      navigate('/login', { state: { from: window.location.pathname } });
-                      return;
-                    }
-                    setIsEditMode(false);
-                    setIsLogModalOpen(true);
-                  }}
-                  disabled={isLogged}
-                >
-                  {isLogged ? '✓ Logged' : '📝 Log this session'}
-                </Button>
               </div>
             }
           />
           
-          {/* Status badges */}
-          <div className="mt-2 flex flex-wrap gap-2">
-            {isLogged && (
-              <span 
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-                style={{ backgroundColor: primaryColor, color: textColor }}
-              >
-                ✓ Logged
-              </span>
-            )}
-            {session.status === 'Completed' && !showSpoilers && (
+          {/* Status badges - only show Spoiler Shield, not Logged (already shown in button group) */}
+          {session.status === 'Completed' && !showSpoilers && (
+            <div className="mt-2">
               <span className="inline-flex items-center px-3 py-1 bg-neutral-800 text-neutral-300 rounded-full text-sm">
                 🛡️ Spoiler Shield Active
               </span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
       
@@ -1217,6 +1262,17 @@ export function SessionDetailPage() {
           fetchUserLog();
         }}
         existingLog={isEditMode ? userLog ?? undefined : undefined}
+      />
+      
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteLog}
+        title="Delete Log"
+        description="Are you sure you want to delete your log for this session?"
+        itemName={`${roundName} - ${sessionDisplayName}`}
+        warningText="This will permanently delete your log, including any review and venue experience data you've recorded. This action cannot be undone."
       />
     </MainLayout>
   );
