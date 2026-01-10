@@ -288,7 +288,7 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
     return { color: primaryColor };
   };
 
-  // Generate blob configurations - PRIMARY color dominates center, secondary colors accent the edges
+  // Generate blob configurations - PRIMARY color as base wash, secondary colors as edge accents
   const getBlobs = () => {
     const blobs: Array<{
       color: string;
@@ -301,58 +301,49 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
       scale: number;
       delay: number;
       blur: number;
+      zIndex?: number;
     }> = [];
 
-    // PRIMARY color blob - central, dominant
+    // PRIMARY color blobs FIRST - they form the dominant base wash
     blobs.push(
-      { color: primaryColor, top: '50%', left: '50%', width: '5rem', height: '5rem', scale: 5, delay: 0, blur: 30 },
+      { color: primaryColor, top: '20%', left: '20%', width: '5rem', height: '5rem', scale: 4, delay: 0, blur: 45, zIndex: 1 },
+      { color: primaryColor, top: '60%', left: '50%', width: '4rem', height: '4rem', scale: 3.5, delay: 30, blur: 40, zIndex: 1 },
     );
-    
-    // Secondary colors create visible accent streaks at corners
+
+    // SECONDARY colors on TOP (higher z-index) - visible accent stripes at edges
     if (colors.length > 1) {
-      // Position secondary colors strategically based on count
-      const positions = [
-        { top: '-1.5rem', right: '-1.5rem' },  // top-right
-        { bottom: '-1.5rem', left: '-1.5rem' }, // bottom-left
-        { top: '-1.5rem', left: '-1.5rem' },    // top-left
-        { bottom: '-1.5rem', right: '-1.5rem' }, // bottom-right
+      // Each secondary color gets a distinct edge position as a stripe
+      const secondaryPositions: Array<{
+        top?: string; bottom?: string; left?: string; right?: string; width: string; height: string;
+      }> = [
+        // Color 1: right edge stripe
+        { top: '0', right: '-0.5rem', width: '3rem', height: '100%' },
+        // Color 2: left edge stripe  
+        { top: '0', left: '-0.5rem', width: '3rem', height: '100%' },
+        // Color 3: bottom edge stripe
+        { bottom: '-0.5rem', left: '0', width: '100%', height: '3rem' },
+        // Color 4: top edge stripe (but keep it subtle since header is there)
+        { top: '0', left: '20%', width: '60%', height: '2rem' },
       ];
       
       colors.slice(1).forEach((color, i) => {
-        const pos = positions[i % positions.length];
-        // Secondary blobs are visible but don't overwhelm
-        blobs.push({
-          color,
-          ...pos,
-          width: '4rem',
-          height: '4rem',
-          scale: 3,
-          delay: 75 + i * 40,
-          blur: 18,
-        });
+        if (i < secondaryPositions.length) {
+          const pos = secondaryPositions[i]!;
+          blobs.push({
+            color,
+            top: pos.top,
+            bottom: pos.bottom,
+            left: pos.left,
+            right: pos.right,
+            width: pos.width,
+            height: pos.height,
+            scale: 1.8,
+            delay: 80 + i * 40,
+            blur: 12,
+            zIndex: 2, // Above primary
+          });
+        }
       });
-      
-      // For series with 3+ colors, add extra accent blobs for visual interest
-      if (colors.length >= 3) {
-        // Add diagonal accent blobs
-        blobs.push(
-          { color: colors[1]!, top: '0', right: '30%', width: '3rem', height: '3rem', scale: 2.5, delay: 120, blur: 14 },
-          { color: colors[2]!, bottom: '0', left: '30%', width: '3rem', height: '3rem', scale: 2.5, delay: 140, blur: 14 },
-        );
-      }
-      
-      // For 4+ colors, add more
-      if (colors.length >= 4) {
-        blobs.push(
-          { color: colors[3]!, top: '30%', left: '-1rem', width: '2.5rem', height: '2.5rem', scale: 2.5, delay: 160, blur: 12 },
-        );
-      }
-    } else {
-      // Single color - add corner blobs of the same color
-      blobs.push(
-        { color: primaryColor, top: '-1.5rem', left: '-1.5rem', width: '5rem', height: '5rem', scale: 3.5, delay: 50, blur: 24 },
-        { color: primaryColor, bottom: '-1.5rem', right: '-1.5rem', width: '5rem', height: '5rem', scale: 3.5, delay: 75, blur: 24 },
-      );
     }
 
     return blobs;
@@ -406,6 +397,7 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
                   transform: 'scale(0)',
                   opacity: 0,
                   transitionDelay: `${blob.delay}ms`,
+                  zIndex: blob.zIndex ?? 1,
                 }}
               />
             ))}
