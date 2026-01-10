@@ -70,6 +70,9 @@ class SyncOptions:
     - use_scoring: Use multi-signal confidence scoring for entity matching
     - Matches with confidence 0.5-0.7 are flagged for human review
     
+    Role Detection:
+    - detect_roles: Run role detection after sync to classify drivers as regular/reserve/FP1-only
+    
     Example safe historical sync:
         SyncOptions(
             driver_mode="create_only",      # Don't update existing drivers
@@ -96,6 +99,9 @@ class SyncOptions:
     
     # What to sync
     include_results: bool = True
+    
+    # Role detection
+    detect_roles: bool = True  # Run role detection after sync
     
     # Logging verbosity
     log_skipped_updates: bool = True  # Log when updates are skipped
@@ -745,8 +751,51 @@ class OpenF1SyncService:
                 )
                 stats["errors"].append(f"Meeting {meeting.meeting_name}: {e}")
 
+        # Run role detection if enabled and results were synced
+        if options.detect_roles and include_results:
+            print(f"\n  🔍 Detecting driver roles...")
+            try:
+                roles_updated = self._detect_and_update_roles(repo, season_id)
+                stats["roles_updated"] = roles_updated
+                if roles_updated > 0:
+                    print(f"      ✓ Updated {roles_updated} driver roles")
+                else:
+                    print(f"      ✓ All driver roles are correct")
+            except Exception as e:
+                logger.warning("Role detection failed", error=str(e))
+                stats["errors"].append(f"Role detection: {e}")
+
         logger.info("Sync completed", stats=stats)
         return stats
+    
+    def _detect_and_update_roles(self, repo: RacingRepository, season_id: UUID) -> int:
+        """Run role detection for a season and update entrant roles.
+        
+        Returns:
+            Number of roles that were changed
+        """
+        from .role_detection import RoleDetector
+        
+        detector = RoleDetector(repo)
+        results = detector.detect_roles_for_season(season_id, dry_run=False)
+        
+        changed_count = len([r for r in results if r.changed])
+        
+        if changed_count > 0:
+            # Log the changes
+            for r in results:
+                if r.changed:
+                    logger.info(
+                        "Updated driver role",
+                        driver=r.driver_name,
+                        team=r.team_name,
+                        round=r.round_name,
+                        old_role=r.old_role.name,
+                        new_role=r.new_role.name,
+                        reason=r.reason,
+                    )
+        
+        return changed_count
 
     def _sync_meeting(
         self,
