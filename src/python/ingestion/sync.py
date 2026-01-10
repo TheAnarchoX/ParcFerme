@@ -937,7 +937,7 @@ class OpenF1SyncService:
             
             if session_results:
                 results = self._process_session_results(
-                    session_results, session_id, round_id, entrant_map, repo, openf1_session
+                    session_results, session_id, round_id, entrant_map, repo, openf1_session, api
                 )
             else:
                 # Fallback to position endpoint
@@ -969,6 +969,7 @@ class OpenF1SyncService:
         entrant_map: dict[int, UUID],
         repo: RacingRepository,
         openf1_session: OpenF1Session,
+        api: OpenF1Client | None = None,
     ) -> list[Result]:
         """Process results from the session_result endpoint (beta).
         
@@ -978,10 +979,19 @@ class OpenF1SyncService:
         For races, we calculate positions for non-finishers based on laps completed,
         following F1 classification rules where DNFs are ranked after finishers
         by number of laps completed.
+        
+        Special case handling:
+        - DSQ with missing flag: If position=null, no flags, but driver completed laps,
+          treat as DSQ (some DSQs are missing the dsq flag in OpenF1 data)
+        - Substitute drivers: When number lookup fails, try name-based lookup using
+          the OpenF1 drivers endpoint
         """
         results: list[Result] = []
         # Track results that need position assignment (DNF/DNS/DSQ with null position)
         needs_position: list[tuple[OpenF1SessionResult, Result, UUID]] = []
+        
+        # Cache driver info lookups to avoid repeated API calls
+        driver_info_cache: dict[int, dict | None] = {}
         
         # Find max position from finishers to calculate DNF positions
         max_finisher_position = 0
@@ -991,8 +1001,26 @@ class OpenF1SyncService:
         
         for sr in session_results:
             # Determine result status from flags
-            if sr.dsq:
+            # Edge case: Some DSQs have position=null but no dsq flag set (OpenF1 data issue)
+            # If driver completed significant laps but has no position and no flags, treat as DSQ
+            is_likely_dsq = (
+                sr.position is None 
+                and not sr.dnf 
+                and not sr.dns 
+                and not sr.dsq 
+                and sr.number_of_laps is not None 
+                and sr.number_of_laps > 0
+            )
+            
+            if sr.dsq or is_likely_dsq:
                 status = ResultStatus.DSQ
+                if is_likely_dsq:
+                    logger.info(
+                        "Treating result as DSQ (position=null, no flags, but completed laps)",
+                        driver_number=sr.driver_number,
+                        laps=sr.number_of_laps,
+                        session_key=openf1_session.session_key,
+                    )
             elif sr.dns:
                 status = ResultStatus.DNS
             elif sr.dnf:
@@ -1000,9 +1028,11 @@ class OpenF1SyncService:
             else:
                 status = ResultStatus.FINISHED
             
-            # Skip results without a position AND no DNF/DNS/DSQ flag
+            # Update is_non_finisher to include likely DSQs
+            is_non_finisher = sr.dnf or sr.dns or sr.dsq or is_likely_dsq
+            
+            # Skip results without a position AND no DNF/DNS/DSQ flag AND no laps
             # (these are truly empty entries, e.g., reserve drivers who didn't participate)
-            is_non_finisher = sr.dnf or sr.dns or sr.dsq
             if sr.position is None and not is_non_finisher:
                 logger.debug(
                     "Skipping result with no position and no status flag",
@@ -1011,18 +1041,52 @@ class OpenF1SyncService:
                 )
                 continue
             
+            # Try to find entrant - first by number, then by name
             entrant_id = entrant_map.get(sr.driver_number)
             if not entrant_id:
                 entrant = repo.get_entrant_by_driver_number(round_id, sr.driver_number)
                 if entrant:
                     entrant_id = entrant.id
                 else:
-                    logger.warning(
-                        "No entrant found for driver",
-                        driver_number=sr.driver_number,
-                        session_key=openf1_session.session_key,
-                    )
-                    continue
+                    # Fallback: Try name-based lookup (for substitute drivers using different numbers)
+                    if api is not None:
+                        # Fetch driver info from OpenF1 if not cached
+                        if sr.driver_number not in driver_info_cache:
+                            try:
+                                drivers = api.get_drivers(openf1_session.session_key)
+                                for d in drivers:
+                                    driver_info_cache[d.driver_number] = {
+                                        "first_name": d.first_name,
+                                        "last_name": d.last_name,
+                                        "full_name": d.full_name,
+                                    }
+                            except Exception as e:
+                                logger.debug("Failed to fetch driver info", error=str(e))
+                                driver_info_cache[sr.driver_number] = None
+                        
+                        driver_info = driver_info_cache.get(sr.driver_number)
+                        if driver_info:
+                            entrant = repo.get_entrant_by_driver_name(
+                                round_id,
+                                driver_info.get("first_name"),
+                                driver_info.get("last_name"),
+                            )
+                            if entrant:
+                                entrant_id = entrant.id
+                                logger.info(
+                                    "Found entrant by name for substitute driver",
+                                    driver_number=sr.driver_number,
+                                    name=f"{driver_info.get('first_name')} {driver_info.get('last_name')}",
+                                    session_key=openf1_session.session_key,
+                                )
+                    
+                    if not entrant_id:
+                        logger.warning(
+                            "No entrant found for driver",
+                            driver_number=sr.driver_number,
+                            session_key=openf1_session.session_key,
+                        )
+                        continue
             
             # Handle duration - can be a single value or array for qualifying
             time_ms = None
@@ -1056,13 +1120,15 @@ class OpenF1SyncService:
         # Assign positions to DNF/DNS/DSQ entries that don't have them
         # Sort by: DSQ last, then DNS, then DNF sorted by laps completed (descending)
         if needs_position:
-            # Separate by status type
-            dnfs = [(sr, r, eid) for sr, r, eid in needs_position if sr.dnf and not sr.dsq]
-            dns_entries = [(sr, r, eid) for sr, r, eid in needs_position if sr.dns and not sr.dsq]
-            dsqs = [(sr, r, eid) for sr, r, eid in needs_position if sr.dsq]
+            # Separate by status type (use result.status which includes likely DSQs)
+            dnfs = [(sr, r, eid) for sr, r, eid in needs_position if r.status == ResultStatus.DNF]
+            dns_entries = [(sr, r, eid) for sr, r, eid in needs_position if r.status == ResultStatus.DNS]
+            dsqs = [(sr, r, eid) for sr, r, eid in needs_position if r.status == ResultStatus.DSQ]
             
             # Sort DNFs by laps completed (more laps = better position)
             dnfs.sort(key=lambda x: x[0].number_of_laps or 0, reverse=True)
+            # Sort DSQs by laps completed too (most laps = better position among DSQs)
+            dsqs.sort(key=lambda x: x[0].number_of_laps or 0, reverse=True)
             
             next_position = max_finisher_position + 1
             

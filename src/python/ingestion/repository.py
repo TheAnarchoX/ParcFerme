@@ -632,6 +632,92 @@ class RacingRepository:
             
             return None
 
+    def get_entrant_by_driver_name(
+        self, round_id: UUID, first_name: str | None, last_name: str | None
+    ) -> Entrant | None:
+        """Get an entrant by round and driver name.
+        
+        Used as a fallback when driver number lookup fails (e.g., substitute drivers
+        racing with a different number than their permanent number).
+        
+        Performs case-insensitive matching on first and last name.
+        """
+        if not last_name:
+            return None
+            
+        with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+            # Try matching by last name first (more unique), then refine with first name
+            if first_name:
+                cur.execute(
+                    """
+                    SELECT e."Id", e."RoundId", e."DriverId", e."TeamId", e."Role"
+                    FROM "Entrants" e
+                    JOIN "Drivers" d ON e."DriverId" = d."Id"
+                    WHERE e."RoundId" = %s 
+                      AND LOWER(d."LastName") = LOWER(%s)
+                      AND LOWER(d."FirstName") = LOWER(%s)
+                    """,
+                    (str(round_id), last_name, first_name),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT e."Id", e."RoundId", e."DriverId", e."TeamId", e."Role"
+                    FROM "Entrants" e
+                    JOIN "Drivers" d ON e."DriverId" = d."Id"
+                    WHERE e."RoundId" = %s AND LOWER(d."LastName") = LOWER(%s)
+                    """,
+                    (str(round_id), last_name),
+                )
+            
+            row = cur.fetchone()
+            if row:
+                from .models import DriverRole
+                return Entrant(
+                    id=_to_uuid(row["Id"]),
+                    round_id=_to_uuid(row["RoundId"]),
+                    driver_id=_to_uuid(row["DriverId"]),
+                    team_id=_to_uuid(row["TeamId"]),
+                    role=DriverRole(row["Role"]) if row.get("Role") is not None else DriverRole.REGULAR,
+                )
+            
+            # Also check driver aliases for name matches
+            if first_name:
+                cur.execute(
+                    """
+                    SELECT e."Id", e."RoundId", e."DriverId", e."TeamId", e."Role"
+                    FROM "Entrants" e
+                    JOIN "DriverAliases" da ON e."DriverId" = da."DriverId"
+                    WHERE e."RoundId" = %s 
+                      AND LOWER(da."LastName") = LOWER(%s)
+                      AND LOWER(da."FirstName") = LOWER(%s)
+                    """,
+                    (str(round_id), last_name, first_name),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT e."Id", e."RoundId", e."DriverId", e."TeamId", e."Role"
+                    FROM "Entrants" e
+                    JOIN "DriverAliases" da ON e."DriverId" = da."DriverId"
+                    WHERE e."RoundId" = %s AND LOWER(da."LastName") = LOWER(%s)
+                    """,
+                    (str(round_id), last_name),
+                )
+            
+            row = cur.fetchone()
+            if row:
+                from .models import DriverRole
+                return Entrant(
+                    id=_to_uuid(row["Id"]),
+                    round_id=_to_uuid(row["RoundId"]),
+                    driver_id=_to_uuid(row["DriverId"]),
+                    team_id=_to_uuid(row["TeamId"]),
+                    role=DriverRole(row["Role"]) if row.get("Role") is not None else DriverRole.REGULAR,
+                )
+            
+            return None
+
     def count_results_for_session(self, session_id: UUID) -> int:
         """Count results for a session."""
         with self._get_connection() as conn, conn.cursor(row_factory=dict_row) as cur:
