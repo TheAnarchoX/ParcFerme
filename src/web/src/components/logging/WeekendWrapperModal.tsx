@@ -7,6 +7,7 @@ import type {
   LogWeekendResponse,
   LogSessionEntry,
   CreateExperienceRequest,
+  CreateReviewRequest,
 } from '../../types/log';
 import type { RoundPageDetailDto, SessionTimelineDto } from '../../types/round';
 import { Button } from '../ui/Button';
@@ -22,12 +23,14 @@ interface WeekendWrapperModalProps {
   onSuccess?: (response: LogWeekendResponse) => void;
 }
 
-type WeekendStep = 'type' | 'sessions' | 'ratings' | 'experience';
+type WeekendStep = 'type' | 'sessions' | 'ratings' | 'reviews' | 'experience';
 
 interface SessionState {
   selected: boolean;
   starRating: number;
   excitementRating: number;
+  reviewText: string;
+  containsSpoilers: boolean;
   liked: boolean;
 }
 
@@ -415,6 +418,8 @@ export function WeekendWrapperModal({ round, isOpen, onClose, onSuccess }: Weeke
         starRating: 0,
         excitementRating: 5,
         liked: false,
+        reviewText: '',
+        containsSpoilers: true, // Default to true for safety
       });
     });
     return map;
@@ -515,14 +520,25 @@ export function WeekendWrapperModal({ round, isOpen, onClose, onSuccess }: Weeke
     setError(null);
     
     try {
-      // Build session entries
+      // Build session entries with optional reviews
       const sessions: LogSessionEntry[] = selectedSessions.map(s => {
         const state = sessionStates.get(s.id)!;
+        
+        // Build review if there's review text
+        let review: CreateReviewRequest | undefined;
+        if (state.reviewText.trim()) {
+          review = {
+            body: state.reviewText.trim(),
+            containsSpoilers: state.containsSpoilers,
+          };
+        }
+        
         return {
           sessionId: s.id,
           starRating: state.starRating > 0 ? state.starRating : undefined,
           excitementRating: state.excitementRating,
           liked: state.liked,
+          review,
         };
       });
       
@@ -567,14 +583,16 @@ export function WeekendWrapperModal({ round, isOpen, onClose, onSuccess }: Weeke
   const nextStep = useCallback(() => {
     if (step === 'type') setStep('sessions');
     else if (step === 'sessions') setStep('ratings');
-    else if (step === 'ratings' && isAttended) setStep('experience');
+    else if (step === 'ratings') setStep('reviews');
+    else if (step === 'reviews' && isAttended) setStep('experience');
     else handleSubmit();
   }, [step, isAttended, handleSubmit]);
   
   const prevStep = useCallback(() => {
     if (step === 'sessions') setStep('type');
     else if (step === 'ratings') setStep('sessions');
-    else if (step === 'experience') setStep('ratings');
+    else if (step === 'reviews') setStep('ratings');
+    else if (step === 'experience') setStep('reviews');
   }, [step]);
   
   const canProceed = useCallback(() => {
@@ -584,7 +602,7 @@ export function WeekendWrapperModal({ round, isOpen, onClose, onSuccess }: Weeke
   
   // Get steps for progress indicator
   const steps = useMemo(() => {
-    const base = ['type', 'sessions', 'ratings'];
+    const base = ['type', 'sessions', 'ratings', 'reviews'];
     if (isAttended) base.push('experience');
     return base;
   }, [isAttended]);
@@ -779,7 +797,73 @@ export function WeekendWrapperModal({ round, isOpen, onClose, onSuccess }: Weeke
             </div>
           )}
 
-          {/* Step 4: Experience (attended only) */}
+          {/* Step 4: Reviews (optional) */}
+          {step === 'reviews' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-200">Write reviews</h3>
+                <p className="text-sm text-neutral-500">Optional - add your thoughts on any session.</p>
+              </div>
+              
+              <div className="space-y-4">
+                {selectedSessions.map(session => {
+                  const state = sessionStates.get(session.id)!;
+                  const isMainEvent = session.type === 'Race' || session.type === 'Sprint' || 
+                                      session.type === 'MotoGPRace' || session.type === 'Moto2Race' || 
+                                      session.type === 'Moto3Race';
+                  
+                  return (
+                    <div 
+                      key={session.id}
+                      className={`p-4 rounded-lg border ${isMainEvent ? 'bg-neutral-800/70 border-neutral-700' : 'bg-neutral-900/50 border-neutral-800'}`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`font-medium ${isMainEvent ? 'text-neutral-100' : 'text-neutral-300'}`}>
+                          {session.displayName}
+                          {isMainEvent && <span className="ml-2">🏆</span>}
+                        </span>
+                        {state.reviewText.trim() && (
+                          <span className="text-xs text-pf-green">✓ Has review</span>
+                        )}
+                      </div>
+                      
+                      <textarea
+                        value={state.reviewText}
+                        onChange={(e) => updateSessionState(session.id, { reviewText: e.target.value })}
+                        placeholder="Write your thoughts about this session... (optional)"
+                        rows={3}
+                        maxLength={10000}
+                        className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 placeholder-neutral-500 text-sm focus:outline-none focus:border-pf-green resize-none"
+                      />
+                      
+                      {state.reviewText.trim() && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={state.containsSpoilers}
+                              onChange={(e) => updateSessionState(session.id, { containsSpoilers: e.target.checked })}
+                              className="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-pf-green focus:ring-pf-green"
+                            />
+                            Contains spoilers
+                          </label>
+                          <span className="text-xs text-neutral-500">
+                            ({state.reviewText.length}/10,000)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="text-sm text-neutral-500 bg-neutral-800/30 p-3 rounded-lg">
+                💡 <strong>Tip:</strong> You can skip this step and add reviews later from the session page.
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Experience (attended only) */}
           {step === 'experience' && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-neutral-200">Rate the venue experience</h3>
@@ -852,7 +936,7 @@ export function WeekendWrapperModal({ round, isOpen, onClose, onSuccess }: Weeke
             disabled={!canProceed() || isSubmitting}
             isLoading={isSubmitting}
           >
-            {step === 'experience' || (step === 'ratings' && !isAttended)
+            {step === 'experience' || (step === 'reviews' && !isAttended)
               ? `Log ${selectedSessions.length} Session${selectedSessions.length !== 1 ? 's' : ''} 🏁`
               : 'Next'
             }

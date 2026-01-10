@@ -497,6 +497,28 @@ public sealed class LogsController : BaseApiController
 
             logs.Add(log);
             _db.Logs.Add(log);
+            
+            // Create review if provided
+            if (sessionEntry.Review != null && !string.IsNullOrWhiteSpace(sessionEntry.Review.Body))
+            {
+                // Auto-check spoilers for recent races (< 7 days old)
+                var containsSpoilers = sessionEntry.Review.ContainsSpoilers;
+                if (session.StartTimeUtc > DateTime.UtcNow.AddDays(-7))
+                {
+                    containsSpoilers = true;
+                }
+                
+                var review = new Review
+                {
+                    Id = Guid.NewGuid(),
+                    LogId = log.Id,
+                    Body = sessionEntry.Review.Body,
+                    ContainsSpoilers = containsSpoilers,
+                    Language = sessionEntry.Review.Language,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.Reviews.Add(review);
+            }
         }
 
         // Create experience if provided and is attended (shared across all sessions)

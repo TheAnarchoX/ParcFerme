@@ -444,6 +444,32 @@ export function RoundDetailPage() {
   const primaryColor = getSeriesPrimaryColor(round.series);
   const textColor = getContrastColor(primaryColor);
   
+  // Status badge component
+  const getStatusBadge = () => {
+    if (round.isCurrent) {
+      return (
+        <span 
+          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+          style={{ backgroundColor: primaryColor, color: textColor }}
+        >
+          🔴 Live Weekend
+        </span>
+      );
+    }
+    if (round.isCompleted) {
+      return (
+        <span className="inline-flex items-center px-3 py-1 bg-neutral-800 text-neutral-300 rounded-full text-sm">
+          ✓ Completed
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-3 py-1 bg-pf-green/10 text-accent-green rounded-full text-sm">
+        Upcoming
+      </span>
+    );
+  };
+  
   return (
     <MainLayout showBreadcrumbs>
       {/* Header with color accent */}
@@ -453,51 +479,42 @@ export function RoundDetailPage() {
           style={{ backgroundColor: primaryColor }}
         />
         <div className="pt-4">
-          <PageHeader
-            icon="🏆"
-            title={displayName}
-            subtitle={`${round.circuit.name} • ${formatDateRange(round.dateStart, round.dateEnd)}`}
-          />
-          
-          {/* Status badge */}
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            {round.isCurrent ? (
-              <span 
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-                style={{ backgroundColor: primaryColor, color: textColor }}
-              >
-                🔴 Live Weekend
-              </span>
-            ) : round.isCompleted ? (
-              <span className="inline-flex items-center px-3 py-1 bg-neutral-800 text-neutral-300 rounded-full text-sm">
-                ✓ Completed
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-3 py-1 bg-pf-green/10 text-accent-green rounded-full text-sm">
-                Upcoming
-              </span>
-            )}
-            
-            {/* Weekend Complete Badge */}
-            {isWeekendComplete && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-pf-green/20 border border-pf-green/40 text-pf-green rounded-full text-sm font-medium">
-                🏁 Full Weekend Logged!
-              </span>
-            )}
-          </div>
-          
-          {/* Log Weekend Button */}
-          {hasUnloggedSessions && (
-            <div className="mt-4">
-              <Button
-                onClick={handleLogWeekend}
-                className="gap-2"
-              >
-                <span>📋</span>
-                Log Full Weekend
-              </Button>
+          {/* Title row with status badge inline */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex-1">
+              <PageHeader
+                icon="🏆"
+                title={displayName}
+                subtitle={`${round.circuit.name} • ${formatDateRange(round.dateStart, round.dateEnd)}`}
+              />
             </div>
-          )}
+            
+            {/* Right side: Status + Actions */}
+            <div className="flex flex-col sm:items-end gap-3">
+              {/* Status badges row */}
+              <div className="flex flex-wrap items-center gap-2">
+                {getStatusBadge()}
+                
+                {/* Weekend Complete Badge */}
+                {isWeekendComplete && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-pf-green/20 border border-pf-green/40 text-pf-green rounded-full text-sm font-medium">
+                    🏁 Full Weekend Logged!
+                  </span>
+                )}
+              </div>
+              
+              {/* Log Weekend Button */}
+              {hasUnloggedSessions && (
+                <Button
+                  onClick={handleLogWeekend}
+                  className="gap-2"
+                >
+                  <span>📋</span>
+                  Log Full Weekend
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       

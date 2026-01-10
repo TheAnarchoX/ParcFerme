@@ -340,7 +340,8 @@ public sealed record LogSessionEntry(
     Guid SessionId,
     decimal? StarRating = null,
     int? ExcitementRating = null,
-    bool Liked = false
+    bool Liked = false,
+    CreateReviewRequest? Review = null
 )
 {
     /// <summary>
@@ -356,6 +357,12 @@ public sealed record LogSessionEntry(
         
         if (ExcitementRating.HasValue && (ExcitementRating < 0 || ExcitementRating > 10))
             yield return "Excitement rating must be between 0 and 10";
+        
+        if (Review != null)
+        {
+            foreach (var error in Review.Validate())
+                yield return $"Review: {error}";
+        }
     }
 }
 

@@ -223,6 +223,7 @@ export interface LogSessionEntry {
   starRating?: number;
   excitementRating?: number;
   liked?: boolean;
+  review?: CreateReviewRequest;
 }
 
 /**
