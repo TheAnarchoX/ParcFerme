@@ -74,16 +74,16 @@ function SeriesCard({ series }: SeriesCardProps) {
   return (
     <Link
       to={ROUTES.SERIES_DETAIL(series.slug)}
-      className="group block border border-neutral-800 hover:border-transparent rounded-xl overflow-hidden transition-all hover:shadow-lg relative p-[1px]"
+      className="group block border border-neutral-800 hover:border-transparent rounded-xl transition-all hover:shadow-lg relative p-[1px]"
     >
       {/* Gradient border background - visible on hover */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl -z-10"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
         style={{ background: getBorderGradient() }}
       />
       
       {/* Card content container with background */}
-      <div className="bg-neutral-900/50 rounded-[11px] h-full"
+      <div className="bg-neutral-900/50 rounded-[11px] h-full relative overflow-hidden"
       >
       {/* Header with color accent */}
       <div 
