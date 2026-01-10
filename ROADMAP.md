@@ -1,6 +1,6 @@
 # Parc Fermé - Development Roadmap
 
-> Last updated: January 9, 2026
+> Last updated: January 10, 2026
 >
 > **📋 Completed work:** See [COMPLETED.md](./COMPLETED.md) for historical archive of all finished tasks.
 
@@ -14,22 +14,21 @@ _No active tasks_
 
 ### 📋 Up Next (Priority Order)
 
-#### 1. Core Logging Flow (The MVP Feature)
+#### 1. Core Logging Flow - Remaining Work
 
-- [ ] **"Log a Race" flow**
-  - Multi-step modal or dedicated page
-  - Session selection
-  - Basic info (date, watched vs attended)
-  - Optional: car/team/driver focus, comments
-  - Post-log redirect with results revealed
-
-- [ ] **"Weekend Wrapper" logging mode**
-  - Quick Log (Race Only) as default for casual fans
-  - Full Weekend Log with checkboxes for FP1/FP2/FP3/Quali/Sprint/Race
+- [ ] **"Weekend Wrapper" UI**
+  - Dedicated page or modal for logging an entire weekend at once
+  - Checkboxes for FP1/FP2/FP3/Quali/Sprint/Race sessions
   - Individual session ratings + weekend aggregate rating (weighted)
   - "Weekend Completeness" badge for full-weekend watchers
+  - Backend endpoint exists: `POST /api/v1/logs/weekend`
 
-- [ ] **APIs:** Logs CRUD, Reviews CRUD
+- [ ] **Edit/Delete Log functionality**
+  - Hook up edit mode in LogModal (existingLog prop already supported)
+  - Add delete confirmation modal
+  - Add "Edit Log" button to session detail page when user has logged
+
+- [ ] **Integration tests for Logs/Reviews controllers**
 
 ---
 

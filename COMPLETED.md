@@ -6,6 +6,66 @@
 
 ## 📅 January 2026
 
+### Core Logging Flow (Completed: Jan 10, 2026)
+
+The MVP logging feature allowing users to log races they've watched or attended.
+
+#### Backend Implementation
+- [x] **LogDtos.cs** - Complete DTO set for logging flow
+  - `LogSummaryDto`, `LogDetailDto` for log display
+  - `LogRoundDto` with full series/circuit info for log context
+  - `CreateLogRequest`, `UpdateLogRequest` for CRUD operations
+  - `CreateReviewRequest`, `UpdateReviewRequest` for reviews
+  - `CreateExperienceRequest` for venue experience data
+  - `LogWeekendRequest`, `LogWeekendResponse` for weekend wrapper
+  - `UserLogsResponse`, `UserLogStatsDto` for user log history
+  - Validation methods for star ratings (0.5-5.0), excitement (0-10), venue (1-5)
+
+- [x] **LogsController.cs** - Full logging API
+  - `POST /api/v1/logs` - Create log with optional review/experience
+  - `GET /api/v1/logs/{id}` - Get log details
+  - `GET /api/v1/logs/session/{sessionId}` - Get current user's log for a session
+  - `PUT /api/v1/logs/{id}` - Update log
+  - `DELETE /api/v1/logs/{id}` - Delete log
+  - `GET /api/v1/logs/me` - Get current user's logs with pagination
+  - `POST /api/v1/logs/weekend` - Log multiple sessions at once
+
+- [x] **ReviewsController.cs** - Review management API
+  - `POST /api/v1/reviews/log/{logId}` - Create review for a log
+  - `GET /api/v1/reviews/{id}` - Get review details
+  - `PUT /api/v1/reviews/{id}` - Update review
+  - `DELETE /api/v1/reviews/{id}` - Delete review
+  - `POST /api/v1/reviews/{id}/like` - Like a review
+  - `DELETE /api/v1/reviews/{id}/like` - Unlike a review
+  - `GET /api/v1/reviews/session/{sessionId}` - Get all reviews for a session
+
+#### Frontend Implementation
+- [x] **log.ts types** - TypeScript interfaces matching backend DTOs
+  - All DTO types with proper nullability
+  - Utility functions: `formatStarRating`, `formatExcitementRating`, `getExcitementColor`, `getExcitementLabel`, `formatDateWatched`, `isWithinSpoilerWindow`
+
+- [x] **logsService.ts** - API client for logs and reviews
+  - `logsApi`: createLog, getLog, getLogBySession, updateLog, deleteLog, getMyLogs, getUserLogs, getMyLogStats, logWeekend, getSessionLogs
+  - `reviewsApi`: createReview, getReview, updateReview, deleteReview, likeReview, unlikeReview, getSessionReviews
+
+- [x] **LogModal.tsx** - Multi-step logging wizard
+  - Step 1: Type selection (Watched vs Attended)
+  - Step 2: Ratings (star rating, excitement slider, like toggle, date picker)
+  - Step 3: Optional review (with spoiler toggle, auto-enabled for <7 days)
+  - Step 4: Venue experience (only for attended - venue, view, access, facilities, atmosphere ratings)
+  - Sub-components: `StarRating`, `ExcitementSlider`, `VenueRating`
+  - Progress indicator, form validation, error handling
+
+- [x] **SessionDetailPage.tsx integration**
+  - "Log this Session" button opens LogModal
+  - Redirects to login if not authenticated
+  - On success: marks session as logged in Redux, refreshes session data
+
+#### Also Fixed
+- Pre-existing TypeScript issues in SpoilerModeToggle, store middleware, test-utils
+
+---
+
 ### 🏁 Current Sprint: Core Discovery & Logging
 
 #### Infrastructure & Foundation
