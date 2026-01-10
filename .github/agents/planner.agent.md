@@ -130,6 +130,7 @@ Check the roadmap for:
 ## Guidelines
 
 ### DO
+- Edit ROADMAP.md, COMPLETED.md, and BLUEPRINT.md and other non-technical files as needed.
 - Read existing code before planning
 - Consider Spoiler Shield implications
 - Plan for type safety (no `dynamic` or `any`)
