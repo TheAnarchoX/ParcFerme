@@ -2,7 +2,7 @@
 # Parc Fermé - Development Makefile
 # =========================
 
-.PHONY: help setup up down api web python sync sync-all sync-recent db-migrate db-reset db-clean db-audit logs clean
+.PHONY: help setup up down api web python sync sync-all sync-recent db-migrate db-reset db-clean db-audit logs clean cache-clear cache-stats cache-warm cache-warm-full
 
 # Default target
 help:
@@ -38,7 +38,10 @@ help:
 	@echo "  make db-audit     - Audit data quality (check for null values)"
 	@echo ""
 	@echo "Cache:"
-	@echo "  make cache-clear  - Clear application cache"
+	@echo "  make cache-clear     - Clear application cache"
+	@echo "  make cache-stats     - Show cache statistics"
+	@echo "  make cache-warm      - Warm cache (API must be running)"
+	@echo "  make cache-warm-full - Full cache warming with entity details"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean        - Remove build artifacts and node_modules"
@@ -155,7 +158,18 @@ db-audit:
 cache-clear:
 	@echo "🧹 Clearing application cache..."
 	cd src/python && .venv/bin/python -m ingestion.cache clear
-	@echo "✅ Cache cleared"
+
+cache-stats:
+	@echo "📊 Cache statistics..."
+	cd src/python && .venv/bin/python -m ingestion.cache stats
+
+cache-warm:
+	@echo "🔥 Warming cache (requires API to be running)..."
+	cd src/python && .venv/bin/python -m ingestion.cache warm
+
+cache-warm-full:
+	@echo "🔥 Full cache warming (requires API to be running)..."
+	cd src/python && .venv/bin/python -m ingestion.cache warm --full
 
 # =========================
 # Cleanup

@@ -76,8 +76,11 @@ export function SpoilerModeToggle({ variant = 'default', className = '' }: Spoil
       newIndex = (currentIndex - 1 + modes.length) % modes.length;
     }
 
-    if (newIndex !== currentIndex) {
-      handleChange(modes[newIndex].value);
+    if (newIndex !== undefined && newIndex !== currentIndex) {
+      const mode = modes[newIndex];
+      if (mode) {
+        handleChange(mode.value);
+      }
     }
   };
   

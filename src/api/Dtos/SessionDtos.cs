@@ -195,30 +195,6 @@ public sealed record EntrantDto(
 );
 
 // =========================
-// User Log DTOs
-// =========================
-
-public sealed record LogSummaryDto(
-    Guid Id,
-    Guid SessionId,
-    decimal? StarRating,
-    int? ExcitementRating,
-    bool Liked,
-    bool IsAttended,
-    DateTime LoggedAt,
-    DateOnly? DateWatched
-);
-
-public sealed record CreateLogRequest(
-    Guid SessionId,
-    decimal? StarRating,
-    int? ExcitementRating,
-    bool Liked,
-    bool IsAttended,
-    DateOnly? DateWatched
-);
-
-// =========================
 // Spoiler Reveal DTOs
 // =========================
 

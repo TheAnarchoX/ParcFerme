@@ -178,29 +178,7 @@ export interface EntrantDto {
   role?: string;
 }
 
-// =========================
-// Log DTOs
-// =========================
-
-export interface LogSummaryDto {
-  id: string;
-  sessionId: string;
-  starRating?: number;
-  excitementRating?: number;
-  liked: boolean;
-  isAttended: boolean;
-  loggedAt: string;
-  dateWatched?: string;
-}
-
-export interface CreateLogRequest {
-  sessionId: string;
-  starRating?: number;
-  excitementRating?: number;
-  liked: boolean;
-  isAttended: boolean;
-  dateWatched?: string;
-}
+// Log DTOs - see log.ts for complete types
 
 // =========================
 // Spoiler Reveal DTOs

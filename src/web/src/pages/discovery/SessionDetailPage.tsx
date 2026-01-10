@@ -1,5 +1,6 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs, buildSessionBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
@@ -11,8 +12,11 @@ import {
 } from '../../components/ui/SpoilerShield';
 import { useSpoilerVisibility, useSpoilerShield } from '../../hooks/useSpoilerShield';
 import { Button } from '../../components/ui/Button';
+import { LogModal } from '../../components/logging';
 import { spoilerApi } from '../../services/spoilerService';
 import type { SessionDetailDto, ResultDto, SessionSummaryDto } from '../../types/spoiler';
+import type { LogDetailDto } from '../../types/log';
+import type { RootState } from '../../store';
 import { getSeriesPrimaryColor, cleanRoundName } from '../../types/round';
 import { getContrastColor } from '../../types/series';
 
@@ -600,10 +604,15 @@ export function SessionDetailPage() {
     roundSlug: string;
     sessionId: string;
   }>();
+  const navigate = useNavigate();
   
   const [session, setSession] = useState<SessionDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  
+  // Auth state
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   
   const yearNum = year ? parseInt(year, 10) : NaN;
   
@@ -746,8 +755,18 @@ export function SessionDetailPage() {
             title={`${roundName} - ${sessionDisplayName}`}
             subtitle={`${session.round.seriesName} ${yearNum} • ${session.round.circuit.name}`}
             actions={
-              <Button variant="primary">
-                📝 Log this session
+              <Button 
+                variant="primary"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    navigate('/login', { state: { from: window.location.pathname } });
+                    return;
+                  }
+                  setIsLogModalOpen(true);
+                }}
+                disabled={isLogged}
+              >
+                {isLogged ? '✓ Logged' : '📝 Log this session'}
               </Button>
             }
           />
@@ -985,6 +1004,19 @@ export function SessionDetailPage() {
           </Link>
         </div>
       </Section>
+      
+      {/* Log Modal */}
+      <LogModal
+        session={session}
+        isOpen={isLogModalOpen}
+        onClose={() => setIsLogModalOpen(false)}
+        onSuccess={(_log: LogDetailDto) => {
+          // Mark session as logged in Redux
+          markLogged(sessionId);
+          // Refresh session data to update stats
+          fetchSession();
+        }}
+      />
     </MainLayout>
   );
 }

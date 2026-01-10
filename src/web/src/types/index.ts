@@ -6,3 +6,4 @@ export * from './series';
 export * from './driver';
 export * from './team';
 export * from './circuit';
+export * from './log';

@@ -242,6 +242,8 @@ interface ComingSoonCardProps {
   split: 'none' | 'horizontal' | 'vertical';
 }
 
+// @ts-expect-error - Used in commented JSX section for future feature
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ComingSoonCard({ name, colors, split }: ComingSoonCardProps) {
   // Generate header bar style based on split type
   const getHeaderStyle = (): React.CSSProperties => {

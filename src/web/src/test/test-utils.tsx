@@ -6,34 +6,16 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { authSlice } from '../store/slices/authSlice';
 import { spoilerSlice } from '../store/slices/spoilerSlice';
 import { navigationSlice } from '../store/slices/navigationSlice';
-import type { User, SpoilerMode } from '../types/api';
-
-// Define the root state type
-export interface RootState {
-  auth: {
-    user: User | null;
-    isAuthenticated: boolean;
-    isLoading: boolean;
-    isInitialized: boolean;
-    error: string | null;
-  };
-  spoiler: {
-    mode: SpoilerMode;
-    loggedSessionIds: string[];
-    tempRevealedIds: string[];
-    isLoading: boolean;
-    error: string | null;
-  };
-  navigation: {
-    breadcrumbs: { label: string; href?: string }[];
-  };
-}
+import type { User } from '../types/api';
 
 const rootReducer = combineReducers({
   auth: authSlice.reducer,
   spoiler: spoilerSlice.reducer,
   navigation: navigationSlice.reducer,
 });
+
+// Use inferred RootState type from reducer
+export type RootState = ReturnType<typeof rootReducer>;
 
 export function setupStore(preloadedState?: Partial<RootState>) {
   return configureStore({

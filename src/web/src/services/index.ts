@@ -7,3 +7,4 @@ export { roundsApi } from './roundsService';
 export { driversApi } from './driversService';
 export { teamsApi } from './teamsService';
 export { circuitsApi } from './circuitsService';
+export { logsApi, reviewsApi } from './logsService';
