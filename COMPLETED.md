@@ -6,6 +6,41 @@
 
 ## 📅 January 2026
 
+### Community Reviews on Session Pages (Completed: Jan 10, 2026)
+
+Implemented the Community Reviews section on SessionDetailPage, displaying user reviews with spoiler protection.
+
+#### Frontend Implementation
+- [x] **ReviewCard component** - Reusable review display with spoiler protection
+  - User avatar with initials fallback when no avatar URL
+  - Read-only star rating display (0.5-5.0)
+  - Excitement rating badge (color-coded by value)
+  - "Attended" badge for live venue logs
+  - "Spoilers" warning badge for spoiler-marked reviews
+  - Review body with spoiler blur/reveal (click to reveal)
+  - "Read more" expansion for long reviews (300+ chars)
+  - Engagement stats (like count, comment count)
+  - Loading skeleton component for loading state
+
+- [x] **ReviewsSection component** - Handles fetching and pagination
+  - Fetches reviews on mount using `reviewsApi.getSessionReviews()`
+  - Pagination with 10 reviews per page
+  - Loading state with skeleton cards
+  - Error state with retry button
+  - Empty state prompting users to write reviews
+
+- [x] **Spoiler Shield integration**
+  - Reviews with `containsSpoilers=true` are blurred by default
+  - Click-to-reveal per individual review
+  - Auto-reveal if user has logged the session
+  - Auto-reveal if user's spoilerMode is 'None'
+
+- [x] **Files created/changed**:
+  - `src/web/src/components/ReviewCard.tsx` - New ReviewCard component
+  - `src/web/src/pages/discovery/SessionDetailPage.tsx` - Added ReviewsSection
+
+---
+
 ### Weekend Wrapper UI (Completed: Jan 10, 2026)
 
 Full weekend logging feature allowing users to log entire race weekends with one workflow.

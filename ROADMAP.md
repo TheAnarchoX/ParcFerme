@@ -56,21 +56,6 @@ Tasks below are tagged with recommended agents:
 
 ### 📋 Up Next (Priority Order)
 
-#### 0. Community Reviews (HIGH PRIORITY)
-
-The backend API and frontend service already exist - we just need to wire up the UI!
-
-- [ ] **Community Reviews on Session Pages** `[🎨 frontend]` `[🏁 spoiler]`
-  - Backend API exists: `GET /api/v1/reviews/session/{sessionId}`
-  - Frontend service exists: `reviewsApi.getSessionReviews()`
-  - UI shows placeholder - needs to fetch and display real reviews
-  > **Prompt**: `Implement Community Reviews section on SessionDetailPage. The backend API already exists (GET /api/v1/reviews/session/{sessionId}) and frontend service exists (reviewsApi.getSessionReviews). Replace the EmptyState placeholder with actual review data. Implementation: 1) Add useState for reviews and loading state, 2) Add useEffect to fetch reviews on mount using reviewsApi.getSessionReviews(sessionId), 3) Create a ReviewCard component showing author avatar/name, star rating, excitement rating, date, and review text with "Read more" expansion for long reviews, 4) Handle spoiler-marked reviews with SpoilerMask based on user's spoilerMode - reviews marked as containing spoilers should be blurred until clicked, 5) Show loading state while fetching, 6) Keep EmptyState when reviews array is empty after fetch, 7) Add pagination if more than 10 reviews.`
-
-- [ ] **Review Card Component** `[🎨 frontend]` `[🏁 spoiler]`
-  > **Prompt**: `Create a reusable ReviewCard component at src/web/src/components/ReviewCard.tsx. Props: review (ReviewDto), spoilerMode (SpoilerMode), onReveal callback. Display: author avatar (use Gravatar or initials), author username linking to profile, star rating (use existing StarRating component in read-only mode), excitement rating badge, "Attended" badge if isAttended, review date, review body text. For reviews with containsSpoilers=true: wrap body in SpoilerMask unless spoilerMode is 'None'. Add like button with count. Truncate long reviews with "Read more" expansion. Follow existing component patterns.`
-
----
-
 #### 1. Core Logging Flow - Remaining Work
 
 - [ ] **Edit/Delete Log functionality** `[🎨 frontend]` `[🔧 backend]`
