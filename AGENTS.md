@@ -276,6 +276,47 @@ User → Log → Review
 2. **Midfield**: Historical archive (1950-2023), Lists, Social Feed
 3. **Podium**: Multi-series, Venue Guides, Gamification, Pro tier
 
+## AI-Assisted Development
+
+### Custom VS Code Agents
+
+This project uses specialized AI agents in `.github/agents/` for accelerated development. See [ROADMAP.md](./ROADMAP.md#-ai-agent-workflow) for the full workflow guide.
+
+| Agent | File | Use For |
+|-------|------|---------|
+| **Planner** | `planner.agent.md` | Breaking down features, creating specs |
+| **Backend** | `backend.agent.md` | .NET API, EF Core, caching, DTOs |
+| **Frontend** | `frontend.agent.md` | React, Redux, Tailwind, TypeScript |
+| **Data Engineer** | `data-engineer.agent.md` | Python ingestion, OpenF1 sync |
+| **QA** | `qa.agent.md` | Unit/integration/E2E tests |
+| **Reviewer** | `reviewer.agent.md` | Code review, pattern compliance |
+| **Security** | `security.agent.md` | Security audits, auth review |
+| **Spoiler Shield** | `spoiler-shield.agent.md` | Spoiler protection feature |
+
+### Selecting an Agent
+
+Tasks in ROADMAP.md are tagged with recommended agents:
+- `[📋 plan]` → Start with `@planner`, then hand off
+- `[🔧 backend]` → Use `@backend` 
+- `[🎨 frontend]` → Use `@frontend`
+- `[🐍 data]` → Use `@data-engineer`
+- `[🧪 qa]` → Use `@qa`
+- `[🔒 security]` → Use `@security`
+- `[🏁 spoiler]` → Involve `@spoiler-shield`
+
+**For multi-tagged tasks** (e.g., `[📋 plan]` `[🔧 backend]` `[🎨 frontend]`):
+1. If `[📋 plan]` is present → Start with `@planner` to get implementation spec
+2. Hand off to implementation agents (`@backend`, `@frontend`) for each part
+3. Or use default Agent with the full prompt if you want one-shot execution
+
+### Prompt-Based Workflow
+
+Each task in ROADMAP.md includes a copy-paste prompt. To work on a task:
+1. Find the task in ROADMAP.md
+2. Copy the prompt from the `> **Prompt**: ` block
+3. Paste into VS Code chat with the appropriate agent (or default Agent)
+4. Commit changes, move task to COMPLETED.md when done
+
 ## Git Workflow
 
 ### Commit Discipline

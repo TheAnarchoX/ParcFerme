@@ -1,5 +1,7 @@
-import { Link, useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
 import { MainLayout, PageHeader, Section, EmptyState } from '../../components/layout/MainLayout';
 import { useBreadcrumbs, buildRoundBreadcrumbs } from '../../components/navigation/Breadcrumbs';
 import { ROUTES } from '../../types/navigation';
@@ -9,6 +11,8 @@ import { cleanRoundName, formatDateRange, getSeriesPrimaryColor } from '../../ty
 import { getContrastColor } from '../../types/series';
 import { getCountryFlag } from '../../lib/flags';
 import { getDriverRoleLabel, getDriverRoleBadgeClasses, getDriverRoleTooltip } from '../../types/team';
+import { WeekendWrapperModal } from '../../components/logging';
+import { Button } from '../../components/ui/Button';
 
 // =========================
 // Loading Skeletons
@@ -282,12 +286,51 @@ export function RoundDetailPage() {
     year: string; 
     roundSlug: string 
   }>();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   
   const [roundData, setRoundData] = useState<RoundPageResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showWeekendModal, setShowWeekendModal] = useState(false);
   
   const yearNum = year ? parseInt(year, 10) : NaN;
+  
+  // Check if there are unlogged completed sessions for Weekend Wrapper
+  const hasUnloggedSessions = useMemo(() => {
+    if (!roundData) return false;
+    return roundData.round.sessions.some(
+      s => (s.status === 'Completed' || s.status === 'InProgress') && !s.isLogged
+    );
+  }, [roundData]);
+  
+  // Check if all sessions are logged (Weekend Complete badge)
+  const isWeekendComplete = useMemo(() => {
+    if (!roundData) return false;
+    const completedSessions = roundData.round.sessions.filter(
+      s => s.status === 'Completed' || s.status === 'InProgress'
+    );
+    return completedSessions.length > 0 && completedSessions.every(s => s.isLogged);
+  }, [roundData]);
+  
+  // Handle opening weekend modal
+  const handleLogWeekend = () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+    setShowWeekendModal(true);
+  };
+  
+  // Handle weekend log success - refresh data
+  const handleWeekendSuccess = () => {
+    // Refetch to update isLogged flags
+    if (seriesSlug && roundSlug && !isNaN(yearNum)) {
+      roundsApi.getRoundBySlug(seriesSlug, yearNum, roundSlug)
+        .then(setRoundData)
+        .catch(console.error);
+    }
+  };
   
   // Fetch round data
   useEffect(() => {
@@ -417,7 +460,7 @@ export function RoundDetailPage() {
           />
           
           {/* Status badge */}
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             {round.isCurrent ? (
               <span 
                 className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
@@ -434,9 +477,39 @@ export function RoundDetailPage() {
                 Upcoming
               </span>
             )}
+            
+            {/* Weekend Complete Badge */}
+            {isWeekendComplete && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-pf-green/20 border border-pf-green/40 text-pf-green rounded-full text-sm font-medium">
+                🏁 Full Weekend Logged!
+              </span>
+            )}
           </div>
+          
+          {/* Log Weekend Button */}
+          {hasUnloggedSessions && (
+            <div className="mt-4">
+              <Button
+                onClick={handleLogWeekend}
+                className="gap-2"
+              >
+                <span>📋</span>
+                Log Full Weekend
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+      
+      {/* Weekend Wrapper Modal */}
+      {roundData && (
+        <WeekendWrapperModal
+          round={roundData.round}
+          isOpen={showWeekendModal}
+          onClose={() => setShowWeekendModal(false)}
+          onSuccess={handleWeekendSuccess}
+        />
+      )}
       
       {/* Circuit Info Card */}
       <Section>

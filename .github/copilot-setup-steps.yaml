@@ -1,23 +1,36 @@
 # GitHub Copilot Coding Agent Setup Steps
 # This file configures the environment for Copilot to build, test, and validate changes
 # See: https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot
+#
+# Project: Parc Fermé - "Letterboxd for Motorsport"
+# Stack: .NET 10 (API) + React 19/TypeScript (Web) + Python 3.11 (Data Ingestion)
+# Database: PostgreSQL + Redis + Elasticsearch
+#
+# Key documentation:
+# - AGENTS.md - AI coding guidelines and project overview
+# - docs/BLUEPRINT.md - Full product specification
+# - ROADMAP.md - Current development status and priorities
+# - src/api/AGENTS.md - Backend-specific patterns (Spoiler Shield, DTOs, etc.)
+# - src/web/AGENTS.md - Frontend patterns (React, Redux, Tailwind)
+# - src/python/AGENTS.md - Data ingestion patterns (OpenF1 API)
 
 # Install required tools and dependencies
 setup:
   - name: Install .NET SDK
     run: |
-      # .NET 10 is required for the API backend
-      # Assumes .NET 10 SDK is pre-installed in the environment (mirrors actions/setup-dotnet@v5)
-      # If not available, use: curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0
+      # .NET 10 is required for the API backend (mirrors actions/setup-dotnet@v5)
+      # SDK should be pre-installed; verify version
       dotnet --version
+      # If not available, install with:
+      # curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0
 
   - name: Install Node.js
     run: |
-      # Node.js 22 is used for the React frontend (mirrors actions/setup-node@v6)
-      # Use nvm to avoid requiring root access in containerized environments
+      # Node.js 22 is used for the React 19 frontend (mirrors actions/setup-node@v6)
+      # Use nvm for version management in containerized environments
       export NVM_DIR="$HOME/.nvm"
       mkdir -p "$NVM_DIR"
-      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
       . "$NVM_DIR/nvm.sh"
       nvm install 22
       nvm use 22
@@ -27,16 +40,18 @@ setup:
   - name: Install Python
     run: |
       # Python 3.11+ is required for ingestion scripts (mirrors actions/setup-python@v6)
-      # Assumes Python 3.11 is pre-installed in the environment
-      # If not available, use pyenv: curl https://pyenv.run | bash && pyenv install 3.11 && pyenv global 3.11
       python3.11 --version || python3 --version
 
   - name: Start Docker services
     run: |
-      # Start PostgreSQL, Redis, and Elasticsearch for integration tests
-      docker compose up -d
-      sleep 5
+      # Start PostgreSQL (parcferme-db), Redis (parcferme-cache), Elasticsearch (parcferme-search)
+      # Container names are FIXED - see AGENTS.md for reference
+      docker compose up -d postgres redis elasticsearch
+      # Wait for services to be healthy
+      sleep 10
       docker compose ps
+      # Verify PostgreSQL is ready
+      docker exec parcferme-db pg_isready -U parcferme || sleep 5
 
 # Build commands for each component
 build:
@@ -51,15 +66,16 @@ build:
     run: |
       npm ci
       npm run build
+      npm run type-check
 
   - name: Install Python dependencies
     working-directory: src/python
     run: |
-      python3.11 -m venv .venv
+      python3.11 -m venv .venv || python3 -m venv .venv
       .venv/bin/pip install --upgrade pip
       .venv/bin/pip install -e ".[dev]"
 
-# Linting commands
+# Linting commands (mirror CI workflows)
 lint:
   - name: Lint .NET code
     working-directory: .
@@ -74,7 +90,7 @@ lint:
   - name: Lint Python code
     working-directory: src/python
     run: |
-      # Install Ruff explicitly to mirror CI workflow behavior (python.yml lines 38-44)
+      # Install Ruff explicitly to mirror CI workflow behavior (python.yml)
       pip install ruff
       ruff check .
       ruff format --check .
@@ -99,18 +115,18 @@ test:
       dotnet test tests/api/ParcFerme.Api.Tests.csproj \
         --no-build \
         --configuration Release \
-        --verbosity normal
+        --verbosity normal \
+        --filter "Category!=Integration"
 
   - name: Test .NET API (integration tests)
     working-directory: .
     environment:
-      # Note: CI uses 'testpassword' with its own PostgreSQL service
-      # Local development uses 'localdev' from docker-compose.yml
-      # Adjust password based on your environment
+      # Integration tests require Docker services running
+      # Container: parcferme-db (PostgreSQL), parcferme-cache (Redis)
       ConnectionStrings__DefaultConnection: "Host=localhost;Database=parcferme_test;Username=parcferme;Password=localdev"
       ConnectionStrings__Redis: "localhost:6379"
     run: |
-      # Integration tests use Category=Integration filter to run separately from unit tests
+      # Integration tests use Category=Integration filter
       dotnet test tests/api/ParcFerme.Api.Tests.csproj \
         --no-build \
         --configuration Release \
@@ -143,6 +159,11 @@ validate:
         exit 1
       fi
       
+      # Check for console.log in production code (warning only)
+      if grep -rn "console\.log" --include="*.ts" --include="*.tsx" src/web/src/ 2>/dev/null; then
+        echo "⚠️ console.log statements found (consider removing for production)"
+      fi
+      
       echo "✅ Quick validation passed"
 
   - name: Verify Python imports
@@ -158,21 +179,46 @@ database:
   - name: Apply database migrations
     working-directory: src/api
     run: |
+      # Ensure database is running first
+      docker exec parcferme-db pg_isready -U parcferme
       dotnet ef database update
+
+  - name: Verify database schema
+    run: |
+      # Quick verification that key tables exist
+      docker exec parcferme-db psql -U parcferme -d parcferme -c "SELECT COUNT(*) FROM \"Sessions\";" || echo "No sessions table yet"
+      docker exec parcferme-db psql -U parcferme -d parcferme -c "SELECT COUNT(*) FROM \"Drivers\";" || echo "No drivers table yet"
 
 # Development server commands (for manual testing)
 dev:
   - name: Run API server
     working-directory: src/api
     run: |
+      # Or use: make api (from repo root)
       dotnet watch run
 
   - name: Run Web frontend
     working-directory: src/web
     run: |
+      # Or use: make web (from repo root)
       npm run dev
 
   - name: Run Python healthcheck
     working-directory: src/python
     run: |
       .venv/bin/python -m ingestion.healthcheck
+
+# Data sync commands (use with caution - writes to database)
+sync:
+  - name: Sync current F1 season
+    working-directory: src/python
+    run: |
+      # Syncs current year data from OpenF1 API
+      # Or use: make sync (from repo root)
+      .venv/bin/python -m ingestion sync
+
+  - name: Sync specific season (spoiler-safe)
+    working-directory: src/python
+    run: |
+      # Use --no-results flag to avoid syncing spoiler data
+      .venv/bin/python -m ingestion sync --year 2025 --no-results
