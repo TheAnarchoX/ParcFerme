@@ -6,6 +6,35 @@
 
 ## 📅 January 2026
 
+### Edit Logs and Reviews (Completed: Jan 10, 2026)
+
+Implemented the ability to edit existing logs and reviews.
+
+#### Frontend Implementation
+- [x] **LogModal edit mode** - Updated to support editing existing logs
+  - Added `existingLog` prop handling with `updateLog` API call
+  - Handles review updates: create new, update existing, or delete cleared reviews
+  - Pre-fills all form fields from existing log data
+  - Different submit behavior for create vs update mode
+
+- [x] **SessionDetailPage enhancements**
+  - Added "Edit Log" button in header when user has existing log
+  - Fetches user's log data via `logsApi.getLogBySession()`
+  - Passes `existingLog` to LogModal when in edit mode
+  - Refreshes log data after successful edit
+
+- [x] **ReviewCard edit support**
+  - Added `currentUserId` and `onEdit` props
+  - Shows "Edit" button on user's own reviews
+  - Triggers log edit modal when clicked (reviews are part of logs)
+
+- [x] **Files changed**:
+  - `src/web/src/components/logging/LogModal.tsx` - Added update logic
+  - `src/web/src/components/ReviewCard.tsx` - Added edit button for own reviews
+  - `src/web/src/pages/discovery/SessionDetailPage.tsx` - Added edit button and user log fetching
+
+---
+
 ### Community Reviews on Session Pages (Completed: Jan 10, 2026)
 
 Implemented the Community Reviews section on SessionDetailPage, displaying user reviews with spoiler protection.

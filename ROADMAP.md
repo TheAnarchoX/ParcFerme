@@ -58,11 +58,11 @@ Tasks below are tagged with recommended agents:
 
 #### 1. Core Logging Flow - Remaining Work
 
-- [ ] **Edit/Delete Log functionality** `[🎨 frontend]` `[🔧 backend]`
-  - Hook up edit mode in LogModal (existingLog prop already supported)
+- [ ] **Delete Log/Review functionality** `[🎨 frontend]` `[🔧 backend]`
   - Add delete confirmation modal
-  - Add "Edit Log" button to session detail page when user has logged
-  > **Prompt**: `Implement Edit/Delete functionality for user logs. The LogModal component already supports an existingLog prop for edit mode - wire this up. Add a DELETE endpoint to LogsController if not present. Create a delete confirmation modal component. Add an "Edit Log" button that appears on session detail pages when the current user has already logged that session. Ensure proper authorization checks.`
+  - Wire up DELETE endpoints (already exist in backend)
+  - Add delete option to log edit or session detail page
+  > **Prompt**: `Implement Delete functionality for user logs and reviews. The backend DELETE endpoints already exist. Create a delete confirmation modal component that warns users about permanent data loss. Add a delete button accessible from the session detail page when viewing your own log. Handle the API call and refresh data after successful deletion. Ensure proper authorization checks.`
 
 - [ ] **Integration tests for Logs/Reviews controllers** `[🧪 qa]`
   > **Prompt**: `Write comprehensive integration tests for LogsController and ReviewsController. Test all CRUD operations, authorization (users can only edit/delete their own logs), spoiler mode behavior when fetching logs with results, and the weekend logging endpoint. Use the existing test patterns in tests/api/Integration/. Ensure tests cover edge cases like logging a session twice, editing non-existent logs, and unauthorized access attempts.`
