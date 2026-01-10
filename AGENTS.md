@@ -26,9 +26,178 @@ Parc Fermé is a "Letterboxd for motorsport" - a social cataloging platform for 
   BLUEPRINT.md  # Full product specification
 ```
 
+## Docker / Development Environment
+
+### Container Names (FIXED - DO NOT GUESS)
+The docker-compose.yml defines these **fixed container names**. Never run `docker ps` to find them:
+
+| Service       | Container Name        | Port  | Purpose                    |
+|---------------|----------------------|-------|----------------------------|
+| PostgreSQL    | `parcferme-db`       | 5432  | Primary database           |
+| Redis         | `parcferme-cache`    | 6379  | Caching layer              |
+| Elasticsearch | `parcferme-search`   | 9200  | Full-text search           |
+| pgAdmin       | `parcferme-pgadmin`  | 5050  | DB admin UI (optional)     |
+
+### Database Connection
+```
+Host: localhost (from host) or parcferme-db (from other containers)
+Port: 5432
+Database: parcferme
+User: parcferme
+Password: localdev
+```
+
+### Executing Database Commands
+
+**⚠️ CRITICAL: Always run psql INSIDE the container, not on the host.**
+
+```bash
+# ✅ CORRECT - Run psql inside the container
+docker exec -it parcferme-db psql -U parcferme -d parcferme
+
+# ❌ WRONG - Don't run psql on host (may not be installed or wrong version)
+psql -U parcferme -d parcferme
+
+# ✅ CORRECT - One-liner query
+docker exec -it parcferme-db psql -U parcferme -d parcferme -c "SELECT COUNT(*) FROM \"Drivers\";"
+
+# ✅ CORRECT - Run a SQL file
+docker exec -i parcferme-db psql -U parcferme -d parcferme < script.sql
+```
+
+### Makefile Commands
+Use these instead of raw docker/dotnet commands:
+
+| Command           | Purpose                                      |
+|-------------------|----------------------------------------------|
+| `make up`         | Start all Docker services                    |
+| `make down`       | Stop all Docker services                     |
+| `make api`        | Run .NET API with hot reload (port 5000)     |
+| `make web`        | Run React frontend with hot reload (port 3000)|
+| `make db-migrate` | Apply EF Core migrations                     |
+| `make db-reset`   | Reset database (destroys all data)           |
+| `make sync`       | Sync F1 data for current year                |
+| `make sync-2024`  | Sync full 2024 F1 season                     |
+| `make sync-2025`  | Sync full 2025 F1 season                     |
+
+### Service Health Checks
+```bash
+# Check if services are healthy
+docker compose ps
+
+# View logs for a specific service
+docker compose logs -f postgres
+docker compose logs -f redis
+```
+
 ### Data Sources
 - **OpenF1 API**: Primary source for current F1 data (free, real-time). Use `meeting_key` to group sessions into Events. Cache aggressively—API may rate-limit or change.
 - **Community Contribution**: MotoGP, IndyCar, WEC via "Wiki" model (no reliable APIs)
+
+## Database Schema Reference
+
+### Finding Model Definitions
+All Entity Framework models are in `src/api/Models/`:
+- **`EventModels.cs`** - Racing data: Series, Season, Round, Session, Circuit, Driver, Team, Entrant, Result
+- **`SocialModels.cs`** - User content: Log, Review, Experience, UserList, UserFollow
+- **`ApplicationUser.cs`** - User entity extending ASP.NET Identity
+
+The DbContext is at `src/api/Data/ParcFermeDbContext.cs`.
+
+### Table Names (PostgreSQL uses quoted PascalCase)
+EF Core maps to these exact table names. **Always quote table names in raw SQL**:
+
+```sql
+-- ✅ CORRECT - Quoted table names
+SELECT * FROM "Drivers" WHERE "Slug" = 'lewis-hamilton';
+SELECT * FROM "Sessions" WHERE "OpenF1SessionKey" = 9574;
+
+-- ❌ WRONG - Unquoted (PostgreSQL lowercases these)
+SELECT * FROM Drivers;  -- Looks for table "drivers" which doesn't exist
+```
+
+### Core Tables & Key Columns
+
+#### Event Cluster (Racing Data)
+| Table | Key Columns | Notes |
+|-------|-------------|-------|
+| `"Series"` | `Id` (GUID), `Name`, `Slug`, `BrandColors` (jsonb) | F1, MotoGP, etc. |
+| `"Seasons"` | `Id`, `SeriesId`, `Year` | Unique on (SeriesId, Year) |
+| `"Rounds"` | `Id`, `SeasonId`, `CircuitId`, `Name`, `Slug`, `RoundNumber`, `OpenF1MeetingKey`, `ErgastRaceId` | Race weekend |
+| `"Sessions"` | `Id`, `RoundId`, `Type` (enum), `StartTimeUtc`, `Status`, `OpenF1SessionKey` (unique) | FP1, Quali, Race |
+| `"Circuits"` | `Id`, `Name`, `Slug`, `Location`, `Country`, `CountryCode`, `Latitude`, `Longitude` | |
+| `"Drivers"` | `Id`, `FirstName`, `LastName`, `Slug`, `Abbreviation`, `Nationality`, `DriverNumber`, `OpenF1DriverNumber`, `DateOfBirth` | |
+| `"Teams"` | `Id`, `Name`, `Slug`, `ShortName`, `PrimaryColor`, `Nationality` | |
+| `"Entrants"` | `Id`, `RoundId`, `DriverId`, `TeamId`, `Role` (enum) | Driver-Team per round. Unique on (RoundId, DriverId) |
+| `"Results"` | `Id`, `SessionId`, `EntrantId`, `Position`, `GridPosition`, `Status`, `Points`, `Time`, `FastestLap`, `Q1Time`, `Q2Time`, `Q3Time` | ⚠️ SPOILER DATA |
+
+#### Social Cluster (User Content)
+| Table | Key Columns | Notes |
+|-------|-------------|-------|
+| `"Logs"` | `Id`, `UserId`, `SessionId`, `StarRating`, `ExcitementRating`, `Liked`, `IsAttended`, `LoggedAt` | User's diary entry |
+| `"Reviews"` | `Id`, `LogId`, `Body`, `ContainsSpoilers`, `Language` | Text review |
+| `"Experiences"` | `Id`, `LogId`, `GrandstandId`, `VenueRating`, `ViewRating`, `AccessRating`, `FacilitiesRating` | Only when IsAttended=true |
+| `"AspNetUsers"` | `Id`, `UserName`, `Email`, `DisplayName`, `SpoilerMode`, `MembershipTier` | Extended Identity user |
+
+#### Alias Tables (for name variations)
+| Table | Purpose |
+|-------|---------|
+| `"DriverAliases"` | Historical/alternate driver names |
+| `"TeamAliases"` | Team rebrands, sponsor changes |
+| `"CircuitAliases"` | Track name variations |
+| `"SeriesAliases"` | Series rebrands |
+
+### Common Column Gotchas
+
+**⚠️ Column names are PascalCase, not snake_case:**
+```sql
+-- ✅ CORRECT
+SELECT "FirstName", "LastName", "OpenF1DriverNumber" FROM "Drivers";
+
+-- ❌ WRONG  
+SELECT first_name, last_name, openf1_driver_number FROM drivers;
+```
+
+**Key external identifiers:**
+- `OpenF1SessionKey` - Links Sessions to OpenF1 API (unique, nullable)
+- `OpenF1MeetingKey` - Links Rounds to OpenF1 meetings
+- `OpenF1DriverNumber` - Links Drivers to OpenF1 (different from `DriverNumber`)
+- `ErgastRaceId` - Links Rounds to historical Ergast data
+
+**Enum columns (stored as integers):**
+- `Sessions.Type`: 0=FP1, 1=FP2, 2=FP3, 3=Qualifying, 4=SprintQualifying, 5=Sprint, 6=Race
+- `Sessions.Status`: 0=Scheduled, 1=InProgress, 2=Completed, 3=Cancelled, 4=Delayed
+- `Results.Status`: 0=Finished, 1=DNF, 2=DNS, 3=DSQ, 4=NC
+- `Entrants.Role`: 0=Regular, 1=Reserve, 2=Fp1Only, 3=Test
+- `AspNetUsers.SpoilerMode`: 0=Strict, 1=Moderate, 2=None
+
+### Useful Queries for Debugging
+
+```sql
+-- Check what data exists
+SELECT s."Name", COUNT(r."Id") as rounds 
+FROM "Series" s 
+LEFT JOIN "Seasons" se ON s."Id" = se."SeriesId"
+LEFT JOIN "Rounds" r ON se."Id" = r."SeasonId"
+GROUP BY s."Name";
+
+-- Find a driver by name (case-insensitive)
+SELECT * FROM "Drivers" WHERE LOWER("LastName") LIKE '%hamilton%';
+
+-- Check sessions for a round
+SELECT s."Type", s."Status", s."StartTimeUtc", s."OpenF1SessionKey"
+FROM "Sessions" s
+JOIN "Rounds" r ON s."RoundId" = r."Id"
+WHERE r."Slug" = '2024-bahrain-grand-prix';
+
+-- Results with driver/team info (common join pattern)
+SELECT d."LastName", t."Name" as team, r."Position"
+FROM "Results" r
+JOIN "Entrants" e ON r."EntrantId" = e."Id"
+JOIN "Drivers" d ON e."DriverId" = d."Id"
+JOIN "Teams" t ON e."TeamId" = t."Id"
+WHERE r."SessionId" = 'some-guid';
+```
 
 ## API Design Conventions
 
