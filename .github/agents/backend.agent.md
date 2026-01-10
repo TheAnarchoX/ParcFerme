@@ -104,16 +104,26 @@ dotnet test               # Run tests (from solution root)
 
 **The roadmap is the single source of truth. Follow these rules strictly.**
 
+### BEFORE Writing Any Code:
+
+**🔴 STOP! First update ROADMAP.md:**
+
+1. Open `ROADMAP.md`
+2. Find your task in "📋 Up Next" (or its current section)
+3. **CUT the entire task block** (the `- [ ]` line + any `> **Prompt**:` lines)
+4. **PASTE under "🚧 In Progress"** section
+5. **Commit immediately**: `git commit -m "chore: move [task name] to in-progress"`
+6. **Only then** begin implementation
+
+This is not optional. Do not skip this step.
+
 ### NEVER Do This:
+- ❌ Start coding without moving task to In Progress first
 - ❌ Mark tasks `[x]` in place and leave them in ROADMAP.md
 - ❌ Add "COMPLETED" text to tasks and leave them in the roadmap
 - ❌ Forget to update COMPLETED.md
 
-### ALWAYS Do This:
-
-1. **Before starting**: Move task to "🚧 In Progress" section
-2. **During work**: Commit frequently with descriptive messages
-3. **Upon completion**:
+### Upon Completion:
    - **REMOVE the task from ROADMAP.md entirely**
    - **ADD the task to COMPLETED.md** with:
      - Completion date

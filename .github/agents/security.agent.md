@@ -178,17 +178,31 @@ public async Task UpdateUser([FromBody] UpdateUserDto dto) { ... }
 
 **The roadmap is the single source of truth. Follow these rules strictly.**
 
-When completing security audit tasks:
-1. **REMOVE the task from ROADMAP.md entirely**
-2. **ADD the task to COMPLETED.md** with:
-   - Completion date
-   - Vulnerabilities found and fixed
-   - Security improvements made
-3. **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
+### BEFORE Starting Any Security Audit:
+
+**🔴 STOP! First update ROADMAP.md:**
+
+1. Open `ROADMAP.md`
+2. Find your task in "📋 Up Next" (or its current section)
+3. **CUT the entire task block** (the `- [ ]` line + any `> **Prompt**:` lines)
+4. **PASTE under "🚧 In Progress"** section
+5. **Commit immediately**: `git commit -m "chore: move [task name] to in-progress"`
+6. **Only then** begin the security audit
+
+This is not optional. Do not skip this step.
 
 ### NEVER:
+- ❌ Start auditing without moving task to In Progress first
 - ❌ Mark tasks `[x]` in place and leave them in ROADMAP.md
 - ❌ Add "COMPLETED" text to tasks and leave them in the roadmap
+
+### Upon Completion:
+- **REMOVE the task from ROADMAP.md entirely**
+- **ADD the task to COMPLETED.md** with:
+  - Completion date
+  - Vulnerabilities found and fixed
+  - Security improvements made
+- **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
 
 See root `AGENTS.md` for full roadmap hygiene documentation.
 ````

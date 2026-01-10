@@ -351,7 +351,39 @@ This ensures:
 
 ### When Picking Up a Task
 
-1. **Evaluate the task description first**: Before starting any work, critically review the task as written:
+#### 🚨 MANDATORY FIRST ACTION: Move Task to In Progress
+
+**Before writing ANY code**, you MUST update ROADMAP.md to move the task to the In Progress section. This is not optional.
+
+**Step-by-step process:**
+
+1. **Open ROADMAP.md**
+2. **Find your task** in the "📋 Up Next" section (or wherever it currently lives)
+3. **Cut the entire task block** (the `- [ ]` line and any `> **Prompt**:` block below it)
+4. **Paste it under "🚧 In Progress"** section
+5. **Commit immediately**: `git commit -m "chore: move [task name] to in-progress"`
+
+**Example edit:**
+```markdown
+### 🚧 In Progress
+
+- [ ] **User settings page** `[🎨 frontend]` `[🏁 spoiler]`
+  > **Prompt**: `Create a user settings page at /settings...`
+
+### 📋 Up Next (Priority Order)
+
+- [ ] **Next task that was below it**...
+```
+
+**Why this matters:**
+- Other developers/agents can see what's being worked on
+- Prevents duplicate work on the same task
+- Creates clear accountability for work in progress
+- The roadmap reflects actual project state
+
+#### After Moving to In Progress
+
+1. **Evaluate the task description**: Before starting implementation, critically review the task:
    - Is the scope clear and well-defined?
    - Are the acceptance criteria obvious?
    - Does the description match current codebase state?
@@ -365,7 +397,7 @@ This ensures:
    - Break down vague tasks into concrete sub-tasks
    - Commit the roadmap update before starting implementation
 
-3. **Move to In Progress**: Move the item to the "🚧 In Progress" section in ROADMAP.md
+3. **Begin implementation** only after the above steps are complete
 
 ### During Work
 

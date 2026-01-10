@@ -170,22 +170,34 @@ Your plan should be actionable and detailed enough for another developer (or age
 
 **The roadmap is the single source of truth. Follow these rules strictly.**
 
+### BEFORE Creating Any Plan:
+
+**🔴 STOP! First update ROADMAP.md:**
+
+1. Open `ROADMAP.md`
+2. Find your task in "📋 Up Next" (or its current section)
+3. **CUT the entire task block** (the `- [ ]` line + any `> **Prompt**:` lines)
+4. **PASTE under "🚧 In Progress"** section
+5. **Commit immediately**: `git commit -m "chore: move [task name] to in-progress"`
+6. **Only then** begin creating the implementation plan
+
+This is not optional. Do not skip this step.
+
 ### When Planning Tasks:
 1. **Check ROADMAP.md** for existing related tasks
 2. **Add new tasks** to roadmap before creating implementation plans
 3. **Update task descriptions** if scope changes during planning
 
 ### NEVER Do This:
+- ❌ Start planning without moving task to In Progress first
 - ❌ Mark tasks `[x]` in place and leave them in ROADMAP.md
 - ❌ Add "COMPLETED" text to tasks and leave them in the roadmap
 - ❌ Create plans for tasks not on the roadmap
 
-### ALWAYS Do This:
-1. **Before starting**: Ensure task is on ROADMAP.md
-2. **Upon completion** (by implementation agents):
-   - **REMOVE the task from ROADMAP.md entirely**
-   - **ADD the task to COMPLETED.md** with completion date and details
-   - **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
+### Upon Plan Completion (by implementation agents):
+- **REMOVE the task from ROADMAP.md entirely**
+- **ADD the task to COMPLETED.md** with completion date and details
+- **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
 
 See root `AGENTS.md` for full roadmap hygiene documentation.
 ````

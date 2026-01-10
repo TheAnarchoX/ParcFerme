@@ -167,16 +167,23 @@ Structure your review as:
 
 **The roadmap is the single source of truth. When reviewing code:**
 
-1. **Verify roadmap compliance**: Check that the PR corresponds to a roadmap task
-2. **Check completion handling**: If task is done, ensure implementer plans to:
+### Verify Roadmap Compliance in Every Review:
+
+1. **Check task is in "🚧 In Progress"**: If the work is from a roadmap task, verify it was moved to In Progress BEFORE implementation started
+2. **Flag if task is still in "Up Next"**: This is a process violation - task should have been moved first
+3. **Check completion handling**: If task is done, ensure implementer plans to:
    - **REMOVE the task from ROADMAP.md entirely**
    - **ADD the task to COMPLETED.md** with completion date and details
    - **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
 
 ### Flag These as Review Issues:
+- ❌ Work started without moving task to In Progress first
 - ❌ Tasks marked `[x]` but left in ROADMAP.md
 - ❌ "COMPLETED" text added but task not moved to COMPLETED.md
-- ❌ Work done that's not on the roadmap
+- ❌ Work done that's not on the roadmap (should be added first)
+
+### If Reviewing Work from Another Agent:
+Remind them to follow roadmap hygiene if they haven't. The task is not complete until ROADMAP.md and COMPLETED.md are both updated.
 
 See root `AGENTS.md` for full roadmap hygiene documentation.
 ````

@@ -52,6 +52,14 @@ Tasks below are tagged with recommended agents:
 
 ### 🚧 In Progress
 
+<!-- 
+⚠️ AGENTS: Move your task here BEFORE writing any code!
+1. Cut the task from "Up Next" below
+2. Paste it here
+3. Commit: git commit -m "chore: move [task] to in-progress"
+4. Then start implementation
+-->
+
 *No items currently in progress - pick up the next priority item below.*
 
 ### 📋 Up Next (Priority Order)
