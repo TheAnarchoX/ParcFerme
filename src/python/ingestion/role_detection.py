@@ -288,9 +288,10 @@ class RoleDetector:
         if round_number == 0:
             return DriverRole.REGULAR
         
-        # Case 1: No results at all - keep as REGULAR (entrant exists but no data yet)
+        # Case 1: No results at all - this is a reserve who was on the entry list but never drove
+        # They're listed as an entrant but have no session participation data
         if fp1_count == 0 and fp2_count == 0 and fp3_count == 0 and quali_count == 0 and race_count == 0:
-            return DriverRole.REGULAR
+            return DriverRole.RESERVE
         
         # Case 2: Only practice results (FP1/FP2/FP3), no quali/race
         if quali_count == 0 and race_count == 0 and (fp1_count > 0 or fp2_count > 0 or fp3_count > 0):
@@ -443,6 +444,10 @@ class RoleDetector:
             return f"FP1/practice only ({practice_count} practice, no quali/race) - never races for this team"
         
         if role == DriverRole.RESERVE:
+            # Check if this is a "no results at all" case
+            if fp1 == 0 and fp2 == 0 and fp3 == 0 and quali == 0 and race == 0:
+                return "Reserve driver on entry list (no session participation)"
+            
             team_id = str(entrant["team_id"])
             driver_id = str(entrant["driver_id"])
             team_data = context["team_drivers"].get(team_id, [])
