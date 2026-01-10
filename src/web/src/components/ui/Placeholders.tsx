@@ -68,7 +68,7 @@ export function DriverPlaceholder({
 // =========================
 
 /**
- * Team logo placeholder with racing car icon.
+ * Team logo placeholder with F1-style racing car silhouette.
  */
 export function TeamPlaceholder({
   className = '',
@@ -89,25 +89,30 @@ export function TeamPlaceholder({
       {/* Background rounded square */}
       <rect width="48" height="48" rx="8" fill={secondaryColor} />
       
-      {/* Racing car silhouette */}
-      <g fill={primaryColor} opacity="0.6">
-        {/* Car body */}
-        <path d="M8 28h32c2 0 3-1 3-3v-2c0-2-1-3-3-3H28l-2-4h-8l-2 4H8c-2 0-3 1-3 3v2c0 2 1 3 3 3z" />
+      {/* F1-style racing car silhouette - side view */}
+      <g fill={primaryColor} opacity="0.6" transform="translate(4, 14)">
+        {/* Main body / monocoque */}
+        <path d="M6 12 L10 6 L18 4 L26 4 L30 6 L38 8 L38 12 L36 14 L6 14 Z" />
         
         {/* Front wing */}
-        <rect x="6" y="30" width="8" height="3" rx="1" />
+        <path d="M2 14 L6 12 L6 16 L2 16 Z" />
+        <rect x="1" y="15" width="6" height="2" rx="0.5" />
         
         {/* Rear wing */}
-        <rect x="34" y="30" width="8" height="3" rx="1" />
+        <rect x="35" y="4" width="2" height="6" rx="0.5" />
+        <rect x="33" y="2" width="6" height="2" rx="0.5" />
+        
+        {/* Halo */}
+        <path d="M16 6 Q14 4 16 2 L20 2 Q22 4 20 6 Z" fill={secondaryColor} opacity="0.8" />
         
         {/* Front wheel */}
-        <circle cx="14" cy="31" r="4" />
+        <ellipse cx="10" cy="16" rx="3.5" ry="4" />
         
         {/* Rear wheel */}
-        <circle cx="34" cy="31" r="4" />
+        <ellipse cx="32" cy="16" rx="3.5" ry="4" />
         
-        {/* Cockpit */}
-        <ellipse cx="22" cy="22" rx="4" ry="3" fill={secondaryColor} opacity="0.6" />
+        {/* Sidepod inlet */}
+        <rect x="14" y="8" width="8" height="3" rx="1" fill={secondaryColor} opacity="0.5" />
       </g>
     </svg>
   );
