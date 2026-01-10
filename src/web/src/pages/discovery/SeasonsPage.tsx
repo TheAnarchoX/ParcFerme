@@ -38,6 +38,20 @@ interface FilterState {
 
 const PAGE_SIZE = 48;
 
+// Mapping from FilterState keys to URL param names
+const FILTER_TO_PARAM: Record<keyof FilterState | 'page', string> = {
+  series: 'series',
+  driverSlug: 'driver',
+  circuitSlug: 'circuit',
+  fromYear: 'from',
+  toYear: 'to',
+  status: 'status',
+  sort: 'sort',
+  groupBy: 'group',
+  viewMode: 'view',
+  page: 'page',
+};
+
 // =========================
 // Loading Skeletons
 // =========================
@@ -448,10 +462,11 @@ export function SeasonsPage() {
     const params = new URLSearchParams(searchParams);
     
     Object.entries(updates).forEach(([key, value]) => {
+      const paramName = FILTER_TO_PARAM[key as keyof typeof FILTER_TO_PARAM] || key;
       if (value !== undefined && value !== '' && value !== null) {
-        params.set(key, String(value));
+        params.set(paramName, String(value));
       } else {
-        params.delete(key);
+        params.delete(paramName);
       }
     });
     
