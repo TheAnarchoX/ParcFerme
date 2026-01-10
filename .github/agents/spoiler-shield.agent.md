@@ -7,23 +7,23 @@ handoffs:
   - label: Backend Implementation
     agent: BackendEngineer
     prompt: Implement the Spoiler Shield logic in the backend API as specified above. Ensure all result endpoints check user's SpoilerMode and logged session status before revealing data. Use MaskedResultDto/PartialResultDto patterns for protected responses.
-    send: false
+    send: true
   - label: Frontend Implementation
     agent: FrontendEngineer
     prompt: Implement the Spoiler Shield UI components as specified above. Use SpoilerMask/SpoilerBlur components for result displays, respect spoilerMode from Redux state, and ensure no spoiler data leaks through loading states or error messages.
-    send: false
+    send: true
   - label: Write Tests
     agent: QAEngineer
     prompt: Write comprehensive tests for Spoiler Shield functionality. Test all three spoiler modes (Strict, Moderate, None) and the logged-session override. Include tests for edge cases like race conditions, error states, and partial data loading. This feature requires 100% test coverage.
-    send: false
+    send: true
   - label: Security Review
     agent: SecurityReviewer
     prompt: Review the Spoiler Shield implementation for security vulnerabilities. Check that spoiler data cannot be bypassed through API manipulation, error messages, logs, caching, or client-side code. Verify the protection is enforced at the API level, not just UI.
-    send: false
+    send: true
   - label: Code Review
     agent: CodeReviewer
     prompt: Review the Spoiler Shield implementation for code quality and pattern compliance. Ensure the patterns are consistent across all result-related endpoints and components, and the code is maintainable.
-    send: false
+    send: true
 ---
 # Spoiler Shield Specialist - Guardian of Race Results
 

@@ -7,23 +7,23 @@ handoffs:
   - label: Backend Integration
     agent: BackendEngineer
     prompt: The data has been synced to the database. Create or update the backend API endpoints to expose this data to the frontend. Follow existing controller patterns and ensure Spoiler Shield is implemented for any result data.
-    send: false
+    send: true
   - label: Verify Data Quality
     agent: QAEngineer
     prompt: Verify the data quality and integrity of the recently synced data. Run audit queries to check for missing relationships, orphaned records, duplicate entries, and data consistency. Create tests to prevent data quality regressions.
-    send: false
+    send: true
   - label: Security Review
     agent: SecurityReviewer
     prompt: Review the data pipeline for security concerns. Check that API keys are properly handled, no sensitive data is logged, rate limiting is respected, and spoiler data (results) is handled carefully to avoid accidental exposure.
-    send: false
+    send: true
   - label: Escalate Complex Issue
     agent: StaffEngineer
     prompt: This data pipeline task has become complex and requires cross-cutting expertise involving schema changes, backend API updates, or architectural decisions about data flow. Please review and help resolve the blockers.
-    send: false
+    send: true
   - label: Plan Data Migration
     agent: Planner
     prompt: This data ingestion task is larger than expected and needs proper planning. Create an implementation plan covering schema requirements, sync strategy, entity matching approach, and rollback procedures.
-    send: false
+    send: true
 ---
 # Data Engineer - Python Ingestion Specialist
 

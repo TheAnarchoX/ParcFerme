@@ -7,27 +7,27 @@ handoffs:
   - label: Backend API Needed
     agent: BackendEngineer
     prompt: The frontend feature requires a backend API endpoint that doesn't exist yet. Create the necessary endpoint following project patterns - include DTOs, controller action, and any required service logic. The frontend expects the following data structure and endpoint path as described above.
-    send: false
+    send: true
   - label: Write Tests
     agent: QAEngineer
     prompt: Write component tests and E2E tests for the frontend code just implemented. Include tests for component rendering, user interactions, state changes, and Spoiler Shield behavior (verify results are masked/revealed correctly based on spoilerMode and logged status).
-    send: false
+    send: true
   - label: Review UI/UX
     agent: CodeReviewer
     prompt: Review the frontend implementation for UX patterns, accessibility (a11y), and code quality. Check for proper keyboard navigation, screen reader support, color contrast, responsive design, and adherence to the design system in docs/DESIGN_SYSTEM.md.
-    send: false
+    send: true
   - label: Spoiler Shield Review
     agent: SpoilerShieldSpecialist
     prompt: Review the frontend implementation for Spoiler Shield compliance. Verify all result displays use SpoilerMask/SpoilerBlur components, spoilerMode is respected from Redux state, and no spoiler data can leak through loading states, error messages, or race conditions.
-    send: false
+    send: true
   - label: Escalate Complex Issue
     agent: StaffEngineer
     prompt: This frontend task has become complex and requires cross-cutting expertise spanning backend API design, state management architecture, or performance optimization. Please review the current state and help resolve the blockers.
-    send: false
+    send: true
   - label: Plan Feature
     agent: Planner
     prompt: This feature is larger than expected and needs proper planning before implementation. Break down the requirements into smaller tasks, identify all affected components, and create an implementation plan with clear phases.
-    send: false
+    send: true
 ---
 # Frontend Engineer - React/TypeScript Specialist
 

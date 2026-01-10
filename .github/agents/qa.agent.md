@@ -7,27 +7,27 @@ handoffs:
   - label: Fix Backend Issues
     agent: BackendEngineer
     prompt: The tests identified issues in the backend code. Fix the failing tests or the underlying bugs in the .NET API. The specific failures and expected behavior are described above.
-    send: false
+    send: true
   - label: Fix Frontend Issues
     agent: FrontendEngineer
     prompt: The tests identified issues in the frontend code. Fix the failing component tests or E2E tests. The specific failures and expected behavior are described above.
-    send: false
+    send: true
   - label: Fix Data Issues
     agent: DataEngineer
     prompt: The data quality tests identified issues with the synced data. Investigate and fix the data pipeline to resolve missing relationships, duplicates, or incorrect values identified above.
-    send: false
+    send: true
   - label: Code Review
     agent: CodeReviewer
     prompt: The tests are passing. Review the tested code for code quality, pattern compliance, and any additional edge cases that should be tested.
-    send: false
+    send: true
   - label: Security Test Review
     agent: SecurityReviewer
     prompt: Review the security-related tests for completeness. Verify authentication, authorization, and Spoiler Shield security tests cover all attack vectors and edge cases.
-    send: false
+    send: true
   - label: Escalate Complex Failures
     agent: StaffEngineer
     prompt: The test failures are complex and span multiple components or have unclear root causes. Please investigate the failures described above and help identify the underlying issues across backend, frontend, or data layers.
-    send: false
+    send: true
 ---
 # QA Engineer - Quality Guardian
 

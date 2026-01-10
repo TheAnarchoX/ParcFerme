@@ -19,11 +19,11 @@ handoffs:
   - label: Code Review
     agent: CodeReviewer
     prompt: Continue with a general code review after security fixes are implemented. Verify the fixes don't introduce code quality issues and follow project patterns.
-    send: false
+    send: true
   - label: Verify Security Tests
     agent: QAEngineer
     prompt: Write security-focused tests for the vulnerabilities identified above. Include tests for authentication bypass attempts, authorization violations, input validation edge cases, and Spoiler Shield security.
-    send: false
+    send: true
 ---
 # Security Reviewer - Guardian of Data
 

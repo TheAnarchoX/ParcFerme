@@ -7,35 +7,35 @@ handoffs:
   - label: Backend Implementation
     agent: BackendEngineer
     prompt: Implement the backend portion of the architecture outlined above. Focus on the .NET API components including models, DTOs, controllers, and services. Follow the patterns specified and ensure Spoiler Shield compliance.
-    send: false
+    send: true
   - label: Frontend Implementation
     agent: FrontendEngineer
     prompt: Implement the frontend portion of the architecture outlined above. Focus on React components, TypeScript types, Redux state, and API integration. Follow the patterns specified and ensure Spoiler Shield UI compliance.
-    send: false
+    send: true
   - label: Data Pipeline
     agent: DataEngineer
     prompt: Implement the data pipeline changes outlined above. Focus on Python sync scripts, database operations, and external API integrations. Handle spoiler data carefully with --no-results flag where appropriate.
-    send: false
+    send: true
   - label: Security Audit
     agent: SecurityReviewer
     prompt: Audit the architecture and implementation for security concerns. Review authentication flows, authorization patterns, data protection, input validation, and Spoiler Shield security. Flag any vulnerabilities.
-    send: false
+    send: true
   - label: Write Tests
     agent: QAEngineer
     prompt: Write comprehensive tests for the implementation. Include unit tests for business logic, integration tests for API endpoints, component tests for UI, and ensure Spoiler Shield behavior is tested across all modes.
-    send: false
+    send: true
   - label: Code Review
     agent: CodeReviewer
     prompt: Review the implementation for code quality and pattern compliance. Check type safety, project conventions, test coverage, and Spoiler Shield patterns across all affected components.
-    send: false
+    send: true
   - label: Plan Feature
     agent: Planner
     prompt: This feature needs more detailed planning before implementation. Break down the requirements into smaller tasks, identify all affected components, create an implementation plan with clear phases, and document architectural decisions.
-    send: false
+    send: true
   - label: Spoiler Shield Review
     agent: SpoilerShieldSpecialist
     prompt: Review the implementation for Spoiler Shield compliance. This feature touches result data and needs specialist review to ensure no spoiler leaks through API responses, UI rendering, caching, or error states.
-    send: false
+    send: true
 ---
 # Staff Engineer - Technical Leader
 

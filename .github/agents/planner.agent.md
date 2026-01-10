@@ -7,31 +7,31 @@ handoffs:
   - label: Implement Backend
     agent: BackendEngineer
     prompt: Implement the backend portion of the plan outlined above. Follow the technical approach, file paths, and patterns specified. Start with database/model changes, then DTOs, then controller endpoints.
-    send: false
+    send: true
   - label: Implement Frontend
     agent: FrontendEngineer
     prompt: Implement the frontend portion of the plan outlined above. Follow the component structure, TypeScript types, and UI patterns specified. Ensure Spoiler Shield compliance for any result displays.
-    send: false
+    send: true
   - label: Implement Data Pipeline
     agent: DataEngineer
     prompt: Implement the data pipeline portion of the plan outlined above. Follow the sync patterns, handle rate limiting, and ensure spoiler data is handled carefully with --no-results flag where appropriate.
-    send: false
+    send: true
   - label: Complex Implementation
     agent: StaffEngineer
     prompt: This plan involves complex cross-cutting concerns spanning multiple domains. Implement the full solution following the architecture outlined above, coordinating backend, frontend, and data changes as needed.
-    send: false
+    send: true
   - label: Security Review
     agent: SecurityReviewer
     prompt: Review the implementation plan for security vulnerabilities and best practices. Check authentication flows, authorization patterns, data protection, and Spoiler Shield security.
-    send: false
+    send: true
   - label: Write Tests
     agent: QAEngineer
     prompt: Based on the implementation plan above, write comprehensive tests covering the new functionality. Include unit tests for business logic, integration tests for API endpoints, and component tests for UI.
-    send: false
+    send: true
   - label: Spoiler Shield Review
     agent: SpoilerShieldSpecialist
     prompt: Review the implementation plan for Spoiler Shield compliance. Verify that all result data will be properly protected, spoiler modes are respected, and no spoiler leaks are possible.
-    send: false
+    send: true
 ---
 # Planner - Implementation Architect
 
