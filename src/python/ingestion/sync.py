@@ -973,14 +973,39 @@ class OpenF1SyncService:
         """Process results from the session_result endpoint (beta).
         
         This endpoint provides comprehensive data including DNF/DNS/DSQ status.
+        
+        Note: For DNF/DNS/DSQ entries, the API often returns position=null.
+        For races, we calculate positions for non-finishers based on laps completed,
+        following F1 classification rules where DNFs are ranked after finishers
+        by number of laps completed.
         """
         results: list[Result] = []
+        # Track results that need position assignment (DNF/DNS/DSQ with null position)
+        needs_position: list[tuple[OpenF1SessionResult, Result, UUID]] = []
+        
+        # Find max position from finishers to calculate DNF positions
+        max_finisher_position = 0
+        for sr in session_results:
+            if sr.position is not None and not sr.dnf and not sr.dns and not sr.dsq:
+                max_finisher_position = max(max_finisher_position, sr.position)
         
         for sr in session_results:
-            # Skip results without a position (e.g., DNS in qualifying with no time set)
-            if sr.position is None:
+            # Determine result status from flags
+            if sr.dsq:
+                status = ResultStatus.DSQ
+            elif sr.dns:
+                status = ResultStatus.DNS
+            elif sr.dnf:
+                status = ResultStatus.DNF
+            else:
+                status = ResultStatus.FINISHED
+            
+            # Skip results without a position AND no DNF/DNS/DSQ flag
+            # (these are truly empty entries, e.g., reserve drivers who didn't participate)
+            is_non_finisher = sr.dnf or sr.dns or sr.dsq
+            if sr.position is None and not is_non_finisher:
                 logger.debug(
-                    "Skipping result with no position",
+                    "Skipping result with no position and no status flag",
                     driver_number=sr.driver_number,
                     session_key=openf1_session.session_key,
                 )
@@ -998,16 +1023,6 @@ class OpenF1SyncService:
                         session_key=openf1_session.session_key,
                     )
                     continue
-            
-            # Determine result status from flags
-            if sr.dsq:
-                status = ResultStatus.DSQ
-            elif sr.dns:
-                status = ResultStatus.DNS
-            elif sr.dnf:
-                status = ResultStatus.DNF
-            else:
-                status = ResultStatus.FINISHED
             
             # Handle duration - can be a single value or array for qualifying
             time_ms = None
@@ -1031,7 +1046,57 @@ class OpenF1SyncService:
                 fastest_lap=False,  # Will be updated below if applicable
                 car_number=str(sr.driver_number) if sr.driver_number else None,
             )
-            results.append(result)
+            
+            # Track DNF/DNS/DSQ results without positions for later assignment
+            if sr.position is None and is_non_finisher:
+                needs_position.append((sr, result, entrant_id))
+            else:
+                results.append(result)
+        
+        # Assign positions to DNF/DNS/DSQ entries that don't have them
+        # Sort by: DSQ last, then DNS, then DNF sorted by laps completed (descending)
+        if needs_position:
+            # Separate by status type
+            dnfs = [(sr, r, eid) for sr, r, eid in needs_position if sr.dnf and not sr.dsq]
+            dns_entries = [(sr, r, eid) for sr, r, eid in needs_position if sr.dns and not sr.dsq]
+            dsqs = [(sr, r, eid) for sr, r, eid in needs_position if sr.dsq]
+            
+            # Sort DNFs by laps completed (more laps = better position)
+            dnfs.sort(key=lambda x: x[0].number_of_laps or 0, reverse=True)
+            
+            next_position = max_finisher_position + 1
+            
+            # Assign positions: DNFs first (by laps), then DNS, then DSQ
+            for sr, result, _ in dnfs:
+                result.position = next_position
+                next_position += 1
+                results.append(result)
+                logger.debug(
+                    "Assigned position to DNF",
+                    driver_number=sr.driver_number,
+                    position=result.position,
+                    laps=sr.number_of_laps,
+                )
+            
+            for sr, result, _ in dns_entries:
+                result.position = next_position
+                next_position += 1
+                results.append(result)
+                logger.debug(
+                    "Assigned position to DNS",
+                    driver_number=sr.driver_number,
+                    position=result.position,
+                )
+            
+            for sr, result, _ in dsqs:
+                result.position = next_position
+                next_position += 1
+                results.append(result)
+                logger.debug(
+                    "Assigned position to DSQ",
+                    driver_number=sr.driver_number,
+                    position=result.position,
+                )
         
         return results
 

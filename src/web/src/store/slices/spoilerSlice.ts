@@ -35,7 +35,7 @@ interface SpoilerSliceState {
 }
 
 const initialState: SpoilerSliceState = {
-  mode: 'None', // Default: backend will set actual value via fetchSpoilerStatus
+  mode: 'Strict', // Safe default: spoilers hidden until backend sets user's preference
   loggedSessionIds: [],
   tempRevealedIds: [],
   isLoading: false,

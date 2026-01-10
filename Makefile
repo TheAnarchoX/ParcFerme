@@ -21,7 +21,7 @@ help:
 	@echo "  make api          - Run the .NET API (hot reload)"
 	@echo "  make web          - Run the React frontend (hot reload)"
 	@echo "  make web-host     - Run the React frontend (hot reload) with the --host flag for LAN access"
-	@echo "  make web-tunnel   - Run the React frontend with Pinggy tunnel"
+	@echo "  make web-tunnel   - Run the React frontend with Serveo tunnel (https://parcferme.serveo.net)"
 	@echo "  make python       - Run Python ingestion healthcheck"
 	@echo ""
 	@echo "Data Sync:"
@@ -96,8 +96,11 @@ web-host:
 	cd src/web && npm run dev -- --host
 
 web-tunnel:
-	@echo "🚀 Starting Pinggy tunnel to localhost:3000"
-	ssh -p 80 -R0:localhost:3000 free.pinggy.io
+	@echo "🚀 Starting Serveo tunnel to localhost:3000"
+	@echo "📡 Requesting subdomain 'parcferme' → https://parcferme.serveo.net"
+	@echo "⚠️  Note: First visit shows a warning page, click 'Continue' to proceed"
+	@echo ""
+	ssh -R parcferme:80:localhost:3000 serveo.net
 
 python:
 	@echo "🐍 Running Python healthcheck..."

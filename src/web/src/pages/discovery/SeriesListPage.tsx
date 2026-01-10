@@ -193,7 +193,7 @@ export function SeriesListPage() {
   
   // Separate series with seasons from those without (coming soon)
   const validSeries = series.filter((s) => s.slug && s.name);
-  const activeSeries = validSeries; // For debugging, show all series including those with 0 seasons, usually this would be: validSeries.filter((s) => s.seasonCount > 0);
+  const activeSeries = validSeries.filter((s) => s.seasonCount > 0);
   const comingSoonSeries = validSeries.filter((s) => s.seasonCount === 0);
   
   return (

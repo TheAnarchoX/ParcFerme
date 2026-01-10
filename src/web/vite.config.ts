@@ -19,6 +19,6 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-    allowedHosts: ['localhost', '.pinggy.link']
+    allowedHosts: ['localhost', '.pinggy.link', '.loca.lt', 'parcferme.serveousercontent.com'],
   },
 })
