@@ -26,6 +26,12 @@ public sealed class Series
     /// </summary>
     public string? GoverningBody { get; set; }
     
+    /// <summary>
+    /// Display order for UI dropdowns and lists.
+    /// Lower values appear first. Null values sort last.
+    /// </summary>
+    public int? UIOrder { get; set; }
+    
     public ICollection<Season> Seasons { get; set; } = [];
     public ICollection<SeriesAlias> Aliases { get; set; } = [];
 }

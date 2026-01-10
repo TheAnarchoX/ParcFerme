@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ParcFerme.Api.Data;
@@ -11,9 +12,11 @@ using ParcFerme.Api.Data;
 namespace ParcFerme.Api.Migrations
 {
     [DbContext(typeof(ParcFermeDbContext))]
-    partial class ParcFermeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260110112536_AddUIOrderToSeries")]
+    partial class AddUIOrderToSeries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

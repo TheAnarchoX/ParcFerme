@@ -16,7 +16,8 @@ public sealed record SeriesSummaryDto(
     int SeasonCount,
     int? LatestSeasonYear,
     int? CurrentSeasonRoundCount,
-    IReadOnlyList<string> BrandColors
+    IReadOnlyList<string> BrandColors,
+    int? UIOrder
 );
 
 /// <summary>
@@ -31,6 +32,7 @@ public sealed record SeriesDetailDto(
     // The Third Turn field (historical data)
     string? GoverningBody,
     IReadOnlyList<string> BrandColors,
+    int? UIOrder,
     IReadOnlyList<SeasonSummaryDto> Seasons,
     SeriesStatsDto Stats
 );

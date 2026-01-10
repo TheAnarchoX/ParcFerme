@@ -17,6 +17,7 @@ export interface SeriesSummaryDto {
   latestSeasonYear?: number;
   currentSeasonRoundCount?: number;
   brandColors: string[];
+  uiOrder?: number;
 }
 
 export interface SeriesDetailDto {
@@ -26,6 +27,7 @@ export interface SeriesDetailDto {
   logoUrl?: string;
   description?: string;
   brandColors: string[];
+  uiOrder?: number;
   seasons: SeasonSummaryDto[];
   stats: SeriesStatsDto;
 }

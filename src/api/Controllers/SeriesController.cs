@@ -39,7 +39,8 @@ public sealed class SeriesController : BaseApiController
         var series = await _db.Series
             .Include(s => s.Seasons)
                 .ThenInclude(season => season.Rounds)
-            .OrderBy(s => s.Name)
+            .OrderBy(s => s.UIOrder ?? int.MaxValue)
+            .ThenBy(s => s.Name)
             .ToListAsync(ct);
 
         var result = series.Select(s =>
@@ -56,7 +57,8 @@ public sealed class SeriesController : BaseApiController
                 SeasonCount: s.Seasons.Count,
                 LatestSeasonYear: latestSeason?.Year,
                 CurrentSeasonRoundCount: currentSeason?.Rounds.Count,
-                BrandColors: s.BrandColors.Count > 0 ? s.BrandColors : GetDefaultBrandColors(s.Slug)
+                BrandColors: s.BrandColors.Count > 0 ? s.BrandColors : GetDefaultBrandColors(s.Slug),
+                UIOrder: s.UIOrder
             );
         }).ToList();
 
@@ -112,6 +114,7 @@ public sealed class SeriesController : BaseApiController
             Description: GetSeriesDescription(series.Slug),
             GoverningBody: series.GoverningBody,
             BrandColors: series.BrandColors.Count > 0 ? series.BrandColors : GetDefaultBrandColors(series.Slug),
+            UIOrder: series.UIOrder,
             Seasons: seasons,
             Stats: stats
         );
@@ -370,7 +373,8 @@ public sealed class SeriesController : BaseApiController
             SeasonCount: await _db.Seasons.CountAsync(s => s.SeriesId == series.Id, ct),
             LatestSeasonYear: year,
             CurrentSeasonRoundCount: year == DateTime.UtcNow.Year ? season.Rounds.Count : null,
-            BrandColors: series.BrandColors.Count > 0 ? series.BrandColors : GetDefaultBrandColors(series.Slug)
+            BrandColors: series.BrandColors.Count > 0 ? series.BrandColors : GetDefaultBrandColors(series.Slug),
+            UIOrder: series.UIOrder
         );
 
         var result = new SeasonDetailDto(
