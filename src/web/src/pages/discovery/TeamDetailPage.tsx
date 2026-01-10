@@ -5,7 +5,7 @@ import { useBreadcrumbs, buildTeamBreadcrumbs } from '../../components/navigatio
 import { ROUTES } from '../../types/navigation';
 import { teamsApi } from '../../services/teamsService';
 import type { TeamDetailDto, TeamDriverDto } from '../../types/team';
-import { getTeamNationalityFlag, getTeamPlaceholderColor, getDriverRoleLabel, getDriverRoleBadgeClasses } from '../../types/team';
+import { getTeamNationalityFlag, getTeamPlaceholderColor, getDriverRoleLabel, getDriverRoleBadgeClasses, getDriverRoleTooltip } from '../../types/team';
 import { TeamPlaceholder } from '../../components/ui';
 
 // =========================
@@ -112,7 +112,10 @@ function DriverCard({ driver, showRole = true }: DriverCardProps) {
               {fullName}
             </h4>
             {showRole && isNonRegular && (
-              <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${badgeClasses}`}>
+              <span 
+                className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap cursor-help ${badgeClasses}`}
+                title={getDriverRoleTooltip(driver.role)}
+              >
                 {getDriverRoleLabel(driver.role)}
               </span>
             )}
@@ -213,7 +216,7 @@ function SeasonHistoryCard({ season, teamSlug }: SeasonHistoryCardProps) {
                 to={ROUTES.SEASON_DETAIL_FILTERED_BY_DRIVER(season.seriesSlug, season.year, driver.slug)}
                 className={`text-xs px-2 py-1 rounded hover:opacity-80 transition-colors ${badgeClasses || 'bg-neutral-800 text-neutral-400'}`}
                 onClick={(e) => e.stopPropagation()}
-                title={`${getDriverRoleLabel(driver.role)}: View ${season.year} ${season.seriesName} rounds featuring ${driver.firstName} ${driver.lastName}`}
+                title={`${getDriverRoleTooltip(driver.role, season.year)} Click to view ${season.year} rounds.`}
               >
                 {driver.firstName} {driver.lastName}
               </Link>

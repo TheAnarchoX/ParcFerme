@@ -6,7 +6,7 @@ import { ROUTES } from '../../types/navigation';
 import { driversApi } from '../../services/driversService';
 import type { DriverDetailDto, DriverCareerEntryDto } from '../../types/driver';
 import { getNationalityFlag, getDriverFullName, calculateAge } from '../../types/driver';
-import { getDriverRoleLabel, getDriverRoleBadgeClasses } from '../../types/team';
+import { getDriverRoleLabel, getDriverRoleBadgeClasses, getDriverRoleTooltip } from '../../types/team';
 
 // =========================
 // Loading Skeleton
@@ -121,7 +121,10 @@ function CareerEntry({ entry, driverSlug }: CareerEntryProps) {
             {entry.team.name}
           </Link>
           {isNonRegular && (
-            <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${badgeClasses}`}>
+            <span 
+              className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap cursor-help ${badgeClasses}`}
+              title={getDriverRoleTooltip(entry.role, entry.year)}
+            >
               {getDriverRoleLabel(entry.role)}
             </span>
           )}

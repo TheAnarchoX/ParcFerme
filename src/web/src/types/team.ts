@@ -172,7 +172,7 @@ export function getDriverRoleLabel(role: DriverRole): string {
     case 'reserve':
       return 'Reserve';
     case 'fp1_only':
-      return 'FP1 Driver';
+      return 'FP1 Only';
     case 'test':
       return 'Test Driver';
     default:
@@ -195,5 +195,31 @@ export function getDriverRoleBadgeClasses(role: DriverRole): string {
       return 'bg-purple-500/20 text-purple-400 border border-purple-500/30';
     default:
       return '';
+  }
+}
+
+/**
+ * Get tooltip text for a driver role badge.
+ * Provides context about what the role means, with historical caveats for older seasons.
+ */
+export function getDriverRoleTooltip(role: DriverRole, year?: number): string {
+  const isHistorical = year !== undefined && year < 1995;
+  
+  switch (role) {
+    case 'reserve':
+      if (isHistorical) {
+        return 'Reserve/Stand-in driver. Note: Before 1995, driver changes were common and distinguishing reserves from regulars is difficult.';
+      }
+      return 'Reserve driver who filled in for a regular driver, typically due to injury, illness, or other circumstances.';
+    case 'fp1_only':
+      if (isHistorical) {
+        return 'Practice-only driver. Note: Rookie Friday rules didn\'t exist before 2022; this driver may have been a pay driver or test driver.';
+      }
+      return 'FP1-only driver, typically a young driver getting track time under the mandatory rookie Friday rules.';
+    case 'test':
+      return 'Test driver who participated in official test sessions but not race weekends.';
+    case 'regular':
+    default:
+      return 'Regular race driver for this team.';
   }
 }

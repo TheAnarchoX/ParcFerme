@@ -8,7 +8,7 @@ import type { RoundPageResponse, SessionTimelineDto } from '../../types/round';
 import { cleanRoundName, formatDateRange, getSeriesPrimaryColor } from '../../types/round';
 import { getContrastColor } from '../../types/series';
 import { getCountryFlag } from '../../lib/flags';
-import { getDriverRoleLabel, getDriverRoleBadgeClasses } from '../../types/team';
+import { getDriverRoleLabel, getDriverRoleBadgeClasses, getDriverRoleTooltip } from '../../types/team';
 
 // =========================
 // Loading Skeletons
@@ -531,7 +531,10 @@ export function RoundDetailPage() {
                     )}
                     {/* Role badge for non-regular drivers */}
                     {entrant.role && (
-                      <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${getDriverRoleBadgeClasses(entrant.role as 'reserve' | 'fp1_only' | 'test')}`}>
+                      <span 
+                        className={`px-1.5 py-0.5 text-xs font-medium rounded cursor-help ${getDriverRoleBadgeClasses(entrant.role as 'reserve' | 'fp1_only' | 'test')}`}
+                        title={getDriverRoleTooltip(entrant.role as 'reserve' | 'fp1_only' | 'test', yearNum)}
+                      >
                         {getDriverRoleLabel(entrant.role as 'reserve' | 'fp1_only' | 'test')}
                       </span>
                     )}
