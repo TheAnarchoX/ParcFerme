@@ -12,13 +12,18 @@ import {
 } from '../../components/ui/SpoilerShield';
 import { useSpoilerVisibility, useSpoilerShield } from '../../hooks/useSpoilerShield';
 import { Button } from '../../components/ui/Button';
+import { Pagination } from '../../components/ui/Pagination';
 import { LogModal } from '../../components/logging';
+import { ReviewCard, ReviewCardSkeleton } from '../../components/ReviewCard';
 import { spoilerApi } from '../../services/spoilerService';
+import { reviewsApi } from '../../services/logsService';
 import type { SessionDetailDto, ResultDto, SessionSummaryDto } from '../../types/spoiler';
-import type { LogDetailDto } from '../../types/log';
+import type { LogDetailDto, ReviewWithLogDto } from '../../types/log';
+import type { SpoilerMode } from '../../types/api';
 import type { RootState } from '../../store';
 import { getSeriesPrimaryColor, cleanRoundName } from '../../types/round';
 import { getContrastColor } from '../../types/series';
+import { selectSpoilerMode } from '../../store/slices/spoilerSlice';
 
 // =========================
 // Loading Skeletons
@@ -590,6 +595,134 @@ function getSessionDisplayName(type: string): string {
 }
 
 // =========================
+// Reviews Section Component
+// =========================
+
+interface ReviewsSectionProps {
+  sessionId: string;
+  spoilerMode: SpoilerMode;
+  hasLoggedSession: boolean;
+  primaryColor?: string;
+  isAuthenticated: boolean;
+  onWriteReview: () => void;
+}
+
+const REVIEWS_PAGE_SIZE = 10;
+
+function ReviewsSection({
+  sessionId,
+  spoilerMode,
+  hasLoggedSession,
+  primaryColor,
+  isAuthenticated,
+  onWriteReview,
+}: ReviewsSectionProps) {
+  const [reviews, setReviews] = useState<ReviewWithLogDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await reviewsApi.getSessionReviews(sessionId, {
+        page,
+        pageSize: REVIEWS_PAGE_SIZE,
+        includeSpoilers: true, // Fetch all reviews, we'll handle spoiler display client-side
+      });
+      setReviews(response.reviews);
+      setTotalCount(response.totalCount);
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err);
+      setError('Failed to load reviews. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [sessionId, page]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map(i => (
+          <ReviewCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <EmptyState
+        icon="⚠️"
+        title="Couldn't load reviews"
+        description={error}
+        action={
+          <Button variant="ghost" onClick={() => fetchReviews()}>
+            Try again
+          </Button>
+        }
+      />
+    );
+  }
+
+  // Empty state
+  if (reviews.length === 0) {
+    return (
+      <EmptyState
+        icon="💬"
+        title="No reviews yet"
+        description="Be the first to share your thoughts on this session!"
+        action={
+          isAuthenticated ? (
+            <Button variant="ghost" onClick={onWriteReview}>
+              Write a review
+            </Button>
+          ) : (
+            <Button variant="ghost" onClick={() => window.location.href = '/login'}>
+              Log in to write a review
+            </Button>
+          )
+        }
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Reviews list */}
+      {reviews.map(review => (
+        <ReviewCard
+          key={review.id}
+          review={review}
+          spoilerMode={spoilerMode}
+          hasLoggedSession={hasLoggedSession}
+          primaryColor={primaryColor}
+        />
+      ))}
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={page}
+        totalCount={totalCount}
+        pageSize={REVIEWS_PAGE_SIZE}
+        onPageChange={setPage}
+        itemLabel="reviews"
+        showItemRange={true}
+        scrollToTop={false}
+      />
+    </div>
+  );
+}
+
+// =========================
 // Page Component
 // =========================
 
@@ -613,6 +746,9 @@ export function SessionDetailPage() {
   
   // Auth state
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  
+  // Spoiler mode from Redux
+  const spoilerMode = useSelector(selectSpoilerMode);
   
   const yearNum = year ? parseInt(year, 10) : NaN;
   
@@ -980,13 +1116,19 @@ export function SessionDetailPage() {
       
       {/* Community Reviews Section */}
       <Section title="Community Reviews" subtitle="What others thought about this session">
-        <EmptyState
-          icon="💬"
-          title="No reviews yet"
-          description="Be the first to share your thoughts on this session!"
-          action={
-            <Button variant="ghost">Write a review</Button>
-          }
+        <ReviewsSection
+          sessionId={sessionId}
+          spoilerMode={spoilerMode}
+          hasLoggedSession={isLogged}
+          primaryColor={primaryColor}
+          isAuthenticated={isAuthenticated}
+          onWriteReview={() => {
+            if (!isAuthenticated) {
+              navigate('/login', { state: { from: window.location.pathname } });
+              return;
+            }
+            setIsLogModalOpen(true);
+          }}
         />
       </Section>
       
