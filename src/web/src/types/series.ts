@@ -72,6 +72,53 @@ export interface SeasonStatsDto {
 }
 
 // =========================
+// Season Browse Types (new endpoint)
+// =========================
+
+export interface SeasonBrowseResponse {
+  items: SeasonBrowseItemDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+  filters: SeasonBrowseFiltersDto;
+}
+
+export interface SeasonBrowseItemDto {
+  id: string;
+  year: number;
+  seriesName: string;
+  seriesSlug: string;
+  seriesBrandColors: string[];
+  roundCount: number;
+  isCurrent: boolean;
+  isCompleted: boolean;
+  seasonStart?: string;
+  seasonEnd?: string;
+}
+
+export interface SeasonBrowseFiltersDto {
+  seriesSlug?: string;
+  driverSlug?: string;
+  circuitSlug?: string;
+}
+
+export interface SeasonBrowseStatsDto {
+  yearRange?: { min: number; max: number };
+  availableYears: number[];
+  seriesCounts: SeriesSeasonCount[];
+  totalSeasons: number;
+  currentSeasons: number;
+  completedSeasons: number;
+}
+
+export interface SeriesSeasonCount {
+  slug: string;
+  name: string;
+  count: number;
+}
+
+// =========================
 // Round Types (for Season context)
 // =========================
 

@@ -4,6 +4,8 @@ import type {
   SeriesDetailDto,
   SeasonSummaryDto,
   SeasonDetailDto,
+  SeasonBrowseResponse,
+  SeasonBrowseStatsDto,
 } from '../types/series';
 
 /**
@@ -72,4 +74,42 @@ export const seasonsApi = {
    * Get a specific season.
    */
   getByYear: seriesApi.getSeasonByYear,
+
+  /**
+   * Browse seasons across all series with advanced filtering.
+   */
+  browse: (options?: {
+    series?: string;
+    driverSlug?: string;
+    circuitSlug?: string;
+    fromYear?: number;
+    toYear?: number;
+    status?: 'current' | 'completed' | 'upcoming';
+    sortBy?: 'year' | 'rounds' | 'series';
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+    pageSize?: number;
+  }): Promise<SeasonBrowseResponse> => {
+    const params = new URLSearchParams();
+    if (options?.series) params.append('series', options.series);
+    if (options?.driverSlug) params.append('driverSlug', options.driverSlug);
+    if (options?.circuitSlug) params.append('circuitSlug', options.circuitSlug);
+    if (options?.fromYear) params.append('fromYear', options.fromYear.toString());
+    if (options?.toYear) params.append('toYear', options.toYear.toString());
+    if (options?.status) params.append('status', options.status);
+    if (options?.sortBy) params.append('sortBy', options.sortBy);
+    if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
+    if (options?.page) params.append('page', options.page.toString());
+    if (options?.pageSize) params.append('pageSize', options.pageSize.toString());
+    const queryString = params.toString();
+    return apiClient.get<SeasonBrowseResponse>(
+      `/seasons${queryString ? `?${queryString}` : ''}`
+    );
+  },
+
+  /**
+   * Get browse stats for filter UI.
+   */
+  getBrowseStats: (): Promise<SeasonBrowseStatsDto> =>
+    apiClient.get<SeasonBrowseStatsDto>('/seasons/stats'),
 };
