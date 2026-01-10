@@ -112,10 +112,6 @@ Tasks below are tagged with recommended agents:
 
 #### 4. Chores
 
-##### Agentic (Priority Order)
-- [ ] **Add UIOrder to Series** `[🔧 backend]`
-  > **Prompt**: `Add UIOrder column to the Series entity for consistent ordering in dropdowns and lists. Create migration to add nullable int UIOrder column. Set default values: F1=1, MotoGP=2, IndyCar=3, WEC=4, etc. Update SeriesController GET endpoints to order by UIOrder. Update frontend discovery pages to respect this ordering. Add UIOrder to SeriesDto.`
-
 ##### Manual (Priority Order)
 - [ ] Legal review of historical data usage and user-generated content policies
 - [ ] Finalize marketing materials (press kit, screenshots, feature list)

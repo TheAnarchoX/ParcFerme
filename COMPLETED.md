@@ -6,6 +6,39 @@
 
 ## 📅 January 2026
 
+### Add UIOrder to Series (Completed: Jan 10, 2026)
+
+Added UIOrder column to the Series entity for consistent ordering in dropdowns and lists.
+
+#### Backend Implementation
+- [x] **Series entity model** - Added nullable `UIOrder` int property with XML doc
+- [x] **EF Core migration** - Created `20260110112536_AddUIOrderToSeries`
+  - Adds `UIOrder` column to `Series` table
+  - Sets default values via SQL: F1=1, MotoGP=2, IndyCar=3, WEC=4, Formula E=5, NASCAR=6
+  - Feeder series: F2=10, F3=11, Moto2=12, Moto3=13
+  - Unknown series default to 99
+
+- [x] **SeriesDtos.cs** - Added `UIOrder` to both DTOs
+  - `SeriesSummaryDto` now includes `int? UIOrder`
+  - `SeriesDetailDto` now includes `int? UIOrder`
+
+- [x] **SeriesController.cs** - Updated ordering logic
+  - `GetAllSeries` now orders by `.OrderBy(s => s.UIOrder ?? int.MaxValue).ThenBy(s => s.Name)`
+  - Both DTO creation sites include `UIOrder` in response
+
+#### Frontend Implementation
+- [x] **TypeScript types** - Added `uiOrder?: number` to `SeriesSummaryDto` and `SeriesDetailDto`
+- [x] Frontend automatically respects server-side ordering (no client-side re-sorting)
+
+#### Files Changed
+- `src/api/Models/EventModels.cs` - Added UIOrder property
+- `src/api/Dtos/SeriesDtos.cs` - Added UIOrder to DTOs
+- `src/api/Controllers/SeriesController.cs` - Updated ordering and DTO creation
+- `src/api/Migrations/20260110112536_AddUIOrderToSeries.cs` - New migration
+- `src/web/src/types/series.ts` - Added uiOrder to TypeScript interfaces
+
+---
+
 ### Edit Logs and Reviews (Completed: Jan 10, 2026)
 
 Implemented the ability to edit existing logs and reviews.
