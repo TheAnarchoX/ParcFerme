@@ -65,6 +65,42 @@
 
 ---
 
+### Driver Role Differentiation (Completed: Jan 10, 2026)
+
+Implemented comprehensive driver role classification system to distinguish between regular drivers, reserve/substitute drivers, and FP1-only/test drivers on team pages.
+
+**Backend (C#/.NET):**
+- [x] Added `DriverRole` enum (Regular=0, Reserve=1, Fp1Only=2, Test=3) to EventModels.cs
+- [x] Added `Role` property to `Entrant` model with migration
+- [x] Created `TeamDriverDto` record with role and roundsParticipated fields
+- [x] Updated `TeamsController` with sorting (regular drivers first by driver number)
+
+**Frontend (React/TypeScript):**
+- [x] Added `DriverRole` type and `TeamDriverDto` interface to team.ts
+- [x] Implemented `getDriverRoleLabel()` and `getDriverRoleBadgeClasses()` utilities
+- [x] Updated `TeamDetailPage` with role badges (amber=reserve, sky=FP1, purple=test)
+- [x] Shows "(X rounds)" indicator for single-appearance non-regular drivers
+
+**Python Ingestion:**
+- [x] Added `DriverRole` IntEnum to Python models matching C# values
+- [x] Created `role_detection.py` module with `RoleDetector` class
+- [x] Created `detect_roles.py` CLI tool for running detection per season/year
+- [x] Added `detect_driver_roles` option to SyncOptions
+- [x] Detection algorithm considers:
+  - Session participation patterns (FP1 vs Quali/Race)
+  - Consecutive round blocks (start/end of season vs mid-season)
+  - Team roster context (unique race drivers, typical team size)
+  - Pre-season testing exclusion
+
+**Key Classifications (2024-2025 F1):**
+- Oliver Bearman @ Ferrari Saudi GP: RESERVE (filled in for sick Sainz)
+- Oliver Bearman @ Haas Azerbaijan/São Paulo: RESERVE (filled in for banned Magnussen)
+- Andrea Kimi Antonelli @ Mercedes: FP1_ONLY (rookie Friday practice sessions)
+- Isack Hadjar @ Red Bull Racing: FP1_ONLY (2024) / RESERVE (2025 Bahrain)
+- Robert Shwartzman, Felipe Drugovich, etc.: FP1_ONLY (test driver FP1 appearances)
+
+---
+
 ### Session Detail Pages (Completed: Jan 7, 2026)
 - [x] **SessionDetailPage** with real API integration via `spoilerApi.getSession()`
 - [x] **Spoiler-protected results display** using SpoilerMask/SpoilerRevealButton components
