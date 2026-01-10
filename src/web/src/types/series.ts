@@ -75,6 +75,16 @@ export interface SeasonStatsDto {
 // Round Types (for Season context)
 // =========================
 
+/**
+ * Session participation with optional team info.
+ * Team info is included when driver drove for multiple teams in a season.
+ */
+export interface SessionParticipationDto {
+  sessionType: string;
+  teamName?: string;
+  teamSlug?: string;
+}
+
 export interface RoundSummaryForSeasonDto {
   id: string;
   name: string;
@@ -89,6 +99,8 @@ export interface RoundSummaryForSeasonDto {
   isUpcoming: boolean;
   /** When a driver/team filter is applied, shows which sessions they participated in. */
   featuringSessions?: string[];
+  /** When driver had multiple teams in a season, provides session-team mapping. */
+  featuringSessionsWithTeam?: SessionParticipationDto[];
 }
 
 export interface CircuitSummaryForRoundDto {

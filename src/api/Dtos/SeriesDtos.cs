@@ -93,8 +93,19 @@ public sealed record SeasonStatsDto(
 // =========================
 
 /// <summary>
+/// Session participation info for a driver/team filter.
+/// Includes team info when driver drove for multiple teams.
+/// </summary>
+public sealed record SessionParticipationDto(
+    string SessionType,
+    string? TeamName = null,
+    string? TeamSlug = null
+);
+
+/// <summary>
 /// Round summary shown in season context.
 /// When a driver/team filter is applied, FeaturingSessions shows which sessions they participated in.
+/// For drivers with multiple teams in a season, FeaturingSessionsWithTeam provides team context.
 /// </summary>
 public sealed record RoundSummaryForSeasonDto(
     Guid Id,
@@ -108,7 +119,8 @@ public sealed record RoundSummaryForSeasonDto(
     bool IsCompleted,
     bool IsCurrent,
     bool IsUpcoming,
-    IReadOnlyList<string>? FeaturingSessions = null
+    IReadOnlyList<string>? FeaturingSessions = null,
+    IReadOnlyList<SessionParticipationDto>? FeaturingSessionsWithTeam = null
 );
 
 /// <summary>

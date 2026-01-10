@@ -214,6 +214,8 @@ public sealed class SeriesController : BaseApiController
         // Also track which sessions they participated in per round (for badges like "FP1 only")
         HashSet<Guid>? filteredRoundIds = null;
         Dictionary<Guid, List<SessionType>>? sessionsByRound = null;
+        Dictionary<Guid, List<SessionParticipationDto>>? sessionsWithTeamByRound = null;
+        bool driverHadMultipleTeams = false;
         var seasonRoundIds = season.Rounds.Select(r => r.Id).ToList();
         
         if (!string.IsNullOrEmpty(driverSlug))
@@ -221,22 +223,28 @@ public sealed class SeriesController : BaseApiController
             var driver = await _db.Drivers.FirstOrDefaultAsync(d => d.Slug == driverSlug.ToLowerInvariant(), ct);
             if (driver != null)
             {
-                // Get entrant IDs for this driver in this season
+                // Get entrants for this driver in this season (includes team info)
                 var driverEntrants = await _db.Entrants
                     .Where(e => e.DriverId == driver.Id && seasonRoundIds.Contains(e.RoundId))
-                    .Select(e => new { e.Id, e.RoundId })
+                    .Include(e => e.Team)
+                    .Select(e => new { e.Id, e.RoundId, e.TeamId, TeamName = e.Team.Name, TeamSlug = e.Team.Slug })
                     .ToListAsync(ct);
                 
                 filteredRoundIds = driverEntrants.Select(e => e.RoundId).Distinct().ToHashSet();
                 
-                // Get session types per round from Results
-                // Query directly by joining Results → Sessions to get RoundId and Type
+                // Check if driver drove for multiple teams this season
+                var distinctTeams = driverEntrants.Select(e => e.TeamId).Distinct().ToList();
+                driverHadMultipleTeams = distinctTeams.Count > 1;
+                
+                // Get session types per round from Results, including team info
                 var entrantIds = driverEntrants.Select(e => e.Id).ToList();
                 var driverSessionResults = await (
                     from res in _db.Results
                     join sess in _db.Set<Session>() on res.SessionId equals sess.Id
+                    join ent in _db.Entrants on res.EntrantId equals ent.Id
+                    join team in _db.Teams on ent.TeamId equals team.Id
                     where entrantIds.Contains(res.EntrantId)
-                    select new { sess.RoundId, sess.Type }
+                    select new { sess.RoundId, sess.Type, TeamName = team.Name, TeamSlug = team.Slug }
                 ).Distinct().ToListAsync(ct);
                 
                 sessionsByRound = driverSessionResults
@@ -245,6 +253,21 @@ public sealed class SeriesController : BaseApiController
                         g => g.Key,
                         g => g.Select(x => x.Type).Distinct().OrderBy(t => t).ToList()
                     );
+                
+                // If driver had multiple teams, also build the detailed team info
+                if (driverHadMultipleTeams)
+                {
+                    sessionsWithTeamByRound = driverSessionResults
+                        .GroupBy(r => r.RoundId)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.Select(x => new SessionParticipationDto(
+                                x.Type.ToString(),
+                                x.TeamName,
+                                x.TeamSlug
+                            )).OrderBy(s => s.SessionType).ToList()
+                        );
+                }
             }
             else
             {
@@ -321,6 +344,9 @@ public sealed class SeriesController : BaseApiController
                 IsUpcoming: r.DateStart > now,
                 FeaturingSessions: sessionsByRound != null && sessionsByRound.TryGetValue(r.Id, out var sessions)
                     ? sessions.Select(s => s.ToString()).ToList()
+                    : null,
+                FeaturingSessionsWithTeam: sessionsWithTeamByRound != null && sessionsWithTeamByRound.TryGetValue(r.Id, out var sessionsWithTeam)
+                    ? sessionsWithTeam
                     : null
             ))
             .ToList();

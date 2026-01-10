@@ -193,7 +193,27 @@ function RoundCard({ seriesSlug, seriesName, year, round, primaryColor }: RoundC
         </div>
         
         {/* Session participation badges (only shown when filtering by driver/team) */}
-        {round.featuringSessions && round.featuringSessions.length > 0 && (
+        {/* If driver had multiple teams, show team names with sessions */}
+        {round.featuringSessionsWithTeam && round.featuringSessionsWithTeam.length > 0 ? (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {round.featuringSessionsWithTeam.map((session, idx) => (
+              <span
+                key={`${session.sessionType}-${session.teamSlug || idx}`}
+                className="px-2 py-0.5 text-xs rounded font-medium"
+                style={{
+                  backgroundColor: primaryColor ? `${primaryColor}20` : 'rgba(74, 222, 128, 0.1)',
+                  color: primaryColor || '#4ade80'
+                }}
+                title={session.teamName || undefined}
+              >
+                {formatSessionType(session.sessionType)}
+                {session.teamName && (
+                  <span className="ml-1 opacity-75">({session.teamName})</span>
+                )}
+              </span>
+            ))}
+          </div>
+        ) : round.featuringSessions && round.featuringSessions.length > 0 ? (
           <div className="flex flex-wrap gap-1 mb-2">
             {round.featuringSessions.map((session) => (
               <span
@@ -208,7 +228,7 @@ function RoundCard({ seriesSlug, seriesName, year, round, primaryColor }: RoundC
               </span>
             ))}
           </div>
-        )}
+        ) : null}
         
         <div className="flex items-center justify-between text-xs text-neutral-500">
           <span>{formatDateRange(round.dateStart, round.dateEnd)}</span>
