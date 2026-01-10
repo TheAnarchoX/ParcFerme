@@ -1,8 +1,50 @@
 # Parc Fermé - Development Roadmap
 
-> Last updated: January 9, 2026
+> Last updated: January 10, 2026
 >
 > **📋 Completed work:** See [COMPLETED.md](./COMPLETED.md) for historical archive of all finished tasks.
+
+---
+
+## 🤖 AI Agent Workflow
+
+This project uses **custom VS Code agents** (`.github/agents/`) to accelerate development. Each agent is specialized for specific tasks and can hand off to other agents.
+
+### Available Agents
+
+| Agent | Use For | Handoffs To |
+|-------|---------|-------------|
+| **Staff Engineer** | Complex cross-cutting features, architecture, performance, escalations | All agents |
+| **Planner** | Breaking down features, creating specs, analyzing requirements | Backend, Frontend, Data, Staff, QA, Security, Spoiler |
+| **Backend** | .NET API, EF Core, authentication, caching, DTOs | Frontend, QA, Security, Reviewer, Staff, Spoiler |
+| **Frontend** | React components, Redux, Tailwind, TypeScript | Backend, QA, Reviewer, Staff, Spoiler, Planner |
+| **Data Engineer** | Python ingestion, OpenF1 sync, bulk imports | Backend, QA, Security, Staff, Planner |
+| **QA** | Unit tests, integration tests, E2E tests, coverage | Backend, Frontend, Data, Reviewer, Security, Staff |
+| **Reviewer** | Code review, pattern compliance, quality checks | Backend, Frontend, Security, QA, Staff |
+| **Security** | Security audits, auth review, vulnerability assessment | Staff, Backend, Frontend, Reviewer, QA |
+| **Spoiler Shield** | Implementing/reviewing the critical spoiler protection feature | Backend, Frontend, QA, Security, Reviewer |
+
+### Recommended Workflow
+
+1. **Planning Phase**: Use `@planner` to break down complex features
+2. **Complex/Cross-cutting**: Use `@staff-engineer` for work spanning multiple domains
+3. **Implementation**: Hand off to `@backend`, `@frontend`, or `@data-engineer`
+4. **Testing**: Use `@qa` to write tests for new code
+5. **Review**: Use `@reviewer` for code quality, `@security` for security audit
+6. **Spoiler Features**: Always involve `@spoiler-shield` for result-related features
+7. **Escalation**: Any agent can hand off to `@staff-engineer` for complex issues
+
+### Agent Tags in Tasks
+
+Tasks below are tagged with recommended agents:
+- `[🔧 backend]` - Use Backend Engineer agent
+- `[🎨 frontend]` - Use Frontend Engineer agent
+- `[🐍 data]` - Use Data Engineer agent
+- `[📋 plan]` - Use Planner agent first
+- `[🏗️ staff]` - Use Staff Engineer for complex/cross-cutting work
+- `[🧪 qa]` - Use QA Engineer agent
+- `[🔒 security]` - Use Security Reviewer agent
+- `[🏁 spoiler]` - Use Spoiler Shield specialist
 
 ---
 
@@ -10,54 +52,92 @@
 
 ### 🚧 In Progress
 
-_No active tasks_
+- [x] **"Weekend Wrapper" UI** `[🎨 frontend]` - COMPLETED
+  - ✅ `WeekendWrapperModal` component with multi-step wizard
+  - ✅ Session selection with checkboxes (sorted by type: FP1→Race)
+  - ✅ Individual star rating + excitement slider per session
+  - ✅ Live aggregate rating calculation
+  - ✅ "Full Weekend!" badge when all sessions selected
+  - ✅ Venue experience ratings (for attended)
+  - ✅ "Log Full Weekend" button on RoundDetailPage
+  - ✅ "Full Weekend Logged!" badge on RoundDetailPage when complete
 
 ### 📋 Up Next (Priority Order)
 
-#### 1. Core Logging Flow (The MVP Feature)
+#### 0. Community Reviews (HIGH PRIORITY)
 
-- [ ] **"Log a Race" flow**
-  - Multi-step modal or dedicated page
-  - Session selection
-  - Basic info (date, watched vs attended)
-  - Optional: car/team/driver focus, comments
-  - Post-log redirect with results revealed
+The backend API and frontend service already exist - we just need to wire up the UI!
 
-- [ ] **"Weekend Wrapper" logging mode**
-  - Quick Log (Race Only) as default for casual fans
-  - Full Weekend Log with checkboxes for FP1/FP2/FP3/Quali/Sprint/Race
-  - Individual session ratings + weekend aggregate rating (weighted)
-  - "Weekend Completeness" badge for full-weekend watchers
+- [ ] **Community Reviews on Session Pages** `[🎨 frontend]` `[🏁 spoiler]`
+  - Backend API exists: `GET /api/v1/reviews/session/{sessionId}`
+  - Frontend service exists: `reviewsApi.getSessionReviews()`
+  - UI shows placeholder - needs to fetch and display real reviews
+  > **Prompt**: `Implement Community Reviews section on SessionDetailPage. The backend API already exists (GET /api/v1/reviews/session/{sessionId}) and frontend service exists (reviewsApi.getSessionReviews). Replace the EmptyState placeholder with actual review data. Implementation: 1) Add useState for reviews and loading state, 2) Add useEffect to fetch reviews on mount using reviewsApi.getSessionReviews(sessionId), 3) Create a ReviewCard component showing author avatar/name, star rating, excitement rating, date, and review text with "Read more" expansion for long reviews, 4) Handle spoiler-marked reviews with SpoilerMask based on user's spoilerMode - reviews marked as containing spoilers should be blurred until clicked, 5) Show loading state while fetching, 6) Keep EmptyState when reviews array is empty after fetch, 7) Add pagination if more than 10 reviews.`
 
-- [ ] **APIs:** Logs CRUD, Reviews CRUD
+- [ ] **Review Card Component** `[🎨 frontend]` `[🏁 spoiler]`
+  > **Prompt**: `Create a reusable ReviewCard component at src/web/src/components/ReviewCard.tsx. Props: review (ReviewDto), spoilerMode (SpoilerMode), onReveal callback. Display: author avatar (use Gravatar or initials), author username linking to profile, star rating (use existing StarRating component in read-only mode), excitement rating badge, "Attended" badge if isAttended, review date, review body text. For reviews with containsSpoilers=true: wrap body in SpoilerMask unless spoilerMode is 'None'. Add like button with count. Truncate long reviews with "Read more" expansion. Follow existing component patterns.`
+
+---
+
+#### 1. Core Logging Flow - Remaining Work
+
+- [ ] **Edit/Delete Log functionality** `[🎨 frontend]` `[🔧 backend]`
+  - Hook up edit mode in LogModal (existingLog prop already supported)
+  - Add delete confirmation modal
+  - Add "Edit Log" button to session detail page when user has logged
+  > **Prompt**: `Implement Edit/Delete functionality for user logs. The LogModal component already supports an existingLog prop for edit mode - wire this up. Add a DELETE endpoint to LogsController if not present. Create a delete confirmation modal component. Add an "Edit Log" button that appears on session detail pages when the current user has already logged that session. Ensure proper authorization checks.`
+
+- [ ] **Integration tests for Logs/Reviews controllers** `[🧪 qa]`
+  > **Prompt**: `Write comprehensive integration tests for LogsController and ReviewsController. Test all CRUD operations, authorization (users can only edit/delete their own logs), spoiler mode behavior when fetching logs with results, and the weekend logging endpoint. Use the existing test patterns in tests/api/Integration/. Ensure tests cover edge cases like logging a session twice, editing non-existent logs, and unauthorized access attempts.`
 
 ---
 
 #### 2. User Experience Polish
 
-- [ ] User profiles API + page (favorites, stats, logs, reviews)
-- [ ] User settings page (spoiler mode, preferences, theming)
-- [ ] Gravatar integration
-- [ ] Basic feed/home page with recent activity
-- [ ] Password reset flow (email + token) + Remember Me option
-- [ ] Email verification flow
-- [ ] Google OAuth integration
+- [ ] **User profiles API + page** `[📋 plan]` `[🔧 backend]` `[🎨 frontend]`
+  > **Prompt**: `Implement the user profiles feature. Backend: Create ProfilesController with endpoints for GET /api/v1/users/{username} returning public profile data (display name, join date, log count, review count, favorite series/drivers). Include recent activity (last 10 logs). Frontend: Create a /users/{username} page with profile header, stats cards, and activity feed. Reference existing page patterns. Respect privacy - only show public data.`
+
+- [ ] **User settings page** `[🎨 frontend]` `[🏁 spoiler]`
+  > **Prompt**: `Create a user settings page at /settings. Include sections for: 1) Spoiler Mode toggle (Strict/Moderate/None) with clear explanations of each level, 2) Theme preferences (dark/light - prepare for Paddock Pass customization), 3) Notification preferences, 4) Account info (email, password change link). Use the Spoiler Shield patterns from AGENTS.md. Save settings via existing user update endpoint.`
+
+- [ ] **Gravatar integration** `[🎨 frontend]`
+  > **Prompt**: `Add Gravatar support for user avatars. Create a utility function that generates Gravatar URLs from user email (MD5 hash). Add fallback to initials-based placeholder. Update all avatar displays (nav bar, profile page, review cards, activity feed). Use the ?d=identicon parameter for users without Gravatar. Add to UserAvatar component or create one if needed.`
+
+- [ ] **Basic feed/home page** `[📋 plan]` `[🔧 backend]` `[🎨 frontend]`
+  > **Prompt**: `Implement the home page activity feed. Backend: Create GET /api/v1/feed endpoint that returns recent public activity (new logs, reviews) from all users, paginated. Frontend: Create the / home page with a feed of activity cards showing "User X logged Session Y" and "User X reviewed Session Y". Include Spoiler Shield - mask results in feed items unless viewer has logged that session. Add filtering by series.`
+
+- [ ] **Password reset flow** `[🔧 backend]` `[🔒 security]`
+  > **Prompt**: `Implement secure password reset flow. Create: 1) POST /api/v1/auth/forgot-password - accepts email, generates secure token, stores hash in DB with expiry (1 hour). 2) POST /api/v1/auth/reset-password - accepts token + new password, validates token, updates password. Use ASP.NET Identity's built-in token generation. Add rate limiting to prevent abuse. Log password reset attempts for security audit. Do NOT send actual emails yet - just log the reset URL.`
+
+- [ ] **Email verification flow** `[🔧 backend]` `[🔒 security]`
+  > **Prompt**: `Implement email verification for new accounts. On registration, generate verification token and store with user. Create GET /api/v1/auth/verify-email?token=X endpoint to verify. Add EmailVerified boolean to ApplicationUser if not present. Prevent unverified users from certain actions (logging, reviewing). Add resend verification endpoint. Log verification for audit. Do NOT send actual emails - log the verification URL.`
+
+- [ ] **Google OAuth integration** `[🔧 backend]` `[🔒 security]`
+  > **Prompt**: `Add Google OAuth login. Configure ASP.NET Identity external login with Google provider. Create POST /api/v1/auth/google endpoint that accepts Google ID token, validates it, creates or links user account, returns JWT. Handle edge cases: existing email with password-only account (offer to link), first-time OAuth user (create account). Store Google ID for future logins. Follow OAuth security best practices.`
 
 ---
 
 #### 3. Standings Module
 
-- [ ] Develop "Standings" module to calculate championship points
-- [ ] Retroactively calculate standings for past seasons
-- [ ] Add "Points System" section to Series detail pages
-- [ ] Add "Championship Standings" to Season detail pages
+- [ ] **Develop "Standings" module** `[📋 plan]` `[🔧 backend]`
+  > **Prompt**: `Design and implement the championship standings module. Create: 1) PointsSystem entity storing points-per-position rules (configurable per series/era - F1 changed in 2010, 2019). 2) StandingsService that calculates driver/constructor standings from Results. 3) GET /api/v1/seasons/{id}/standings endpoint returning current standings. Handle: fastest lap points, sprint race points, dropped scores if applicable. Make it recalculable on demand. This is SPOILER DATA - implement Spoiler Shield.`
+
+- [ ] **Calculate standings for past seasons** `[🐍 data]`
+  > **Prompt**: `Create a Python script to calculate and populate championship standings for all existing seasons. Use the new StandingsService via API or direct DB access. Process each season's results chronologically to build accurate point-by-round data. Handle edge cases: DSQs, post-race penalties, point system changes mid-season. Add verification by comparing final standings against known historical data. Store intermediate standings (after each round) for "standings as of round X" feature.`
+
+- [ ] **Points System UI** `[🎨 frontend]`
+  > **Prompt**: `Add a "Points System" section to Series detail pages. Display the current points allocation table (P1-P10 or however many score). Show historical changes with dates (e.g., "2010: Top 10 score, 2019: Fastest lap point added"). Pull data from new PointsSystem API endpoint. Make it collapsible/expandable. Use a clean table format with racing-themed styling.`
+
+- [ ] **Championship Standings UI** `[🎨 frontend]` `[🏁 spoiler]`
+  > **Prompt**: `Add Championship Standings to Season detail pages. Show both Driver and Constructor standings in tabs or side-by-side. Display: position, name, points, wins, podiums. CRITICAL: This is SPOILER DATA - implement full Spoiler Shield. If user hasn't logged all races up to current round, show masked standings with "Log races to reveal" prompt. Add "Standings after Round X" historical view. Link driver/team names to their detail pages.`
 
 ---
 
 #### 4. Chores
 
 ##### Agentic (Priority Order)
-- [ ] Add UIOrder to Series for consistent ordering in dropdowns/lists
+- [ ] **Add UIOrder to Series** `[🔧 backend]`
+  > **Prompt**: `Add UIOrder column to the Series entity for consistent ordering in dropdowns and lists. Create migration to add nullable int UIOrder column. Set default values: F1=1, MotoGP=2, IndyCar=3, WEC=4, etc. Update SeriesController GET endpoints to order by UIOrder. Update frontend discovery pages to respect this ordering. Add UIOrder to SeriesDto.`
 
 ##### Manual (Priority Order)
 - [ ] Legal review of historical data usage and user-generated content policies
@@ -71,240 +151,33 @@ _No active tasks_
 **Goal:** F1 2024-2025 fully functional, users can log races and see profiles
 
 ### Remaining Items
-- [ ] Complete auth endpoints (password reset, email verification)
-- [ ] OpenF1 scheduled sync job (automated weekly updates)
-- [ ] Seed complete 2024-2025 F1 calendar data
-- [ ] Finalize CC BY-SA 4.0 licensing and attribution requirements
-- [ ] Create "Data & Licensing" page with full legal text
-- [ ] Add footer attribution snippet to all pages
+- [ ] **Complete auth endpoints** `[🔧 backend]` `[🔒 security]`
+  > **Prompt**: `Complete the authentication system. Ensure password reset and email verification endpoints are working (see User Experience Polish tasks). Add Remember Me functionality via extended JWT expiry or refresh token. Audit all auth endpoints for security: rate limiting, secure token generation, proper password hashing. Create integration tests for the full auth flow.`
+
+- [ ] **OpenF1 scheduled sync job** `[🐍 data]`
+  > **Prompt**: `Create an automated weekly sync job for OpenF1 data. Options: 1) Python script with cron/systemd timer, 2) .NET background service with Hangfire. The job should: sync current season sessions and results (use --no-results for upcoming races), handle rate limiting gracefully, log sync results, send alert on failure. Add idempotency - running twice shouldn't duplicate data. Target: runs every Sunday night after race weekends.`
+
+- [ ] **Seed 2024-2025 F1 calendar data** `[🐍 data]`
+  > **Prompt**: `Ensure complete F1 2024-2025 calendar data is seeded. Run full sync for both years: python -m ingestion sync --year 2024 and python -m ingestion sync --year 2025. Verify all rounds, sessions, drivers, teams, and results are present. Check for gaps using python -m ingestion.db audit. Document any missing data and source alternatives.`
+
+- [ ] **Data & Licensing page** `[🎨 frontend]`
+  > **Prompt**: `Create a /legal/data-licensing page explaining data sources and licensing. Include: 1) OpenF1 attribution (CC BY-SA 4.0), 2) Ergast attribution, 3) The Third Turn attribution (CC BY-NC-SA 4.0), 4) User-generated content policy, 5) How users can contribute corrections. Use a clean, readable layout. Link to this from footer.`
+
+- [ ] **Footer attribution snippet** `[🎨 frontend]`
+  > **Prompt**: `Add a footer component to all pages with proper attribution. Include: "Data from OpenF1, Ergast, community contributors" with links. Add copyright notice, links to Terms/Privacy/Data Licensing pages, and social links placeholder. Use subtle, unobtrusive design that doesn't distract from content. Make it a reusable Layout component part.`
 
 ### Infrastructure for Launch
-- [ ] Production deployment setup
-- [ ] Error tracking (Sentry or similar)
-- [ ] Basic analytics
+- [ ] **Production deployment setup**
+  > **Prompt (Manual/DevOps)**: `Set up production deployment. Recommended: Railway/Render for simplicity, or Azure/AWS for scale. Need: PostgreSQL instance, Redis instance, environment variables for secrets. Create deploy scripts or GitHub Actions workflow. Set up SSL, domain configuration. Document in DEPLOYMENT.md.`
+
+- [ ] **Error tracking (Sentry)** `[🔧 backend]`
+  > **Prompt**: `Integrate Sentry for error tracking. Add Sentry.AspNetCore package. Configure in Program.cs with DSN from environment variable. Add user context (ID, username) to errors for debugging. Set up source maps for frontend errors. Configure alert rules for critical errors. Test with a deliberate error. Add Sentry to frontend React app as well.`
+
+- [ ] **Basic analytics** `[🎨 frontend]`
+  > **Prompt**: `Add privacy-respecting analytics. Options: 1) Plausible (privacy-first, paid), 2) Umami (self-hosted, free), 3) Simple custom event logging to our API. Track: page views, feature usage (logs created, reviews written), but NO personal data. Create analytics dashboard or use provider's. Add cookie consent banner if using cookies.`
 
 ### Deferred to Later Phases
 - ~~Admin/Mod tools~~ → Phase 2
 - ~~WEC data integration~~ → Phase 3
 
 ---
-
-## 🗓️ Phase 2: Midfield (Growth & Engagement)
-
-**Goal:** Historical archive, social features, lists, search
-
-### Historical Data
-- [ ] Extend historical data to 2018-2022 (OpenF1 or alternative sources)
-- [ ] Historical season browser UI
-
-### Social & Discovery
-- [ ] Lists API + UI (create, share, collaborate)
-- [ ] **"Sagas" (Chronological Playlists)**
-  - Special list type with `saga_mode` flag enforcing chronological ordering
-  - Timeline/subway-map UI view
-  - Chapter markers with annotations
-  - Examples: "Hamilton vs Verstappen 2021", "Ford vs Ferrari Le Mans Era"
-- [ ] Social feed algorithm
-- [ ] Activity notifications + notification center
-- [ ] Enhanced user profiles (stats, badges, year in review)
-
-### Search & Performance
-- [ ] Search API (Elasticsearch integration)
-- [ ] Advanced search UI with filters
-
-### Moderation
-- [ ] Admin/Mod tools (moderation + data quality triage)
-- [ ] Community reporting + transparency tooling
-- [ ] Distinguished mod/admin roles with badges
-- [ ] Contributor attribution system for community-submitted data
-
-### Mobile & Responsive
-- [ ] Mobile-responsive improvements across all pages
-
----
-
-## 🗓️ Phase 3: The Third Turn - Historic Multi-Series Expansion
-
-**Goal:** Use The Third Turn database to bring MotoGP, IndyCar, WEC, Formula E, NASCAR into Parc Fermé
-
-**See:** [docs/thethirdturn/THETHIRDTURN.md](./docs/thethirdturn/THETHIRDTURN.md) for technical details
-
-**✅ Foundation Complete:**
-- Data model updated with 8 new fields (GoverningBody, TrackType, TrackStatus, OpenedYear, Nickname, PlaceOfBirth, LapsLed, CarNumber)
-- DTOs and API endpoints updated to expose new fields
-- Python ingestion pipeline ready to populate new fields
-- THETHIRDTURN.md documentation with JavaScript extraction examples
-
-### Phase 3A: Build The Third Turn Scraper
-- [ ] Build scraper in `src/python/ingestion/sources/thethirdturn/`
-- [ ] Scrape series index, series, season, race, driver and circuit
-- [ ] Use existing entity matchers, respect CC BY-NC-SA 4.0 license
-
-### Phase 3B: Import Major Series
-- [ ] MotoGP (2020-2025 calendars + results)
-- [ ] IndyCar (1996-present)
-- [ ] WEC (multi-class + multi-driver complexity)
-- [ ] Formula E
-- [ ] NASCAR
-- [ ] Future: F2/F3, IMSA, Super Formula, DTM, BTCC, and more
-
-### Phase 3C: Multi-Series UI
-- [ ] Fix F1-specific assumptions in navigation and results display
-- [ ] Handle WEC multi-class, multi-driver formats
-- [ ] Verify spoiler shield + entity matching work across all series
-
-### Phase 3D: Data Exports & Third-Party Access
-- [ ] Public API for third-party apps
-- [ ] API documentation site (Swagger/OpenAPI)
-- [ ] Bulk data download system (torrent, PostgreSQL dumps)
-- [ ] Document API rate limits and usage guidelines
-
----
-
-## 🗓️ Phase 4: Podium (Premium, Gamification, Mobile)
-
-**Goal:** Venue guides, gamification, monetization, mobile app
-
-### Venue & Circuit Guides
-- [ ] Circuit/Venue guides API
-- [ ] Circuit guide pages (crowdsourced seat views, travel tips)
-- [ ] Seat map overlays with user ratings
-
-### Gamification
-- [ ] Gamification system (achievements, streaks, XP/Superlicence levels)
-- [ ] Achievement system UI
-- [ ] Stats dashboards
-
-### Premium Tier (Paddock Pass)
-
-**Philosophy:** "Show your colors, manage your schedule, see your stats." Paddock Pass enhances identity and convenience, never gatekeeps data.
-
-#### 🎨 "Livery" Customization (Identity)
-- [ ] Team accent colors system
-- [ ] Dark/Light mode overrides
-- [ ] Custom app icons
-- [ ] Profile flair and badges
-
-#### 📊 "Telemetry" Personal Stats (Insight)
-- [ ] Lap counter, track heatmap, constructor breakdown
-- [ ] Driver bias analysis
-- [ ] Year in Review (shareable card)
-- [ ] GitHub-style activity heatmap
-
-#### 🏆 "Pit Wall" Features (Lists & Logs)
-- [ ] List forking, custom list headers
-- [ ] Pinned reviews, advanced filtering
-
-#### 🔧 "Scrutineering" Rights (Community Influence)
-- [ ] Priority data queue for supporters
-- [ ] Contributor recognition badges
-
-#### 📅 Calendar Sync
-- [ ] iCal subscription feeds
-- [ ] Push notifications for schedule changes
-- [ ] See Phase 5 for full implementation
-
-#### Payment & Subscription
-- [ ] Payment integration (Stripe)
-- [ ] Paddock Pass upgrade flow ($2.99/mo or $24.99/yr)
-- [ ] Subscription management
-- [ ] Funding transparency page
-
-### Mobile App
-- [ ] React Native app scaffold
-- [ ] Core features parity with web
-- [ ] Push notifications
-
----
-
-## 🗓️ Phase 5: Smart Calendar Sync
-
-**Goal:** Become the single sync point for motorsport calendars—never hunt for ICS files again
-
-### Philosophy
-Dynamic, personalized calendars that:
-1. Auto-update when schedules change
-2. Personalize based on user preferences
-3. Link back to ParcFerme session pages
-4. Work with modern calendar apps
-
-### Free Tier (Per-Series Public Feeds)
-- [ ] `/api/v1/calendar/series/{seriesSlug}.ics` - public per-series feeds
-- [ ] Event descriptions with deep links
-- [ ] Automatic schedule sync
-
-### Paddock Pass (Personalized Feeds)
-- [ ] `/api/v1/calendar/{userId}/subscribe.ics` - personalized feed
-- [ ] Smart profile inference from logging history
-- [ ] Calendar customization settings
-- [ ] Push notifications for schedule changes
-
-### Technical Implementation
-- [ ] ICS generation service (RFC 5545 compliant)
-- [ ] User calendar preferences model
-- [ ] Feed caching with invalidation
-- [ ] VTIMEZONE support for local session times
-
----
-
-## 🎯 Backlog (Unprioritized)
-
-### Additional Features
-- [ ] OAuth providers (Discord, Apple)
-- [ ] Import from other platforms (CSV)
-- [ ] Export user data (GDPR compliance)
-- [ ] Bulk data download page
-- [ ] Browser extension for spoiler blocking
-- [ ] Watch party coordination
-- [ ] Prediction games
-- [ ] Fantasy league integration
-
-### Technical Improvements
-- [ ] GraphQL API option
-- [ ] WebSocket for live updates
-- [ ] CDN for images
-- [ ] Database read replicas
-- [ ] Rate limiting
-- [ ] Performance monitoring
-- [ ] A/B testing framework
-
-### Content & Community
-- [ ] Editorial content system (curated lists, "Essential Races")
-- [ ] Verified accounts for drivers/teams/journalists
-- [ ] Official series partnerships
-
----
-
-## 📝 Notes
-
-### Open Questions
-- How to handle live session updates without spoilers?
-- Should lists be collaborative by default?
-- Community contribution model details for non-F1 series data?
-- Should Sagas have a special "Rivalry" tag system?
-- Calendar sync: Free tier gets per-series public feeds, Paddock Pass gets personalized feeds?
-
-### External Dependencies
-- **OpenF1 API** — Unofficial, may change; fallback to SportMonks (~€55/mo)
-- **Ergast archive** — Deprecated but archived; loaded into `ergastf1` database (1950-2017)
-- **The Third Turn** — Multi-series historical data
-- **RacingNews365** — Used for F1 calendar ICS parsing
-- **Community contributors** — Required for MotoGP/IndyCar/WEC data
-- **Legal review** — Historical data usage rights
-
-### Risk Mitigation
-- **OpenF1 dependency**: Can migrate to SportMonks commercial API
-- **Data gaps**: Community Wiki model for missing race data
-- **Scale**: Redis caching + query optimization before read replicas
-
----
-
-## 🔗 Quick Links
-
-- [Completed Work Archive](./COMPLETED.md)
-- [Product Blueprint](./docs/BLUEPRINT.md)
-- [AI Coding Guidelines](./AGENTS.md)
-- [API Documentation](http://localhost:5000/swagger) (local dev)
-- [Bulk Sync Guide](./docs/BULK_SYNC.md)
-- [Ergast Migration Strategy](./docs/ERGAST_MIGRATION.md)
-- [The Third Turn Integration](./docs/thethirdturn/THETHIRDTURN.md)
