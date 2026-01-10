@@ -268,8 +268,10 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
   
   const primaryColor = colors[0] ?? '#ffffff';
   
-  // Determine text color based on PRIMARY color only (since that dominates the hover state)
-  const useDarkText = getLuminance(primaryColor) > 0.45;
+  // Calculate average luminance from all colors for better text contrast
+  // (since multiple colors blend together in the hover state)
+  const avgLuminance = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
+  const useDarkText = avgLuminance > 0.45;
   const hoverTextColor = useDarkText ? '#1a1a1a' : '#ffffff';
 
   // Generate header bar style based on colors
@@ -417,14 +419,14 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
             >
               {series.name}
             </span>
-            {/* Hover state text with adaptive color and stronger shadow for legibility */}
+            {/* Hover state text with adaptive color and subtle shadow for legibility */}
             <span 
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold"
               style={{ 
                 color: hoverTextColor,
                 textShadow: useDarkText 
-                  ? '0 1px 3px rgba(255,255,255,0.5), 0 0 8px rgba(255,255,255,0.3)' 
-                  : '0 1px 4px rgba(0,0,0,0.7), 0 0 12px rgba(0,0,0,0.4)'
+                  ? '0 1px 2px rgba(0,0,0,0.2)' // Subtle dark shadow for dark text
+                  : '0 1px 2px rgba(255,255,255,0.2)' // Subtle light shadow for light text
               }}
             >
               {series.name}
