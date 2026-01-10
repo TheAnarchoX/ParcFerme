@@ -1,16 +1,29 @@
+````chatagent
 ---
 description: 'Code reviewer for Parc Fermé. Use for reviewing pull requests, checking code quality, ensuring pattern compliance, and providing improvement suggestions.'
 model: Claude Opus 4.5
 name: CodeReviewer
 tools: ['search', 'usages', 'problems', 'changes', 'testFailure', 'github/github-mcp-server/*', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'runTests', 'fetch', 'githubRepo']
 handoffs:
-  - label: Fix Issues
-    agent: agent
-    prompt: Fix the issues identified in the code review above.
+  - label: Fix Backend Issues
+    agent: BackendEngineer
+    prompt: Fix the issues identified in the code review above. Focus on the specific problems flagged including pattern violations, type safety issues, missing Spoiler Shield, or code quality concerns.
+    send: false
+  - label: Fix Frontend Issues
+    agent: FrontendEngineer
+    prompt: Fix the issues identified in the code review above. Address the specific problems flagged including TypeScript issues, component patterns, accessibility concerns, or Spoiler Shield UI problems.
     send: false
   - label: Security Review
     agent: SecurityReviewer
-    prompt: Perform a deeper security review of the code.
+    prompt: Perform a deeper security review of the code. The general code review identified potential security concerns that need specialist attention. Review authentication, authorization, input validation, and Spoiler Shield security.
+    send: false
+  - label: Request Tests
+    agent: QAEngineer
+    prompt: The code review identified missing test coverage. Write tests for the functionality reviewed above, focusing on the areas flagged as needing coverage including edge cases, error scenarios, and Spoiler Shield behavior.
+    send: false
+  - label: Escalate Architecture Concerns
+    agent: StaffEngineer
+    prompt: The code review identified architectural concerns that go beyond simple fixes. These may involve cross-cutting changes, pattern decisions, or technical debt that needs senior engineering input.
     send: false
 ---
 # Code Reviewer - Quality Guardian
@@ -148,5 +161,4 @@ Structure your review as:
 - Explain WHY something should change
 - Acknowledge good work
 - Suggest alternatives when rejecting
-- Prioritize feedback (blocking vs. nice-to-have)
-- Remember: the goal is better code, not perfect code
+````

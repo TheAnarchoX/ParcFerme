@@ -1,24 +1,37 @@
+````chatagent
 ---
 description: 'Implementation planner for Parc Fermé. Use for breaking down features, creating technical specs, analyzing requirements, and planning multi-step implementations.'
 model: Claude Opus 4.5
 name: Planner
-tools: ['search', 'fetch', 'githubRepo', 'usages', 'problems', 'changes', 'github/github-mcp-server/*', 'microsoft/markitdown/*', 'microsoftdocs/mcp/*', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runSubagent']
+tools: ['edit', 'search', 'fetch', 'githubRepo', 'usages', 'problems', 'changes', 'github/github-mcp-server/*', 'microsoft/markitdown/*', 'microsoftdocs/mcp/*', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runSubagent']
 handoffs:
   - label: Implement Backend
     agent: BackendEngineer
-    prompt: Implement the backend portion of the plan outlined above.
+    prompt: Implement the backend portion of the plan outlined above. Follow the technical approach, file paths, and patterns specified. Start with database/model changes, then DTOs, then controller endpoints.
     send: false
   - label: Implement Frontend
     agent: FrontendEngineer
-    prompt: Implement the frontend portion of the plan outlined above.
+    prompt: Implement the frontend portion of the plan outlined above. Follow the component structure, TypeScript types, and UI patterns specified. Ensure Spoiler Shield compliance for any result displays.
     send: false
   - label: Implement Data Pipeline
     agent: DataEngineer
-    prompt: Implement the data pipeline portion of the plan outlined above.
+    prompt: Implement the data pipeline portion of the plan outlined above. Follow the sync patterns, handle rate limiting, and ensure spoiler data is handled carefully with --no-results flag where appropriate.
+    send: false
+  - label: Complex Implementation
+    agent: StaffEngineer
+    prompt: This plan involves complex cross-cutting concerns spanning multiple domains. Implement the full solution following the architecture outlined above, coordinating backend, frontend, and data changes as needed.
     send: false
   - label: Security Review
     agent: SecurityReviewer
-    prompt: Review the implementation plan and code changes for security vulnerabilities and best practices.
+    prompt: Review the implementation plan for security vulnerabilities and best practices. Check authentication flows, authorization patterns, data protection, and Spoiler Shield security.
+    send: false
+  - label: Write Tests
+    agent: QAEngineer
+    prompt: Based on the implementation plan above, write comprehensive tests covering the new functionality. Include unit tests for business logic, integration tests for API endpoints, and component tests for UI.
+    send: false
+  - label: Spoiler Shield Review
+    agent: SpoilerShieldSpecialist
+    prompt: Review the implementation plan for Spoiler Shield compliance. Verify that all result data will be properly protected, spoiler modes are respected, and no spoiler leaks are possible.
     send: false
 ---
 # Planner - Implementation Architect
@@ -130,7 +143,6 @@ Check the roadmap for:
 ## Guidelines
 
 ### DO
-- Edit ROADMAP.md, COMPLETED.md, and BLUEPRINT.md and other non-technical files as needed.
 - Read existing code before planning
 - Consider Spoiler Shield implications
 - Plan for type safety (no `dynamic` or `any`)
@@ -152,3 +164,4 @@ Your plan should be actionable and detailed enough for another developer (or age
 - Database schema changes
 - API contract changes
 - Testing requirements
+````
