@@ -288,7 +288,7 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
     return { color: primaryColor };
   };
 
-  // Generate blob configurations - PRIMARY color dominates, secondary colors are subtle accents
+  // Generate blob configurations - PRIMARY color dominates center, secondary colors accent the edges
   const getBlobs = () => {
     const blobs: Array<{
       color: string;
@@ -303,21 +303,56 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
       blur: number;
     }> = [];
 
-    // PRIMARY color blobs - these are the dominant ones that flood the card
+    // PRIMARY color blob - central, dominant
     blobs.push(
-      { color: primaryColor, top: '-2rem', left: '-2rem', width: '6rem', height: '6rem', scale: 4, delay: 0, blur: 28 },
-      { color: primaryColor, bottom: '-2rem', right: '-2rem', width: '7rem', height: '7rem', scale: 4, delay: 50, blur: 28 },
-      { color: primaryColor, top: '50%', left: '50%', width: '4rem', height: '4rem', scale: 5, delay: 100, blur: 32 },
+      { color: primaryColor, top: '50%', left: '50%', width: '5rem', height: '5rem', scale: 5, delay: 0, blur: 30 },
     );
     
-    // Secondary colors are small accent blobs at edges (if present)
+    // Secondary colors create visible accent streaks at corners
     if (colors.length > 1) {
+      // Position secondary colors strategically based on count
+      const positions = [
+        { top: '-1.5rem', right: '-1.5rem' },  // top-right
+        { bottom: '-1.5rem', left: '-1.5rem' }, // bottom-left
+        { top: '-1.5rem', left: '-1.5rem' },    // top-left
+        { bottom: '-1.5rem', right: '-1.5rem' }, // bottom-right
+      ];
+      
       colors.slice(1).forEach((color, i) => {
-        blobs.push(
-          { color, top: '-0.5rem', right: '-1rem', width: '2.5rem', height: '2.5rem', scale: 2, delay: 150 + i * 50, blur: 12 },
-          { color, bottom: '-0.5rem', left: '-1rem', width: '2rem', height: '2rem', scale: 1.5, delay: 200 + i * 50, blur: 10 },
-        );
+        const pos = positions[i % positions.length];
+        // Secondary blobs are visible but don't overwhelm
+        blobs.push({
+          color,
+          ...pos,
+          width: '4rem',
+          height: '4rem',
+          scale: 3,
+          delay: 75 + i * 40,
+          blur: 18,
+        });
       });
+      
+      // For series with 3+ colors, add extra accent blobs for visual interest
+      if (colors.length >= 3) {
+        // Add diagonal accent blobs
+        blobs.push(
+          { color: colors[1]!, top: '0', right: '30%', width: '3rem', height: '3rem', scale: 2.5, delay: 120, blur: 14 },
+          { color: colors[2]!, bottom: '0', left: '30%', width: '3rem', height: '3rem', scale: 2.5, delay: 140, blur: 14 },
+        );
+      }
+      
+      // For 4+ colors, add more
+      if (colors.length >= 4) {
+        blobs.push(
+          { color: colors[3]!, top: '30%', left: '-1rem', width: '2.5rem', height: '2.5rem', scale: 2.5, delay: 160, blur: 12 },
+        );
+      }
+    } else {
+      // Single color - add corner blobs of the same color
+      blobs.push(
+        { color: primaryColor, top: '-1.5rem', left: '-1.5rem', width: '5rem', height: '5rem', scale: 3.5, delay: 50, blur: 24 },
+        { color: primaryColor, bottom: '-1.5rem', right: '-1.5rem', width: '5rem', height: '5rem', scale: 3.5, delay: 75, blur: 24 },
+      );
     }
 
     return blobs;
