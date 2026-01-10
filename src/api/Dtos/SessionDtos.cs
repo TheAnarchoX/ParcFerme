@@ -190,7 +190,8 @@ public sealed record TeamSummaryDto(
 public sealed record EntrantDto(
     Guid Id,
     DriverSummaryDto Driver,
-    TeamSummaryDto Team
+    TeamSummaryDto Team,
+    string? Role = null
 );
 
 // =========================

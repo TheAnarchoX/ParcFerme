@@ -226,7 +226,8 @@ public sealed class RoundsController : BaseApiController
                         PrimaryColor: e.Team.PrimaryColor,
                         Nationality: e.Team.Nationality,
                         WikipediaUrl: e.Team.WikipediaUrl
-                    )
+                    ),
+                    Role: e.Role != DriverRole.Regular ? e.Role.ToString().ToLowerInvariant() : null
                 );
             })
             .ToList();

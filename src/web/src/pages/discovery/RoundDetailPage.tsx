@@ -8,6 +8,7 @@ import type { RoundPageResponse, SessionTimelineDto } from '../../types/round';
 import { cleanRoundName, formatDateRange, getSeriesPrimaryColor } from '../../types/round';
 import { getContrastColor } from '../../types/series';
 import { getCountryFlag } from '../../lib/flags';
+import { getDriverRoleLabel, getDriverRoleBadgeClasses } from '../../types/team';
 
 // =========================
 // Loading Skeletons
@@ -517,29 +518,42 @@ export function RoundDetailPage() {
                 {/* Driver & Team Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-semibold text-neutral-100 truncate">
+                    <Link 
+                      to={ROUTES.DRIVER_DETAIL(entrant.driver.slug)}
+                      className="text-sm font-semibold text-neutral-100 truncate hover:text-accent-green transition-colors"
+                    >
                       {entrant.driver.firstName} {entrant.driver.lastName}
-                    </p>
+                    </Link>
                     {entrant.driver.abbreviation && (
                       <span className="text-xs text-neutral-500 font-mono">
                         {entrant.driver.abbreviation}
                       </span>
                     )}
+                    {/* Role badge for non-regular drivers */}
+                    {entrant.role && (
+                      <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${getDriverRoleBadgeClasses(entrant.role as 'reserve' | 'fp1_only' | 'test')}`}>
+                        {getDriverRoleLabel(entrant.role as 'reserve' | 'fp1_only' | 'test')}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-neutral-400 truncate" title={entrant.team.name}>
+                  <Link 
+                    to={ROUTES.TEAM_DETAIL(entrant.team.slug)}
+                    className="text-xs text-neutral-400 truncate hover:text-accent-green transition-colors block"
+                    title={entrant.team.name}
+                  >
                     {entrant.team.shortName || entrant.team.name}
-                  </p>
+                  </Link>
                 </div>
                 
                 {/* Team Logo */}
                 {entrant.team.logoUrl && (
-                  <div className="shrink-0 w-8 h-8">
+                  <Link to={ROUTES.TEAM_DETAIL(entrant.team.slug)} className="shrink-0 w-8 h-8">
                     <img 
                       src={entrant.team.logoUrl} 
                       alt={entrant.team.name}
-                      className="w-full h-full object-contain opacity-70 bg-white rounded p-1"
+                      className="w-full h-full object-contain opacity-70 bg-white rounded p-1 hover:opacity-100 transition-opacity"
                     />
-                  </div>
+                  </Link>
                 )}
               </div>
             ))}

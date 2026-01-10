@@ -174,6 +174,8 @@ export interface EntrantDto {
   id: string;
   driver: DriverSummaryDto;
   team: TeamSummaryDto;
+  /** Driver's role: 'reserve', 'fp1_only', 'test', or null for regular */
+  role?: string;
 }
 
 // =========================
