@@ -311,39 +311,44 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
     );
 
     // SECONDARY colors on TOP (higher z-index) - visible accent stripes at edges
+    // Position them at LEFT and RIGHT edges only (not top/bottom which affects text)
     if (colors.length > 1) {
-      // Each secondary color gets a distinct edge position as a stripe
-      const secondaryPositions: Array<{
-        top?: string; bottom?: string; left?: string; right?: string; width: string; height: string;
-      }> = [
-        // Color 1: right edge stripe
-        { top: '0', right: '-0.5rem', width: '3rem', height: '100%' },
-        // Color 2: left edge stripe  
-        { top: '0', left: '-0.5rem', width: '3rem', height: '100%' },
-        // Color 3: bottom edge stripe
-        { bottom: '-0.5rem', left: '0', width: '100%', height: '3rem' },
-        // Color 4: top edge stripe (but keep it subtle since header is there)
-        { top: '0', left: '20%', width: '60%', height: '2rem' },
-      ];
+      const secondaryColors = colors.slice(1);
       
-      colors.slice(1).forEach((color, i) => {
-        if (i < secondaryPositions.length) {
-          const pos = secondaryPositions[i]!;
-          blobs.push({
-            color,
-            top: pos.top,
-            bottom: pos.bottom,
-            left: pos.left,
-            right: pos.right,
-            width: pos.width,
-            height: pos.height,
-            scale: 1.8,
-            delay: 80 + i * 40,
-            blur: 12,
-            zIndex: 2, // Above primary
-          });
-        }
-      });
+      // First secondary color: LEFT edge
+      if (secondaryColors[0]) {
+        blobs.push({
+          color: secondaryColors[0],
+          top: '0', left: '-0.5rem', width: '3rem', height: '100%',
+          scale: 1.8, delay: 80, blur: 12, zIndex: 2,
+        });
+      }
+      
+      // Second secondary color: RIGHT edge
+      if (secondaryColors[1]) {
+        blobs.push({
+          color: secondaryColors[1],
+          top: '0', right: '-0.5rem', width: '3rem', height: '100%',
+          scale: 1.8, delay: 120, blur: 12, zIndex: 2,
+        });
+      }
+      
+      // Third+ secondary colors: small corner accents (top corners only, away from text)
+      if (secondaryColors[2]) {
+        blobs.push({
+          color: secondaryColors[2],
+          top: '-1rem', left: '30%', width: '2.5rem', height: '2.5rem',
+          scale: 2, delay: 160, blur: 10, zIndex: 2,
+        });
+      }
+      
+      if (secondaryColors[3]) {
+        blobs.push({
+          color: secondaryColors[3],
+          top: '-1rem', right: '30%', width: '2rem', height: '2rem',
+          scale: 1.5, delay: 200, blur: 8, zIndex: 2,
+        });
+      }
     }
 
     return blobs;
@@ -403,8 +408,8 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
             ))}
           </div>
           
-          {/* Text content with lift animation and adaptive contrast */}
-          <span className="relative font-bold text-base block group-hover:-translate-y-0.5 transition-all duration-500">
+          {/* Text content with lift animation and adaptive contrast - z-10 ensures it's above blobs */}
+          <span className="relative z-10 font-bold text-base block group-hover:-translate-y-0.5 transition-all duration-500">
             {/* Default state text */}
             <span 
               className="transition-all duration-500 group-hover:opacity-0"
@@ -412,14 +417,14 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
             >
               {series.name}
             </span>
-            {/* Hover state text with adaptive color and subtle shadow for extra legibility */}
+            {/* Hover state text with adaptive color and stronger shadow for legibility */}
             <span 
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold drop-shadow-sm"
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold"
               style={{ 
                 color: hoverTextColor,
                 textShadow: useDarkText 
-                  ? '0 1px 2px rgba(255,255,255,0.3)' 
-                  : '0 1px 3px rgba(0,0,0,0.5)'
+                  ? '0 1px 3px rgba(255,255,255,0.5), 0 0 8px rgba(255,255,255,0.3)' 
+                  : '0 1px 4px rgba(0,0,0,0.7), 0 0 12px rgba(0,0,0,0.4)'
               }}
             >
               {series.name}
