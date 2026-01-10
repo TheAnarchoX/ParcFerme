@@ -59,15 +59,35 @@ function SeriesCard({ series }: SeriesCardProps) {
     ).join(', ');
     return { background: `linear-gradient(to right, ${gradient})` };
   };
+
+  // Generate border gradient background
+  const getBorderGradient = (): string => {
+    if (colors.length === 1) {
+      return primaryColor ?? '#ffffff';
+    }
+    const gradient = colors.map((c, i) => 
+      `${c} ${(i / colors.length) * 100}%, ${c} ${((i + 1) / colors.length) * 100}%`
+    ).join(', ');
+    return `linear-gradient(to right, ${gradient})`;
+  };
   
   return (
     <Link
       to={ROUTES.SERIES_DETAIL(series.slug)}
-      className="group block bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-700 transition-all hover:shadow-lg"
+      className="group block border border-neutral-800 hover:border-transparent rounded-xl overflow-hidden transition-all hover:shadow-lg relative p-[1px]"
     >
+      {/* Gradient border background - visible on hover */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl -z-10"
+        style={{ background: getBorderGradient() }}
+      />
+      
+      {/* Card content container with background */}
+      <div className="bg-neutral-900/50 rounded-[11px] h-full"
+      >
       {/* Header with color accent */}
       <div 
-        className="h-2" 
+        className="h-2 rounded-t-[11px]" 
         style={getHeaderStyle()}
         aria-hidden="true"
       />
@@ -112,6 +132,7 @@ function SeriesCard({ series }: SeriesCardProps) {
             </span>
           )}
         </div>
+      </div>
       </div>
     </Link>
   );
@@ -169,7 +190,7 @@ export function SeriesListPage() {
   
   // Separate series with seasons from those without (coming soon)
   const validSeries = series.filter((s) => s.slug && s.name);
-  const activeSeries = validSeries.filter((s) => s.seasonCount > 0);
+  const activeSeries = validSeries;
   const comingSoonSeries = validSeries.filter((s) => s.seasonCount === 0);
   
   return (
