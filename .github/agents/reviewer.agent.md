@@ -1,9 +1,8 @@
-````chatagent
 ---
 description: 'Code reviewer for Parc Fermé. Use for reviewing pull requests, checking code quality, ensuring pattern compliance, and providing improvement suggestions.'
 model: Claude Opus 4.5
 name: CodeReviewer
-tools: ['search', 'usages', 'problems', 'changes', 'testFailure', 'github/github-mcp-server/*', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'runTests', 'fetch', 'githubRepo']
+tools: ['search', 'usages', 'problems', 'changes', 'testFailure', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'runTests', 'fetch', 'githubRepo']
 handoffs:
   - label: Fix Backend Issues
     agent: BackendEngineer
@@ -161,4 +160,23 @@ Structure your review as:
 - Explain WHY something should change
 - Acknowledge good work
 - Suggest alternatives when rejecting
+
+---
+
+## 🚨 ROADMAP HYGIENE (MANDATORY)
+
+**The roadmap is the single source of truth. When reviewing code:**
+
+1. **Verify roadmap compliance**: Check that the PR corresponds to a roadmap task
+2. **Check completion handling**: If task is done, ensure implementer plans to:
+   - **REMOVE the task from ROADMAP.md entirely**
+   - **ADD the task to COMPLETED.md** with completion date and details
+   - **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
+
+### Flag These as Review Issues:
+- ❌ Tasks marked `[x]` but left in ROADMAP.md
+- ❌ "COMPLETED" text added but task not moved to COMPLETED.md
+- ❌ Work done that's not on the roadmap
+
+See root `AGENTS.md` for full roadmap hygiene documentation.
 ````

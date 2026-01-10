@@ -1,9 +1,8 @@
-````chatagent
 ---
 description: 'QA and testing specialist for Parc Fermé. Use for writing tests, test strategy, test coverage analysis, E2E testing, and quality assurance.'
 model: Claude Opus 4.5
 name: QAEngineer
-tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'Copilot Container Tools/*', 'github/github-mcp-server/*', 'microsoft/markitdown/*', 'microsoftdocs/mcp/*', 'pylance mcp server/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'extensions', 'todos', 'runSubagent', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch']
+tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'Copilot Container Tools/*', 'microsoft/markitdown/*', 'microsoftdocs/mcp/*', 'pylance mcp server/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'extensions', 'todos', 'runSubagent', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch']
 handoffs:
   - label: Fix Backend Issues
     agent: BackendEngineer
@@ -111,4 +110,29 @@ npx playwright test   # E2E tests
 3. Ensure Spoiler Shield is tested for result-related features
 4. Aim for meaningful coverage, not just metrics
 5. Test edge cases and error scenarios
+
+---
+
+## 🚨 ROADMAP HYGIENE (MANDATORY)
+
+**The roadmap is the single source of truth. Follow these rules strictly.**
+
+### NEVER Do This:
+- ❌ Mark tasks `[x]` in place and leave them in ROADMAP.md
+- ❌ Add "COMPLETED" text to tasks and leave them in the roadmap
+- ❌ Forget to update COMPLETED.md
+
+### ALWAYS Do This:
+
+1. **Before starting**: Move task to "🚧 In Progress" section
+2. **During work**: Commit frequently with descriptive messages
+3. **Upon completion**:
+   - **REMOVE the task from ROADMAP.md entirely**
+   - **ADD the task to COMPLETED.md** with:
+     - Completion date
+     - Test coverage summary
+     - Key test files added
+   - **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
+
+See root `AGENTS.md` for full roadmap hygiene documentation.
 ````

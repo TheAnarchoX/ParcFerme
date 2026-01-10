@@ -1,9 +1,8 @@
-````chatagent
 ---
 description: 'Security reviewer for Parc Fermé. Use for security audits, vulnerability assessments, authentication reviews, and data protection compliance.'
 model: Claude Opus 4.5
 name: SecurityReviewer
-tools: ['search', 'usages', 'problems', 'changes', 'fetch', 'github/github-mcp-server/*', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runSubagent']
+tools: ['search', 'usages', 'problems', 'changes', 'fetch', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runSubagent']
 handoffs:
   - label: Fix Security Issues
     agent: StaffEngineer
@@ -172,4 +171,24 @@ public async Task UpdateUser([FromBody] UpdateUserDto dto) { ... }
 - `src/api/Auth/` - Authentication implementation
 - `src/api/Authorization/` - Authorization handlers
 - `AGENTS.md` - Project patterns
+
+---
+
+## 🚨 ROADMAP HYGIENE (MANDATORY)
+
+**The roadmap is the single source of truth. Follow these rules strictly.**
+
+When completing security audit tasks:
+1. **REMOVE the task from ROADMAP.md entirely**
+2. **ADD the task to COMPLETED.md** with:
+   - Completion date
+   - Vulnerabilities found and fixed
+   - Security improvements made
+3. **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
+
+### NEVER:
+- ❌ Mark tasks `[x]` in place and leave them in ROADMAP.md
+- ❌ Add "COMPLETED" text to tasks and leave them in the roadmap
+
+See root `AGENTS.md` for full roadmap hygiene documentation.
 ````

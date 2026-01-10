@@ -6,6 +6,30 @@
 
 ## 📅 January 2026
 
+### Weekend Wrapper UI (Completed: Jan 10, 2026)
+
+Full weekend logging feature allowing users to log entire race weekends with one workflow.
+
+#### Frontend Implementation
+- [x] **WeekendWrapperModal component** - Multi-step wizard for logging full weekends
+  - Session selection with checkboxes (sorted by type: FP1→Race)
+  - Individual star rating + excitement slider per session
+  - Live aggregate rating calculation across selected sessions
+  - "Full Weekend!" badge when all sessions selected
+  - Venue experience ratings (view, access, facilities) for attended events
+  - Progress indicator showing current step
+  
+- [x] **RoundDetailPage integration**
+  - "Log Full Weekend" button to launch modal
+  - "Full Weekend Logged!" badge display when all sessions are logged
+  - Uses existing `logWeekend` API endpoint
+
+- [x] **Files changed**:
+  - `src/web/src/components/WeekendWrapperModal.tsx` - Main modal component
+  - `src/web/src/pages/RoundDetailPage.tsx` - Integration point
+
+---
+
 ### Core Logging Flow (Completed: Jan 10, 2026)
 
 The MVP logging feature allowing users to log races they've watched or attended.

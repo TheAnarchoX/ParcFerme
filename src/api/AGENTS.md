@@ -139,24 +139,31 @@ When adding new features:
 - Services go in `/Services/` (create if needed)
 - Keep controllers thin - business logic in services
 
-## Roadmap Hygiene
+## 🚨 Roadmap Hygiene (MANDATORY)
 
-**Keep ROADMAP.md in sync with actual work.** When working on tasks:
+**ROADMAP.md is the single source of truth. COMPLETED.md is the historical archive.**
 
-1. **Before starting work**: Move the relevant item from its current section to the "In Progress" section at the top of the roadmap
-2. **Upon completion**: Move the item to the "Completed" section with a completion date
-3. **During work**: Update status markers as appropriate:
-   - `[IN PROGRESS]` - actively being worked on
-   - `[COMPLETED]` - fully implemented and tested
-   - `[DEFERRED]` - postponed to later phase
-   - `[OBSOLETE]` - no longer relevant or superseded
-   - `[RESTRUCTURED]` - reorganized into other items
+### NEVER Do This:
+- ❌ Mark tasks `[x]` in place and leave them in ROADMAP.md
+- ❌ Add "COMPLETED" text to tasks and leave them in the roadmap
+- ❌ Use status markers like `[IN PROGRESS]` or `[COMPLETED]` inline
+
+### ALWAYS Do This:
+
+1. **Before starting work**: Move the task to the "🚧 In Progress" section in ROADMAP.md
+2. **Upon completion**:
+   - **REMOVE the task from ROADMAP.md entirely**
+   - **ADD the task to COMPLETED.md** under the current date with:
+     - What was built (endpoints, DTOs, migrations)
+     - Any deviations from original plan
+   - **Commit both files together**: `chore: archive [feature] to COMPLETED.md`
 
 ### General Maintenance
-- Keep completed items organized by date (most recent first)
-- Add brief notes about implementation details to completed items when helpful
+- **ROADMAP.md**: Active and upcoming work ONLY - keep it lean
+- **COMPLETED.md**: Historical archive with implementation details (most recent first)
 - Flag items that are blocked or need clarification
 - Consolidate duplicate or overlapping tasks
-- Ensure priority ordering makes sense from engineering and product perspectives
 
-The roadmap is a living document—treat it as a source of truth for project status, not just a wish list.
+The roadmap is a living document—treat it as a source of truth for project status. COMPLETED.md is the historical record.
+
+See root `AGENTS.md` for complete documentation.
