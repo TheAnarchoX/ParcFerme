@@ -47,9 +47,20 @@ public sealed record TeamDetailDto(
 );
 
 /// <summary>
+/// Lightweight info about another team a driver drove for in the same season.
+/// Used to provide context when a driver drove for multiple teams.
+/// </summary>
+public sealed record DriverOtherTeamDto(
+    string Name,
+    string Slug,
+    int RoundsParticipated
+);
+
+/// <summary>
 /// Driver info within a team context - includes role.
 /// Role is a string: "regular", "reserve", "fp1_only", "test".
 /// RoundsParticipated shows how many rounds this driver participated in (useful for distinguishing one-off appearances).
+/// OtherTeamsInSeason shows other teams the driver drove for in the same season (if any).
 /// </summary>
 public sealed record TeamDriverDto(
     Guid Id,
@@ -63,7 +74,8 @@ public sealed record TeamDriverDto(
     DateOnly? DateOfBirth,
     string? WikipediaUrl,
     string Role,
-    int RoundsParticipated
+    int RoundsParticipated,
+    IReadOnlyList<DriverOtherTeamDto>? OtherTeamsInSeason = null
 );
 
 /// <summary>

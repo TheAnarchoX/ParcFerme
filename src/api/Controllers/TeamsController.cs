@@ -260,7 +260,7 @@ public sealed class TeamsController : BaseApiController
             }
         }
 
-        // Get roster data
+        // Get roster data for this team
         var entrants = await _db.Entrants
             .Where(e => e.TeamId == team.Id)
             .Include(e => e.Driver)
@@ -271,19 +271,48 @@ public sealed class TeamsController : BaseApiController
             .ThenByDescending(e => e.Round.RoundNumber)
             .ToListAsync(ct);
 
+        // Get all driver IDs and season IDs to find "other teams in season"
+        var driverIds = entrants.Select(e => e.DriverId).Distinct().ToList();
+        var seasonIds = entrants.Select(e => e.Round.SeasonId).Distinct().ToList();
+        
+        // Fetch all entrants for these drivers in these seasons (to find other teams)
+        var allDriverEntrantsInSeasons = await _db.Entrants
+            .Where(e => driverIds.Contains(e.DriverId) && seasonIds.Contains(e.Round.SeasonId))
+            .Include(e => e.Team)
+            .Include(e => e.Round)
+            .ToListAsync(ct);
+        
+        // Build lookup: (DriverId, SeasonId) -> list of (Team, RoundsCount) excluding current team
+        var otherTeamsLookup = allDriverEntrantsInSeasons
+            .Where(e => e.TeamId != team.Id)
+            .GroupBy(e => new { e.DriverId, SeasonId = e.Round.SeasonId, e.TeamId })
+            .Select(g => new
+            {
+                g.Key.DriverId,
+                g.Key.SeasonId,
+                TeamName = g.First().Team.Name,
+                TeamSlug = g.First().Team.Slug,
+                RoundsCount = g.Select(e => e.RoundId).Distinct().Count()
+            })
+            .GroupBy(x => new { x.DriverId, x.SeasonId })
+            .ToDictionary(
+                g => (g.Key.DriverId, g.Key.SeasonId),
+                g => g.Select(x => new DriverOtherTeamDto(x.TeamName, x.TeamSlug, x.RoundsCount)).ToList()
+            );
+
         // Get current drivers (most recent season) with role info
         var latestSeasonId = entrants.FirstOrDefault()?.Round.SeasonId;
         var currentDrivers = latestSeasonId is not null
-            ? BuildTeamDrivers(entrants.Where(e => e.Round.SeasonId == latestSeasonId))
+            ? BuildTeamDriversWithOtherTeams(entrants.Where(e => e.Round.SeasonId == latestSeasonId), latestSeasonId.Value, otherTeamsLookup)
             : new List<TeamDriverDto>();
 
         // Group by year + series for season history
         var seasonHistory = entrants
-            .GroupBy(e => new { Year = e.Round.Season.Year, SeriesSlug = e.Round.Season.Series.Slug })
+            .GroupBy(e => new { Year = e.Round.Season.Year, SeriesSlug = e.Round.Season.Series.Slug, SeasonId = e.Round.SeasonId })
             .Select(g =>
             {
                 var first = g.First();
-                var drivers = BuildTeamDrivers(g);
+                var drivers = BuildTeamDriversWithOtherTeams(g, g.Key.SeasonId, otherTeamsLookup);
                 
                 return new TeamSeasonRosterDto(
                     Year: g.Key.Year,
@@ -384,7 +413,72 @@ public sealed class TeamsController : BaseApiController
     }
     
     /// <summary>
-    /// Build a list of TeamDriverDto from entrants with role detection and sorting.
+    /// Build a list of TeamDriverDto from entrants with role detection, sorting, and other teams info.
+    /// Regular drivers are sorted by driver number (lowest first),
+    /// followed by reserves and FP1-only drivers.
+    /// </summary>
+    private static List<TeamDriverDto> BuildTeamDriversWithOtherTeams(
+        IEnumerable<Entrant> entrants, 
+        Guid seasonId,
+        Dictionary<(Guid DriverId, Guid SeasonId), List<DriverOtherTeamDto>> otherTeamsLookup)
+    {
+        // Group by driver to aggregate role and rounds participated
+        var driverData = entrants
+            .GroupBy(e => e.DriverId)
+            .Select(g =>
+            {
+                var first = g.First();
+                var driver = first.Driver;
+                var roundsParticipated = g.Select(e => e.RoundId).Distinct().Count();
+                
+                // Determine the "primary" role - use the most common role across rounds
+                // If any entrant is Regular, consider them Regular
+                // Otherwise use the most restrictive role found
+                var roles = g.Select(e => e.Role).Distinct().ToList();
+                var role = roles.Contains(DriverRole.Regular) 
+                    ? DriverRole.Regular 
+                    : roles.Min();  // Enum order: Regular < Reserve < Fp1Only < Test
+                
+                // Get other teams for this driver in this season
+                var otherTeams = otherTeamsLookup.TryGetValue((driver.Id, seasonId), out var teams)
+                    ? teams
+                    : null;
+                
+                return new 
+                {
+                    Driver = driver,
+                    Role = role,
+                    RoundsParticipated = roundsParticipated,
+                    OtherTeams = otherTeams
+                };
+            })
+            .ToList();
+        
+        // Sort by: Role (Regular first), then by DriverNumber (ascending)
+        return driverData
+            .OrderBy(d => d.Role)
+            .ThenBy(d => d.Driver.DriverNumber ?? int.MaxValue)
+            .ThenBy(d => d.Driver.LastName)
+            .Select(d => new TeamDriverDto(
+                Id: d.Driver.Id,
+                FirstName: d.Driver.FirstName,
+                LastName: d.Driver.LastName,
+                Slug: d.Driver.Slug,
+                Abbreviation: d.Driver.Abbreviation,
+                Nationality: d.Driver.Nationality,
+                HeadshotUrl: d.Driver.HeadshotUrl,
+                DriverNumber: d.Driver.DriverNumber,
+                DateOfBirth: d.Driver.DateOfBirth,
+                WikipediaUrl: d.Driver.WikipediaUrl,
+                Role: ConvertRoleToString(d.Role),
+                RoundsParticipated: d.RoundsParticipated,
+                OtherTeamsInSeason: d.OtherTeams
+            ))
+            .ToList();
+    }
+    
+    /// <summary>
+    /// Build a list of TeamDriverDto from entrants with role detection and sorting (no other teams info).
     /// Regular drivers are sorted by driver number (lowest first),
     /// followed by reserves and FP1-only drivers.
     /// </summary>

@@ -54,13 +54,15 @@ public sealed record DriverDetailDto(
 
 /// <summary>
 /// Career entry showing a driver's team for a specific season/series.
+/// Role indicates if this was a regular, reserve, FP1-only, or test position.
 /// </summary>
 public sealed record DriverCareerEntryDto(
     int Year,
     string SeriesName,
     string SeriesSlug,
     TeamSummaryDto Team,
-    int RoundsParticipated
+    int RoundsParticipated,
+    string Role
 );
 
 /// <summary>

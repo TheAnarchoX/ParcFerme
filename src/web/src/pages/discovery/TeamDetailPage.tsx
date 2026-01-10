@@ -87,6 +87,7 @@ function DriverCard({ driver, showRole = true }: DriverCardProps) {
   const fullName = `${driver.firstName} ${driver.lastName}`;
   const isNonRegular = driver.role !== 'regular';
   const badgeClasses = getDriverRoleBadgeClasses(driver.role);
+  const hasOtherTeams = driver.otherTeamsInSeason && driver.otherTeamsInSeason.length > 0;
   
   return (
     <Link
@@ -123,10 +124,28 @@ function DriverCard({ driver, showRole = true }: DriverCardProps) {
             {driver.nationality && (
               <span>{driver.nationality}</span>
             )}
-            {driver.roundsParticipated === 1 && isNonRegular && (
-              <span className="text-xs text-neutral-600">(1 round)</span>
-            )}
+            <span className="text-xs text-neutral-600">
+              ({driver.roundsParticipated} round{driver.roundsParticipated !== 1 ? 's' : ''})
+            </span>
           </div>
+          {/* Show other teams in same season */}
+          {hasOtherTeams && (
+            <div className="mt-1 text-xs text-neutral-600">
+              Also: {driver.otherTeamsInSeason!.map((t, i) => (
+                <span key={t.slug}>
+                  {i > 0 && ', '}
+                  <Link 
+                    to={ROUTES.TEAM_DETAIL(t.slug)}
+                    className="text-neutral-500 hover:text-accent-green"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t.name}
+                  </Link>
+                  {' '}({t.roundsParticipated})
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Link>

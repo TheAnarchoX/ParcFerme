@@ -60,6 +60,11 @@ export interface DriverDetailDto {
 }
 
 /**
+ * Driver role type (matches team.ts for consistency).
+ */
+export type DriverRole = 'regular' | 'reserve' | 'fp1_only' | 'test';
+
+/**
  * Career entry showing a driver's team for a specific season/series.
  */
 export interface DriverCareerEntryDto {
@@ -68,6 +73,8 @@ export interface DriverCareerEntryDto {
   seriesSlug: string;
   team: TeamSummaryDto;
   roundsParticipated: number;
+  /** Driver's role for this team/season: "regular", "reserve", "fp1_only", "test" */
+  role: DriverRole;
 }
 
 /**

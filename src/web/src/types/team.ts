@@ -3,14 +3,19 @@
  * Keep in sync with backend TeamDtos.cs
  */
 
-// =========================
-// Driver Role Type
-// =========================
+import { DriverRole } from './driver';
+
+// Re-export for convenience
+export type { DriverRole };
 
 /**
- * Driver's role within a team.
+ * Lightweight info about another team a driver drove for in the same season.
  */
-export type DriverRole = 'regular' | 'reserve' | 'fp1_only' | 'test';
+export interface DriverOtherTeamDto {
+  name: string;
+  slug: string;
+  roundsParticipated: number;
+}
 
 /**
  * Driver info within a team context - includes role.
@@ -30,6 +35,8 @@ export interface TeamDriverDto {
   role: DriverRole;
   /** Number of rounds this driver participated in (for the season context) */
   roundsParticipated: number;
+  /** Other teams this driver drove for in the same season (if any) */
+  otherTeamsInSeason?: DriverOtherTeamDto[];
 }
 
 // =========================

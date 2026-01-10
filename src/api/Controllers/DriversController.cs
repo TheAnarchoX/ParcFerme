@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ParcFerme.Api.Caching;
 using ParcFerme.Api.Data;
 using ParcFerme.Api.Dtos;
+using ParcFerme.Api.Models;
 
 namespace ParcFerme.Api.Controllers;
 
@@ -309,6 +310,12 @@ public sealed class DriversController : BaseApiController
             .Select(g =>
             {
                 var first = g.First();
+                // Determine primary role - if any entrant was Regular, use Regular; otherwise use most restrictive
+                var roles = g.Select(e => e.Role).Distinct().ToList();
+                var role = roles.Contains(DriverRole.Regular) 
+                    ? DriverRole.Regular 
+                    : roles.Min();
+                
                 return new DriverCareerEntryDto(
                     Year: g.Key.Year,
                     SeriesName: first.Round.Season.Series.Name,
@@ -323,7 +330,8 @@ public sealed class DriversController : BaseApiController
                         Nationality: first.Team.Nationality,
                         WikipediaUrl: first.Team.WikipediaUrl
                     ),
-                    RoundsParticipated: g.Select(e => e.RoundId).Distinct().Count()
+                    RoundsParticipated: g.Select(e => e.RoundId).Distinct().Count(),
+                    Role: ConvertRoleToString(role)
                 );
             })
             .OrderByDescending(c => c.Year)
@@ -432,4 +440,16 @@ public sealed class DriversController : BaseApiController
 
         return Ok(seasons);
     }
+    
+    /// <summary>
+    /// Convert DriverRole enum to a user-friendly string for the API.
+    /// </summary>
+    private static string ConvertRoleToString(DriverRole role) => role switch
+    {
+        DriverRole.Regular => "regular",
+        DriverRole.Reserve => "reserve",
+        DriverRole.Fp1Only => "fp1_only",
+        DriverRole.Test => "test",
+        _ => "regular"
+    };
 }

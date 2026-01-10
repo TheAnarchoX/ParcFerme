@@ -6,6 +6,7 @@ import { ROUTES } from '../../types/navigation';
 import { driversApi } from '../../services/driversService';
 import type { DriverDetailDto, DriverCareerEntryDto } from '../../types/driver';
 import { getNationalityFlag, getDriverFullName, calculateAge } from '../../types/driver';
+import { getDriverRoleLabel, getDriverRoleBadgeClasses } from '../../types/team';
 
 // =========================
 // Loading Skeleton
@@ -82,6 +83,9 @@ interface CareerEntryProps {
 }
 
 function CareerEntry({ entry, driverSlug }: CareerEntryProps) {
+  const isNonRegular = entry.role !== 'regular';
+  const badgeClasses = getDriverRoleBadgeClasses(entry.role);
+  
   return (
     <Link
       to={ROUTES.SEASON_DETAIL_FILTERED_BY_DRIVER(entry.seriesSlug, entry.year, driverSlug)}
@@ -108,13 +112,20 @@ function CareerEntry({ entry, driverSlug }: CareerEntryProps) {
             {entry.team.name.charAt(0)}
           </div>
         )}
-        <Link 
-          to={ROUTES.TEAM_DETAIL(entry.team.slug)}
-          className="text-neutral-200 group-hover:text-accent-green transition-colors font-medium truncate"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {entry.team.name}
-        </Link>
+        <div className="flex items-center gap-2 min-w-0">
+          <Link 
+            to={ROUTES.TEAM_DETAIL(entry.team.slug)}
+            className="text-neutral-200 group-hover:text-accent-green transition-colors font-medium truncate"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {entry.team.name}
+          </Link>
+          {isNonRegular && (
+            <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${badgeClasses}`}>
+              {getDriverRoleLabel(entry.role)}
+            </span>
+          )}
+        </div>
       </div>
       
       <span className="text-sm text-neutral-500">
