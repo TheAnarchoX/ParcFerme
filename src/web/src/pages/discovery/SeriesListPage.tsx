@@ -238,6 +238,33 @@ interface ComingSoonCardProps {
   series: SeriesSummaryDto;
 }
 
+/**
+ * Calculate relative luminance of a hex color.
+ * Returns a value between 0 (black) and 1 (white).
+ */
+function getLuminance(hex: string): number {
+  // Remove # if present
+  const color = hex.replace('#', '');
+  const r = parseInt(color.substring(0, 2), 16) / 255;
+  const g = parseInt(color.substring(2, 4), 16) / 255;
+  const b = parseInt(color.substring(4, 6), 16) / 255;
+  
+  // Apply gamma correction
+  const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+/**
+ * Determine if text should be dark or light based on background color(s).
+ * Uses the average luminance of all colors.
+ */
+function shouldUseDarkText(colors: string[]): boolean {
+  if (colors.length === 0) return false;
+  const avgLuminance = colors.reduce((sum, c) => sum + getLuminance(c), 0) / colors.length;
+  return avgLuminance > 0.45; // Threshold for switching to dark text
+}
+
 function ComingSoonCard({ series }: ComingSoonCardProps) {
   // Guard against invalid data
   if (!series.slug || !series.name) {
@@ -250,6 +277,10 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
     : getSeriesColors(series.slug);
   
   const primaryColor = colors[0] ?? '#ffffff';
+  
+  // Determine text color for hover state based on background luminance
+  const useDarkText = shouldUseDarkText(colors);
+  const hoverTextColor = useDarkText ? '#1a1a1a' : '#ffffff';
 
   // Generate header bar style based on colors
   const getHeaderStyle = (): React.CSSProperties => {
@@ -359,15 +390,25 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
             ))}
           </div>
           
-          {/* Text content with subtle lift animation */}
+          {/* Text content with lift animation and adaptive contrast */}
           <span className="relative font-bold text-base block group-hover:-translate-y-0.5 transition-all duration-500">
+            {/* Default state text */}
             <span 
               className="transition-all duration-500 group-hover:opacity-0"
               style={getTextStyle()}
             >
               {series.name}
             </span>
-            <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold text-white">
+            {/* Hover state text with adaptive color and subtle shadow for extra legibility */}
+            <span 
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold drop-shadow-sm"
+              style={{ 
+                color: hoverTextColor,
+                textShadow: useDarkText 
+                  ? '0 1px 2px rgba(255,255,255,0.3)' 
+                  : '0 1px 3px rgba(0,0,0,0.5)'
+              }}
+            >
               {series.name}
             </span>
           </span>
