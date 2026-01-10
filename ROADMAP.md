@@ -64,14 +64,7 @@ Tasks below are tagged with recommended agents:
 
 ### 📋 Up Next (Priority Order)
 
-#### 1. Core Logging Flow - Remaining Work
-
-- [ ] **Integration tests for Logs/Reviews controllers** `[🧪 qa]`
-  > **Prompt**: `Write comprehensive integration tests for LogsController and ReviewsController. Test all CRUD operations, authorization (users can only edit/delete their own logs), spoiler mode behavior when fetching logs with results, and the weekend logging endpoint. Use the existing test patterns in tests/api/Integration/. Ensure tests cover edge cases like logging a session twice, editing non-existent logs, and unauthorized access attempts.`
-
----
-
-#### 2. User Experience Polish
+#### 1. User Experience Polish
 
 - [ ] **Development Roadmap Carousel component** `[🎨 frontend]`
   > **Prompt**: `Redesign the "Development Status" section on HomePage (both marketing and dashboard versions) as an interactive phase carousel. Create a reusable RoadmapCarousel component that displays all 5 phases:

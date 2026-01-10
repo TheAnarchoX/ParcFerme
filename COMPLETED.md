@@ -6,6 +6,68 @@
 
 ## 📅 January 2026
 
+### Integration Tests for Logs and Reviews Controllers (Completed: Jan 10, 2026)
+
+Implemented comprehensive integration test suites for LogsController and ReviewsController, achieving full test coverage of all CRUD operations and edge cases.
+
+#### Test Files Created
+- [x] **LogsControllerTests.cs** - 44 integration tests covering all LogsController endpoints
+  - CreateLog tests (8): basic creation, duplicate sessions, excitement rating validation, unauthorized access
+  - GetLog tests (3): retrieve own logs, others' logs, non-existent logs
+  - GetLogBySession tests (3): find logs by session, missing logs, anonymous access
+  - UpdateLog tests (5): update own logs, forbidden access to others' logs, non-existent logs, validation
+  - DeleteLog tests (4): delete own logs, cascade deletion, forbidden access, non-existent logs
+  - Weekend Logging tests (6): batch create sessions, partial success, duplicate handling
+  - GetMyLogs tests (6): pagination, filtering, empty results
+  - GetLogStats tests (3): aggregate statistics, zero stats for new users
+  - GetSessionLogs tests (2): public logs for a session, session without logs
+  - File: `tests/api/Integration/Controllers/LogsControllerTests.cs` (~900 lines)
+
+- [x] **ReviewsControllerTests.cs** - 44 integration tests covering all ReviewsController endpoints
+  - CreateReview tests (8): basic creation, spoiler handling, validation, unauthorized access
+  - GetReview tests (4): retrieve reviews, non-existent reviews, anonymous access
+  - UpdateReview tests (5): update own reviews, forbidden access, validation
+  - DeleteReview tests (4): delete own reviews, cascade effects, authorization
+  - Like/Unlike tests (8): increment/decrement like counts, conflict handling, not found scenarios
+  - GetSessionReviews tests (5): pagination, spoiler filtering, empty results
+  - Edge cases (3): maximum text length, special characters, concurrent operations
+  - File: `tests/api/Integration/Controllers/ReviewsControllerTests.cs` (~1060 lines)
+
+#### Bug Fixes Discovered During Testing
+- [x] **ReviewsController like/unlike count bug** - Fixed incorrect like count calculations
+  - Issue: `LikeReview` returned `review.Likes.Count + 1` but collection already updated after SaveChanges
+  - Issue: `UnlikeReview` returned `review.Likes.Count - 1` but collection already updated
+  - Solution: Changed to query actual count from database: `await _db.ReviewLikes.CountAsync(l => l.ReviewId == id, ct)`
+  - File: `src/api/Controllers/ReviewsController.cs`
+
+- [x] **Anonymous spoiler mode bug** - Fixed incorrect default spoiler mode for anonymous users
+  - Issue: `GetSpoilerStatus` returned `"None"` for anonymous users (contradicted Spoiler Shield protocol)
+  - Solution: Changed to return `"Strict"` mode as per AGENTS.md specification
+  - File: `src/api/Controllers/SessionsController.cs`
+
+#### Test Coverage
+- **Total tests added:** 88 integration tests (44 Logs + 44 Reviews)
+- **Test pass rate:** 258/258 tests passing (100%)
+- **Coverage areas:**
+  - ✅ CRUD operations (Create, Read, Update, Delete)
+  - ✅ Authorization (users can only edit/delete own resources)
+  - ✅ Spoiler mode behavior
+  - ✅ Weekend batch logging
+  - ✅ Edge cases (duplicates, non-existent resources, validation failures)
+  - ✅ Anonymous vs authenticated access patterns
+  - ✅ Like/unlike functionality with proper count tracking
+  - ✅ Pagination and filtering
+
+#### Test Patterns Used
+- IClassFixture<ParcFermeWebApplicationFactory> for shared test context
+- In-memory database per test class
+- JWT authentication via test helper methods
+- Unique test data per test (GUIDs) to avoid state pollution
+- FluentAssertions for readable test assertions
+- Proper HTTP status code validation (200, 201, 400, 401, 403, 404, 409)
+
+---
+
 ### Delete Log/Review Functionality (Completed: Jan 10, 2026)
 
 Implemented the ability to delete existing logs and reviews from the session detail page.
