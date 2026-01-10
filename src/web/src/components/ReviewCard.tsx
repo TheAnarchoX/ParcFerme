@@ -29,6 +29,17 @@ export interface ReviewCardProps {
    * Primary color for accents (optional).
    */
   primaryColor?: string;
+
+  /**
+   * Current user's ID (to check if they own the review).
+   */
+  currentUserId?: string;
+
+  /**
+   * Callback when user wants to edit their review.
+   * Only shown if currentUserId matches review.userId.
+   */
+  onEdit?: (review: ReviewWithLogDto) => void;
 }
 
 // =========================
@@ -185,6 +196,8 @@ export function ReviewCard({
   spoilerMode,
   hasLoggedSession = false,
   primaryColor,
+  currentUserId,
+  onEdit,
 }: ReviewCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
@@ -195,6 +208,9 @@ export function ReviewCard({
   const displayedText = shouldTruncate && !isExpanded
     ? review.body.slice(0, TRUNCATE_LENGTH) + '...'
     : review.body;
+  
+  // Check if current user owns this review
+  const isOwnReview = currentUserId && currentUserId === review.userId;
   
   // Determine if spoiler content should be shown
   // - Always show if user has logged the session
@@ -306,16 +322,28 @@ export function ReviewCard({
         )}
       </div>
       
-      {/* Footer: Engagement stats */}
-      <div className="flex items-center gap-4 mt-4 pt-3 border-t border-neutral-800">
-        <span className="text-xs text-neutral-500 flex items-center gap-1">
-          <span>❤️</span> {review.likeCount}
-        </span>
-        
-        {review.commentCount > 0 && (
+      {/* Footer: Engagement stats and actions */}
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-neutral-800">
+        <div className="flex items-center gap-4">
           <span className="text-xs text-neutral-500 flex items-center gap-1">
-            <span>💬</span> {review.commentCount}
+            <span>❤️</span> {review.likeCount}
           </span>
+          
+          {review.commentCount > 0 && (
+            <span className="text-xs text-neutral-500 flex items-center gap-1">
+              <span>💬</span> {review.commentCount}
+            </span>
+          )}
+        </div>
+
+        {/* Edit button (only for own reviews) */}
+        {isOwnReview && onEdit && (
+          <button
+            onClick={() => onEdit(review)}
+            className="text-xs text-neutral-400 hover:text-pf-green transition-colors flex items-center gap-1"
+          >
+            <span>✏️</span> Edit
+          </button>
         )}
       </div>
     </article>

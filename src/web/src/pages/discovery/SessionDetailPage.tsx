@@ -16,7 +16,7 @@ import { Pagination } from '../../components/ui/Pagination';
 import { LogModal } from '../../components/logging';
 import { ReviewCard, ReviewCardSkeleton } from '../../components/ReviewCard';
 import { spoilerApi } from '../../services/spoilerService';
-import { reviewsApi } from '../../services/logsService';
+import { reviewsApi, logsApi } from '../../services/logsService';
 import type { SessionDetailDto, ResultDto, SessionSummaryDto } from '../../types/spoiler';
 import type { LogDetailDto, ReviewWithLogDto } from '../../types/log';
 import type { SpoilerMode } from '../../types/api';
@@ -604,7 +604,9 @@ interface ReviewsSectionProps {
   hasLoggedSession: boolean;
   primaryColor?: string;
   isAuthenticated: boolean;
+  currentUserId?: string;
   onWriteReview: () => void;
+  onEditReview: (review: ReviewWithLogDto) => void;
 }
 
 const REVIEWS_PAGE_SIZE = 10;
@@ -615,7 +617,9 @@ function ReviewsSection({
   hasLoggedSession,
   primaryColor,
   isAuthenticated,
+  currentUserId,
   onWriteReview,
+  onEditReview,
 }: ReviewsSectionProps) {
   const [reviews, setReviews] = useState<ReviewWithLogDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -705,6 +709,8 @@ function ReviewsSection({
           spoilerMode={spoilerMode}
           hasLoggedSession={hasLoggedSession}
           primaryColor={primaryColor}
+          currentUserId={currentUserId}
+          onEdit={onEditReview}
         />
       ))}
 
@@ -740,12 +746,14 @@ export function SessionDetailPage() {
   const navigate = useNavigate();
   
   const [session, setSession] = useState<SessionDetailDto | null>(null);
+  const [userLog, setUserLog] = useState<LogDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   // Auth state
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   
   // Spoiler mode from Redux
   const spoilerMode = useSelector(selectSpoilerMode);
@@ -779,10 +787,31 @@ export function SessionDetailPage() {
       setIsLoading(false);
     }
   }, [sessionId, markLogged, shouldShow]);
+
+  // Fetch user's log for this session (if logged in and has logged the session)
+  const fetchUserLog = useCallback(async () => {
+    if (!sessionId || !isAuthenticated || !isLogged) {
+      setUserLog(null);
+      return;
+    }
+    
+    try {
+      const log = await logsApi.getLogBySession(sessionId);
+      setUserLog(log);
+    } catch (err) {
+      // User hasn't logged this session - that's fine
+      console.debug('No user log found for session:', err);
+      setUserLog(null);
+    }
+  }, [sessionId, isAuthenticated, isLogged]);
   
   useEffect(() => {
     fetchSession();
   }, [fetchSession]);
+
+  useEffect(() => {
+    fetchUserLog();
+  }, [fetchUserLog]);
   
   // Derive primary color and series info
   const primaryColor = session?.round?.seriesName 
@@ -891,19 +920,33 @@ export function SessionDetailPage() {
             title={`${roundName} - ${sessionDisplayName}`}
             subtitle={`${session.round.seriesName} ${yearNum} • ${session.round.circuit.name}`}
             actions={
-              <Button 
-                variant="primary"
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    navigate('/login', { state: { from: window.location.pathname } });
-                    return;
-                  }
-                  setIsLogModalOpen(true);
-                }}
-                disabled={isLogged}
-              >
-                {isLogged ? '✓ Logged' : '📝 Log this session'}
-              </Button>
+              <div className="flex items-center gap-2">
+                {isLogged && userLog && (
+                  <Button 
+                    variant="ghost"
+                    onClick={() => {
+                      setIsEditMode(true);
+                      setIsLogModalOpen(true);
+                    }}
+                  >
+                    ✏️ Edit Log
+                  </Button>
+                )}
+                <Button 
+                  variant="primary"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate('/login', { state: { from: window.location.pathname } });
+                      return;
+                    }
+                    setIsEditMode(false);
+                    setIsLogModalOpen(true);
+                  }}
+                  disabled={isLogged}
+                >
+                  {isLogged ? '✓ Logged' : '📝 Log this session'}
+                </Button>
+              </div>
             }
           />
           
@@ -1122,12 +1165,22 @@ export function SessionDetailPage() {
           hasLoggedSession={isLogged}
           primaryColor={primaryColor}
           isAuthenticated={isAuthenticated}
+          currentUserId={user?.id}
           onWriteReview={() => {
             if (!isAuthenticated) {
               navigate('/login', { state: { from: window.location.pathname } });
               return;
             }
+            setIsEditMode(false);
             setIsLogModalOpen(true);
+          }}
+          onEditReview={(_review: ReviewWithLogDto) => {
+            // When user clicks edit on their review, open the log modal in edit mode
+            // The review is part of the log, so we edit the entire log
+            if (userLog) {
+              setIsEditMode(true);
+              setIsLogModalOpen(true);
+            }
           }}
         />
       </Section>
@@ -1151,13 +1204,19 @@ export function SessionDetailPage() {
       <LogModal
         session={session}
         isOpen={isLogModalOpen}
-        onClose={() => setIsLogModalOpen(false)}
+        onClose={() => {
+          setIsLogModalOpen(false);
+          setIsEditMode(false);
+        }}
         onSuccess={(_log: LogDetailDto) => {
           // Mark session as logged in Redux
           markLogged(sessionId);
           // Refresh session data to update stats
           fetchSession();
+          // Refresh user log data
+          fetchUserLog();
         }}
+        existingLog={isEditMode ? userLog ?? undefined : undefined}
       />
     </MainLayout>
   );

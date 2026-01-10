@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
-import { logsApi } from '../../services/logsService';
+import { logsApi, reviewsApi } from '../../services/logsService';
 import type {
   CreateLogRequest,
+  UpdateLogRequest,
   CreateReviewRequest,
+  UpdateReviewRequest,
   CreateExperienceRequest,
   LogDetailDto,
 } from '../../types/log';
@@ -247,45 +249,86 @@ export function LogModal({ session, isOpen, onClose, onSuccess, existingLog }: L
     setError(null);
 
     try {
-      // Build review request if review body is provided
-      let review: CreateReviewRequest | undefined;
-      if (reviewBody.trim()) {
-        review = {
-          body: reviewBody.trim(),
-          containsSpoilers,
+      let log: LogDetailDto;
+
+      if (existingLog) {
+        // UPDATE MODE: Update log, review, and experience separately
+        
+        // Update log ratings/status
+        const updateRequest: UpdateLogRequest = {
+          isAttended,
+          starRating: starRating || undefined,
+          excitementRating: excitementRating,
+          liked,
+          dateWatched,
         };
-      }
+        log = await logsApi.updateLog(existingLog.id, updateRequest);
 
-      // Build experience request if attended
-      let experience: CreateExperienceRequest | undefined;
-      if (isAttended) {
-        experience = {
-          venueRating: venueRating || undefined,
-          viewRating: viewRating || undefined,
-          accessRating: accessRating || undefined,
-          facilitiesRating: facilitiesRating || undefined,
-          atmosphereRating: atmosphereRating || undefined,
-          seatDescription: seatDescription.trim() || undefined,
+        // Handle review - update existing, create new, or no-op
+        if (reviewBody.trim()) {
+          const reviewData: CreateReviewRequest | UpdateReviewRequest = {
+            body: reviewBody.trim(),
+            containsSpoilers,
+          };
+          
+          if (existingLog.review) {
+            // Update existing review
+            await reviewsApi.updateReview(existingLog.review.id, reviewData as UpdateReviewRequest);
+          } else {
+            // Create new review on existing log
+            await reviewsApi.createReview(existingLog.id, reviewData as CreateReviewRequest);
+          }
+        } else if (existingLog.review && !reviewBody.trim()) {
+          // Review was cleared - delete it
+          await reviewsApi.deleteReview(existingLog.review.id);
+        }
+
+        // Re-fetch the complete log to get updated data
+        log = await logsApi.getLog(existingLog.id);
+      } else {
+        // CREATE MODE: Create log with optional review and experience
+        
+        // Build review request if review body is provided
+        let review: CreateReviewRequest | undefined;
+        if (reviewBody.trim()) {
+          review = {
+            body: reviewBody.trim(),
+            containsSpoilers,
+          };
+        }
+
+        // Build experience request if attended
+        let experience: CreateExperienceRequest | undefined;
+        if (isAttended) {
+          experience = {
+            venueRating: venueRating || undefined,
+            viewRating: viewRating || undefined,
+            accessRating: accessRating || undefined,
+            facilitiesRating: facilitiesRating || undefined,
+            atmosphereRating: atmosphereRating || undefined,
+            seatDescription: seatDescription.trim() || undefined,
+          };
+        }
+
+        const request: CreateLogRequest = {
+          sessionId: session.id,
+          isAttended,
+          starRating: starRating || undefined,
+          excitementRating: excitementRating,
+          liked,
+          dateWatched,
+          review,
+          experience,
         };
+
+        log = await logsApi.createLog(request);
       }
-
-      const request: CreateLogRequest = {
-        sessionId: session.id,
-        isAttended,
-        starRating: starRating || undefined,
-        excitementRating: excitementRating,
-        liked,
-        dateWatched,
-        review,
-        experience,
-      };
-
-      const log = await logsApi.createLog(request);
       
       onSuccess?.(log);
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to log session';
+      const message = err instanceof Error ? err.message : 
+        existingLog ? 'Failed to update log' : 'Failed to log session';
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -294,7 +337,7 @@ export function LogModal({ session, isOpen, onClose, onSuccess, existingLog }: L
     isAuthenticated, session.id, isAttended, starRating, excitementRating,
     liked, dateWatched, reviewBody, containsSpoilers, venueRating, viewRating,
     accessRating, facilitiesRating, atmosphereRating, seatDescription,
-    onSuccess, onClose
+    onSuccess, onClose, existingLog
   ]);
 
   const nextStep = useCallback(() => {
