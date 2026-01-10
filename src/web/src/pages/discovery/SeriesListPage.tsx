@@ -255,16 +255,6 @@ function getLuminance(hex: string): number {
   return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
 }
 
-/**
- * Determine if text should be dark or light based on background color(s).
- * Uses the average luminance of all colors.
- */
-function shouldUseDarkText(colors: string[]): boolean {
-  if (colors.length === 0) return false;
-  const avgLuminance = colors.reduce((sum, c) => sum + getLuminance(c), 0) / colors.length;
-  return avgLuminance > 0.45; // Threshold for switching to dark text
-}
-
 function ComingSoonCard({ series }: ComingSoonCardProps) {
   // Guard against invalid data
   if (!series.slug || !series.name) {
@@ -278,8 +268,8 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
   
   const primaryColor = colors[0] ?? '#ffffff';
   
-  // Determine text color for hover state based on background luminance
-  const useDarkText = shouldUseDarkText(colors);
+  // Determine text color based on PRIMARY color only (since that dominates the hover state)
+  const useDarkText = getLuminance(primaryColor) > 0.45;
   const hoverTextColor = useDarkText ? '#1a1a1a' : '#ffffff';
 
   // Generate header bar style based on colors
@@ -298,7 +288,7 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
     return { color: primaryColor };
   };
 
-  // Generate blob configurations based on colors
+  // Generate blob configurations - PRIMARY color dominates, secondary colors are subtle accents
   const getBlobs = () => {
     const blobs: Array<{
       color: string;
@@ -313,25 +303,21 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
       blur: number;
     }> = [];
 
-    // Single or multi color - blobs in corners
+    // PRIMARY color blobs - these are the dominant ones that flood the card
     blobs.push(
-      { color: primaryColor, top: '-1rem', left: '-1rem', width: '5rem', height: '5rem', scale: 3, delay: 0, blur: 24 },
-      { color: primaryColor, bottom: '-1rem', right: '-1rem', width: '6rem', height: '6rem', scale: 2.5, delay: 100, blur: 24 },
+      { color: primaryColor, top: '-2rem', left: '-2rem', width: '6rem', height: '6rem', scale: 4, delay: 0, blur: 28 },
+      { color: primaryColor, bottom: '-2rem', right: '-2rem', width: '7rem', height: '7rem', scale: 4, delay: 50, blur: 28 },
+      { color: primaryColor, top: '50%', left: '50%', width: '4rem', height: '4rem', scale: 5, delay: 100, blur: 32 },
     );
     
-    // Add more blobs if there are multiple colors
+    // Secondary colors are small accent blobs at edges (if present)
     if (colors.length > 1) {
       colors.slice(1).forEach((color, i) => {
         blobs.push(
-          { color, top: '-0.5rem', right: '-1.5rem', width: '4rem', height: '4rem', scale: 3.5, delay: 75 + i * 50, blur: 16 },
-          { color, bottom: '-1.5rem', left: '-0.5rem', width: '4.5rem', height: '4.5rem', scale: 4, delay: 150 + i * 50, blur: 16 },
+          { color, top: '-0.5rem', right: '-1rem', width: '2.5rem', height: '2.5rem', scale: 2, delay: 150 + i * 50, blur: 12 },
+          { color, bottom: '-0.5rem', left: '-1rem', width: '2rem', height: '2rem', scale: 1.5, delay: 200 + i * 50, blur: 10 },
         );
       });
-    } else {
-      blobs.push(
-        { color: primaryColor, top: '-0.5rem', right: '-1.5rem', width: '4rem', height: '4rem', scale: 3.5, delay: 75, blur: 16 },
-        { color: primaryColor, bottom: '-1.5rem', left: '-0.5rem', width: '4.5rem', height: '4.5rem', scale: 4, delay: 150, blur: 16 },
-      );
     }
 
     return blobs;
