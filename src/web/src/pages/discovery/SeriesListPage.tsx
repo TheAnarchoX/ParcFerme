@@ -193,7 +193,7 @@ export function SeriesListPage() {
   
   // Separate series with seasons from those without (coming soon)
   const validSeries = series.filter((s) => s.slug && s.name);
-  const activeSeries = validSeries;
+  const activeSeries = validSeries; // For debugging, show all series including those with 0 seasons, usually this would be: validSeries.filter((s) => s.seasonCount > 0);
   const comingSoonSeries = validSeries.filter((s) => s.seasonCount === 0);
   
   return (
@@ -262,23 +262,6 @@ interface ComingSoonCardProps {
   series: SeriesSummaryDto;
 }
 
-/**
- * Calculate relative luminance of a hex color.
- * Returns a value between 0 (black) and 1 (white).
- */
-function getLuminance(hex: string): number {
-  // Remove # if present
-  const color = hex.replace('#', '');
-  const r = parseInt(color.substring(0, 2), 16) / 255;
-  const g = parseInt(color.substring(2, 4), 16) / 255;
-  const b = parseInt(color.substring(4, 6), 16) / 255;
-  
-  // Apply gamma correction
-  const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  
-  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-}
-
 function ComingSoonCard({ series }: ComingSoonCardProps) {
   // Guard against invalid data
   if (!series.slug || !series.name) {
@@ -291,12 +274,6 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
     : getSeriesColors(series.slug);
   
   const primaryColor = colors[0] ?? '#ffffff';
-  
-  // Calculate average luminance from all colors for better text contrast
-  // (since multiple colors blend together in the hover state)
-  const avgLuminance = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
-  const useDarkText = avgLuminance > 0.45;
-  const hoverTextColor = useDarkText ? '#1a1a1a' : '#ffffff';
 
   // Generate header bar style based on colors
   const getHeaderStyle = (): React.CSSProperties => {
@@ -309,154 +286,47 @@ function ComingSoonCard({ series }: ComingSoonCardProps) {
     return { background: `linear-gradient(to right, ${gradient})` };
   };
 
-  // Generate text style - always use first color
-  const getTextStyle = (): React.CSSProperties => {
-    return { color: primaryColor };
-  };
-
-  // Generate blob configurations - PRIMARY color as base wash, secondary colors as edge accents
-  const getBlobs = () => {
-    const blobs: Array<{
-      color: string;
-      top?: string;
-      bottom?: string;
-      left?: string;
-      right?: string;
-      width: string;
-      height: string;
-      scale: number;
-      delay: number;
-      blur: number;
-      zIndex?: number;
-    }> = [];
-
-    // PRIMARY color blobs FIRST - they form the dominant base wash
-    blobs.push(
-      { color: primaryColor, top: '20%', left: '20%', width: '5rem', height: '5rem', scale: 4, delay: 0, blur: 45, zIndex: 1 },
-      { color: primaryColor, top: '60%', left: '50%', width: '4rem', height: '4rem', scale: 3.5, delay: 30, blur: 40, zIndex: 1 },
-    );
-
-    // SECONDARY colors on TOP (higher z-index) - visible accent stripes at edges
-    // Position them at LEFT and RIGHT edges only (not top/bottom which affects text)
-    if (colors.length > 1) {
-      const secondaryColors = colors.slice(1);
-      
-      // First secondary color: LEFT edge
-      if (secondaryColors[0]) {
-        blobs.push({
-          color: secondaryColors[0],
-          top: '0', left: '-0.5rem', width: '3rem', height: '100%',
-          scale: 1.8, delay: 80, blur: 12, zIndex: 2,
-        });
-      }
-      
-      // Second secondary color: RIGHT edge
-      if (secondaryColors[1]) {
-        blobs.push({
-          color: secondaryColors[1],
-          top: '0', right: '-0.5rem', width: '3rem', height: '100%',
-          scale: 1.8, delay: 120, blur: 12, zIndex: 2,
-        });
-      }
-      
-      // Third+ secondary colors: small corner accents (top corners only, away from text)
-      if (secondaryColors[2]) {
-        blobs.push({
-          color: secondaryColors[2],
-          top: '-1rem', left: '30%', width: '2.5rem', height: '2.5rem',
-          scale: 2, delay: 160, blur: 10, zIndex: 2,
-        });
-      }
-      
-      if (secondaryColors[3]) {
-        blobs.push({
-          color: secondaryColors[3],
-          top: '-1rem', right: '30%', width: '2rem', height: '2rem',
-          scale: 1.5, delay: 200, blur: 8, zIndex: 2,
-        });
-      }
+  // Generate border gradient background
+  const getBorderGradient = (): string => {
+    if (colors.length === 1) {
+      return primaryColor;
     }
-
-    return blobs;
+    const gradient = colors.map((c, i) => 
+      `${c} ${(i / colors.length) * 100}%, ${c} ${((i + 1) / colors.length) * 100}%`
+    ).join(', ');
+    return `linear-gradient(to right, ${gradient})`;
   };
-
-  const blobs = getBlobs();
-  const cardId = `coming-soon-${series.slug}`;
 
   return (
     <Link
       to={ROUTES.SERIES_DETAIL(series.slug)}
-      className="group block bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-xl hover:border-neutral-700"
+      className="group block bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl relative"
     >
-      {/* Inject scoped styles for this card's blob animations */}
-      <style>{`
-        #${cardId}:hover .blob {
-          opacity: 1 !important;
-        }
-        ${blobs.map((blob, i) => `
-          #${cardId}:hover .blob-${i} {
-            transform: scale(${blob.scale}) !important;
-          }
-        `).join('')}
-      `}</style>
+      {/* Themed border overlay - only shows the border, not full background */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"
+        style={{ 
+          background: getBorderGradient(),
+          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          maskComposite: 'exclude',
+          padding: '1px',
+        }}
+      />
       
-      <div id={cardId}>
-        {/* Header with color accent */}
-        <div 
-          className="h-1.5" 
-          style={getHeaderStyle()}
-          aria-hidden="true"
-        />
-        
-        {/* Card content */}
-        <div className="relative p-4 text-center">
-          {/* Expanding blobs container */}
-          <div className="absolute inset-0 -top-2 overflow-hidden rounded-b-xl">
-            {blobs.map((blob, i) => (
-              <div 
-                key={i}
-                className={`blob blob-${i} absolute rounded-full transition-all duration-500 ease-out`}
-                style={{ 
-                  backgroundColor: blob.color,
-                  top: blob.top,
-                  bottom: blob.bottom,
-                  left: blob.left,
-                  right: blob.right,
-                  width: blob.width,
-                  height: blob.height,
-                  filter: `blur(${blob.blur}px)`,
-                  transform: 'scale(0)',
-                  opacity: 0,
-                  transitionDelay: `${blob.delay}ms`,
-                  zIndex: blob.zIndex ?? 1,
-                }}
-              />
-            ))}
-          </div>
-          
-          {/* Text content with lift animation and adaptive contrast - z-10 ensures it's above blobs */}
-          <span className="relative z-10 font-bold text-base block group-hover:-translate-y-0.5 transition-all duration-500">
-            {/* Default state text */}
-            <span 
-              className="transition-all duration-500 group-hover:opacity-0"
-              style={getTextStyle()}
-            >
-              {series.name}
-            </span>
-            {/* Hover state text with adaptive color and subtle shadow for legibility */}
-            <span 
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 font-extrabold"
-              style={{ 
-                color: hoverTextColor,
-                textShadow: useDarkText 
-                  ? '0 1px 2px rgba(0,0,0,0.2)' // Subtle dark shadow for dark text
-                  : '0 1px 2px rgba(255,255,255,0.2)' // Subtle light shadow for light text
-              }}
-            >
-              {series.name}
-            </span>
-          </span>
-        </div>
+      {/* Header with color accent */}
+      <div 
+        className="h-1.5" 
+        style={getHeaderStyle()}
+        aria-hidden="true"
+      />
+      
+      {/* Card content */}
+      <div className="p-4 text-center">
+        <span className="font-bold text-base" style={{ color: primaryColor }}>
+          {series.name}
+        </span>
       </div>
     </Link>
   );
